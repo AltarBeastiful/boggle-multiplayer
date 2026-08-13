@@ -226,6 +226,16 @@ test('les réglages envoyés par le client sont bornés', () => {
   assert.deepEqual(settings.endCondition, { type: 'rounds', rounds: 50 });
 });
 
+test('l’indice du nombre de mots est masqué par défaut', () => {
+  assert.equal(sanitizeSettings({}).showSolutionCount, false);
+  assert.equal(sanitizeSettings({ showSolutionCount: true }).showSolutionCount, true);
+  assert.equal(
+    sanitizeSettings({ showSolutionCount: 'oui' as never }).showSolutionCount,
+    false,
+    'valeur invalide : on reste sur l’indice masqué',
+  );
+});
+
 test('les réglages valides sont conservés', () => {
   const settings = sanitizeSettings({ boardSize: 5, roundSeconds: 120, qEqualsQu: true, minWordLength: 4 });
   assert.equal(settings.boardSize, 5);

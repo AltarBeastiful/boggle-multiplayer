@@ -1,0 +1,58 @@
+# Pile autonome : elle ne touche à aucun conteneur existant (WordPress, base…).
+# Elle peut tourner seule sur un port, ou être publiée par Traefik.
+#
+#   docker compose up -d --build      démarrer / mettre à jour
+#   docker compose logs -f boggle     suivre les journaux
+#   docker compose down               arrêter
+
+services:
+  boggle:
+    build: .
+    image: boggle-multiplayer:latest
+    container_name: boggle
+    restart: unless-stopped
+
+    environment:
+      NODE_ENV: production
+      # Port *dans* le conteneur : ne pas changer, voir BOGGLE_PORT pour l'hôte.
+      PORT: 3001
+
+    # Port publié sur l'hôte. Changez BOGGLE_PORT dans .env (défaut 3001).
+    # Derrière Traefik, cette section devient facultative : vous pouvez la
+    # commenter pour n'exposer le jeu que par le reverse proxy.
+    ports:
+      - '${BOGGLE_PORT:-3001}:3001'
+
+    # Mots ajoutés / exclus modifiables sans reconstruire l'image.
+    volumes:
+      - ./server/data:/app/server/data:ro
+
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3001/api/health']
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+    # --- Publication HTTPS par Traefik ---------------------------------------
+    # 1. Faites pointer BOGGLE_HOST (DNS) vers ce serveur.
+    # 2. Renseignez BOGGLE_HOST dans .env.
+    # 3. Décommentez le bloc `labels` ci-dessous ET le bloc `networks` en bas.
+    # 4. docker compose up -d
+    # Le nom du resolver (`myresolver`) et de l'entrypoint (`websecure`) suivent
+    # la configuration Traefik déjà en place sur ce serveur.
+    #
+    # labels:
+    #   - 'traefik.enable=true'
+    #   - 'traefik.http.routers.boggle.rule=Host(`${BOGGLE_HOST}`)'
+    #   - 'traefik.http.routers.boggle.entrypoints=websecure'
+    #   - 'traefik.http.routers.boggle.tls=true'
+    #   - 'traefik.http.routers.boggle.tls.certresolver=myresolver'
+    #   - 'traefik.http.services.boggle.loadbalancer.server.port=3001'
+# Traefik ne route que vers les conteneurs de son propre réseau Docker.
+# `ubuntu_default` est le réseau du docker-compose.yml qui fait tourner Traefik.
+#
+# networks:
+#   default:
+#     name: ubuntu_default
+#     external: true

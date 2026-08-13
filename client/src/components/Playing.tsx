@@ -124,7 +124,9 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
 
       <div className="mt-4 flex items-baseline justify-between">
         <h2 className="text-sm font-semibold tracking-wide text-slate-400 uppercase">
-          Mes mots ({myWords.length})
+          {round.solutionCount === null
+            ? `Mes mots (${myWords.length})`
+            : `Mes mots : ${myWords.length} sur ${round.solutionCount}`}
         </h2>
         <span className="text-sm text-slate-500">
           {hidesScores ? 'points révélés à la fin' : `${myScore} pts`}

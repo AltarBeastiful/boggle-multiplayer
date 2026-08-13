@@ -369,6 +369,7 @@ export class Room {
             board: [...this.round.board.cells],
             endsAt: this.round.endsAt,
             serverNow: Date.now(),
+            solutionCount: this.settings.showSolutionCount ? this.round.solution.size : null,
           }
         : null,
       results: this.results,

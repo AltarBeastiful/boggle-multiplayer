@@ -137,6 +137,18 @@ export function SettingsPanel({ settings, disabled, onChange }: SettingsPanelPro
       />
 
       <Choice
+        label="Indice pendant la manche"
+        hint="nombre de mots présents dans la grille"
+        value={settings.showSolutionCount ? 'on' : 'off'}
+        disabled={disabled}
+        onChange={(mode) => onChange({ showSolutionCount: mode === 'on' })}
+        options={[
+          { value: 'off', label: 'masqué' },
+          { value: 'on', label: 'affiché' },
+        ]}
+      />
+
+      <Choice
         label="Fin de partie"
         value={endKey(settings.endCondition)}
         disabled={disabled}

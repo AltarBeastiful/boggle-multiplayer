@@ -57,6 +57,7 @@ npm test
 | **Durée** | 1, 2, 3 ou 5 minutes |
 | **Doublons** | *annulés* (règle classique : un mot trouvé par plusieurs joueurs ne rapporte rien) ou *comptés pour tous* |
 | **Fin de partie** | 1, 3, 5 manches, 100 points, ou sans fin |
+| **Indice** | Affiche « X mots sur N » pendant la manche, **masqué par défaut** |
 
 Les pages de boggle.fr ne disent rien du sort des mots trouvés par plusieurs
 joueurs : le mode par défaut applique la règle classique du Boggle (annulation),
@@ -113,10 +114,44 @@ retirée. En pratique une grille 4x4 contient une centaine de mots.
 
 ## Déploiement
 
-Un seul processus Node, aucune base de données, l'état vit en mémoire. L'image
-Docker suffit sur un VPS, Fly.io ou Railway. Variables : `PORT` (3001), `HOST`
-(0.0.0.0), `NODE_ENV`.
+Un seul processus Node, aucune base de données, l'état vit en mémoire.
 
-Pour passer à plusieurs instances il faudrait un adaptateur Redis pour Socket.IO
-et un stockage partagé des salles, inutile à l'échelle d'un serveur de jeu
-entre amis, un processus tient largement la charge.
+```bash
+cp .env.example .env      # choisir le port
+docker compose up -d --build
+```
+
+La pile est **autonome** : elle ne touche à aucun conteneur existant. Le port
+publié se règle avec `BOGGLE_PORT` dans `.env`.
+
+### Mise à jour par git
+
+```bash
+./scripts/deploy.sh       # ssh + git pull + rebuild + healthcheck
+```
+
+Le script clone le dépôt au premier passage, puis se contente d'un
+`git merge --ff-only` et d'un `docker compose up -d --build`. Il ne copie rien
+depuis le poste local : **poussez avant de déployer**. Variables utiles :
+`BOGGLE_SSH_HOST` (défaut `wordpress`), `BOGGLE_REMOTE_DIR`, `BOGGLE_BRANCH`.
+
+Sur le serveur, la mise à jour manuelle tient en deux lignes :
+
+```bash
+cd ~/boggle-multiplayer && git pull
+sudo docker compose up -d --build
+```
+
+### Derrière Traefik
+
+`docker-compose.yml` contient un bloc `labels` prêt à l'emploi, commenté : il
+suit l'entrypoint `websecure` et le resolver `myresolver` déjà configurés. Il
+faut aussi décommenter le bloc `networks` (Traefik ne route que vers les
+conteneurs de son propre réseau) et faire pointer `BOGGLE_HOST` vers le serveur.
+Socket.IO passe sans réglage particulier, Traefik relaie l'upgrade WebSocket.
+
+### Monter en charge
+
+Pour plusieurs instances il faudrait un adaptateur Redis pour Socket.IO et un
+stockage partagé des salles. Inutile à l'échelle d'un serveur entre amis : un
+processus tient largement la charge.

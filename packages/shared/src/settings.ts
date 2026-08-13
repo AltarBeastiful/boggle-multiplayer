@@ -59,6 +59,8 @@ export function sanitizeSettings(
     duplicateMode:
       patch.duplicateMode === 'cancel' || patch.duplicateMode === 'all' ? patch.duplicateMode : base.duplicateMode,
     qEqualsQu: typeof patch.qEqualsQu === 'boolean' ? patch.qEqualsQu : base.qEqualsQu,
+    showSolutionCount:
+      typeof patch.showSolutionCount === 'boolean' ? patch.showSolutionCount : base.showSolutionCount,
     endCondition: sanitizeEndCondition(patch.endCondition, base.endCondition),
   };
 }

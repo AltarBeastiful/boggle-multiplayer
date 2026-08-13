@@ -37,6 +37,11 @@ export interface GameSettings {
   duplicateMode: DuplicateMode;
   /** Variante « QU à la place de Q » : la case Q vaut indifféremment Q ou QU. */
   qEqualsQu: boolean;
+  /**
+   * Indice : afficher pendant la manche le nombre de mots que contient la grille
+   * (« 3 mots trouvés sur 121 »). Masqué par défaut.
+   */
+  showSolutionCount: boolean;
   endCondition: EndCondition;
 }
 
@@ -47,6 +52,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   scoringMode: 'classic',
   duplicateMode: 'cancel',
   qEqualsQu: false,
+  showSolutionCount: false,
   endCondition: { type: 'rounds', rounds: 3 },
 };
 
@@ -124,6 +130,8 @@ export interface RoundState {
   endsAt: number;
   /** Horloge serveur au moment de l'envoi, pour corriger la dérive du client. */
   serverNow: number;
+  /** Nombre de mots de la grille. Renseigné si l'indice est activé, sinon null. */
+  solutionCount: number | null;
 }
 
 export interface RoomState {
