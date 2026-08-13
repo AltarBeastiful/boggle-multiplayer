@@ -60,6 +60,7 @@ export type RoomPhase = 'lobby' | 'playing' | 'results';
 
 /** Pourquoi un mot soumis a été refusé (retour immédiat au joueur). */
 export type RejectReason =
+  | 'not-started'
   | 'too-short'
   | 'not-on-board'
   | 'not-a-word'
@@ -109,12 +110,21 @@ export interface PlayerRoundResult {
   totalScore: number;
 }
 
+/** Un mot de la grille, et qui l'a trouvé. */
+export interface SolutionWord {
+  word: string;
+  points: number;
+  path: number[];
+  /** Identifiants des joueurs qui l'ont trouvé (vide = personne). */
+  finders: string[];
+}
+
 export interface RoundResults {
   roundNumber: number;
   board: string[];
   players: PlayerRoundResult[];
-  /** Les meilleurs mots que personne n'a trouvés. */
-  missedWords: Array<{ word: string; points: number; path: number[] }>;
+  /** Toutes les solutions de la grille, triées du mot le plus long au plus court. */
+  solution: SolutionWord[];
   /** Nombre total de mots présents dans la grille. */
   solutionCount: number;
   /** Total des points disponibles dans la grille. */
@@ -126,6 +136,12 @@ export interface RoundResults {
 export interface RoundState {
   number: number;
   board: string[];
+  /**
+   * Début effectif de la manche (epoch ms). Entre la réception de la grille et
+   * cet instant, les lettres sont floutées : tout le monde démarre ensemble,
+   * même si un client a reçu la grille quelques dizaines de ms plus tôt.
+   */
+  startsAt: number;
   /** Date de fin (epoch ms, horloge serveur). */
   endsAt: number;
   /** Horloge serveur au moment de l'envoi, pour corriger la dérive du client. */

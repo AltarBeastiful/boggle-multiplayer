@@ -15,8 +15,8 @@ function Choice<T extends string | number>({ label, hint, value, options, disabl
   return (
     <div>
       <div className="mb-1.5 flex items-baseline gap-2">
-        <span className="text-sm font-medium text-slate-300">{label}</span>
-        {hint && <span className="text-xs text-slate-500">{hint}</span>}
+        <span className="text-sm font-medium text-fg-muted">{label}</span>
+        {hint && <span className="text-xs text-fg-faint">{hint}</span>}
       </div>
       <div className="flex flex-wrap gap-1.5">
         {options.map((option) => {
@@ -30,8 +30,8 @@ function Choice<T extends string | number>({ label, hint, value, options, disabl
               className={[
                 'rounded-lg px-3 py-1.5 text-sm font-medium transition',
                 active
-                  ? 'bg-amber-400 text-slate-950'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:hover:bg-slate-800',
+                  ? 'bg-accent text-accent-fg'
+                  : 'bg-chip text-fg-muted hover:bg-chip-hover disabled:hover:bg-chip',
                 disabled ? 'cursor-not-allowed opacity-60' : '',
               ].join(' ')}
             >

@@ -4,6 +4,7 @@ import type { GameSettings, RoomState } from '@boggle/shared';
 import { scoringTable } from '@boggle/shared';
 
 import { SettingsPanel } from './SettingsPanel';
+import { ThemeToggle } from './ThemeToggle';
 
 interface LobbyProps {
   room: RoomState;
@@ -47,46 +48,49 @@ export function Lobby({ room, isHost, playerId, onStart, onSettings, onLeave }: 
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 px-5 py-8">
-      <header className="text-center">
-        <p className="text-sm tracking-widest text-slate-400 uppercase">Code de la salle</p>
-        <p className="my-1 font-mono text-6xl font-black tracking-[0.2em] text-amber-400">{room.code}</p>
+      <header className="relative text-center">
+        <div className="absolute top-0 right-0">
+          <ThemeToggle />
+        </div>
+        <p className="text-sm tracking-widest text-fg-muted uppercase">Code de la salle</p>
+        <p className="my-1 font-mono text-6xl font-black tracking-[0.2em] text-accent">{room.code}</p>
         <button
           type="button"
           onClick={() => void copy()}
-          className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:border-amber-400 hover:text-amber-300"
+          className="rounded-lg border border-border-strong px-4 py-2 text-sm text-fg-muted transition hover:border-accent hover:text-accent"
         >
           {copied ? '✓ Lien copié' : 'Copier le lien d’invitation'}
         </button>
       </header>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-        <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-400 uppercase">
+      <section className="rounded-2xl border border-border bg-panel p-4">
+        <h2 className="mb-3 text-sm font-semibold tracking-wide text-fg-muted uppercase">
           Joueurs ({room.players.length})
         </h2>
         <ul className="space-y-2">
           {room.players.map((player) => (
             <li key={player.id} className="flex items-center gap-2.5">
               <span
-                className={`h-2 w-2 shrink-0 rounded-full ${player.connected ? 'bg-emerald-400' : 'bg-slate-600'}`}
+                className={`h-2 w-2 shrink-0 rounded-full ${player.connected ? 'bg-ok' : 'bg-fg-faint'}`}
                 title={player.connected ? 'connecté' : 'déconnecté'}
               />
-              <span className="font-medium text-slate-100">{player.nickname}</span>
+              <span className="font-medium text-fg">{player.nickname}</span>
               {player.isHost && (
-                <span className="rounded bg-amber-400/15 px-1.5 py-0.5 text-xs text-amber-300">hôte</span>
+                <span className="rounded bg-accent-soft px-1.5 py-0.5 text-xs text-accent">hôte</span>
               )}
-              {player.id === playerId && <span className="text-xs text-slate-500">(vous)</span>}
+              {player.id === playerId && <span className="text-xs text-fg-faint">(vous)</span>}
             </li>
           ))}
         </ul>
         {room.players.length === 1 && (
-          <p className="mt-3 text-sm text-slate-500">
+          <p className="mt-3 text-sm text-fg-faint">
             Partagez le code ou le lien : les autres joueurs apparaîtront ici.
           </p>
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-        <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-400 uppercase">
+      <section className="rounded-2xl border border-border bg-panel p-4">
+        <h2 className="mb-3 text-sm font-semibold tracking-wide text-fg-muted uppercase">
           Règles {isHost ? '' : '(réglées par l’hôte)'}
         </h2>
         <SettingsPanel
@@ -99,17 +103,17 @@ export function Lobby({ room, isHost, playerId, onStart, onSettings, onLeave }: 
             );
           }}
         />
-        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-800 pt-3 text-xs text-slate-500">
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 border-t border-border pt-3 text-xs text-fg-faint">
           {table.map((row) => (
             <span key={row.label}>
-              {row.label} lettres : <span className="text-slate-300">{row.points} pt{row.points > 1 ? 's' : ''}</span>
+              {row.label} lettres : <span className="text-fg-muted">{row.points} pt{row.points > 1 ? 's' : ''}</span>
             </span>
           ))}
         </div>
       </section>
 
       {error && (
-        <p role="alert" className="rounded-lg bg-red-950/60 px-4 py-2 text-center text-sm text-red-300">
+        <p role="alert" className="rounded-lg bg-bad-bg px-4 py-2 text-center text-sm text-bad">
           {error}
         </p>
       )}
@@ -119,12 +123,12 @@ export function Lobby({ room, isHost, playerId, onStart, onSettings, onLeave }: 
           type="button"
           onClick={() => void start()}
           disabled={starting}
-          className="w-full rounded-xl bg-amber-400 px-4 py-4 text-lg font-bold text-slate-950 transition hover:bg-amber-300 disabled:opacity-40"
+          className="w-full rounded-xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition hover:bg-accent-hover disabled:opacity-40"
         >
           {starting ? 'Lancement…' : 'Lancer la partie'}
         </button>
       ) : (
-        <p className="rounded-xl bg-slate-900 px-4 py-4 text-center text-slate-400">
+        <p className="rounded-xl bg-panel-soft px-4 py-4 text-center text-fg-muted">
           En attente du lancement par l’hôte…
         </p>
       )}
@@ -132,7 +136,7 @@ export function Lobby({ room, isHost, playerId, onStart, onSettings, onLeave }: 
       <button
         type="button"
         onClick={onLeave}
-        className="mx-auto block text-sm text-slate-500 underline hover:text-slate-300"
+        className="mx-auto block text-sm text-fg-faint underline hover:text-fg-muted"
       >
         Quitter la salle
       </button>

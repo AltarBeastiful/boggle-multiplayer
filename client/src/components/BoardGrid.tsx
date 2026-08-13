@@ -23,11 +23,13 @@ export function BoardGrid({ cells, size, highlight, qEqualsQu = false, compact =
             key={index}
             className={[
               'relative flex aspect-square items-center justify-center rounded-xl font-bold uppercase',
-              'shadow-sm transition-colors duration-150 select-none',
+              'shadow-[0_1px_3px_var(--tile-shadow)] transition-colors duration-150 select-none',
               compact ? 'text-lg sm:text-xl' : 'text-2xl sm:text-4xl',
+              // Les jetons gardent leur teinte ivoire dans les deux thèmes :
+              // c'est la couleur des dés, et elle reste lisible sur les deux fonds.
               active
-                ? 'bg-amber-400 text-slate-900 ring-2 ring-amber-200'
-                : 'bg-amber-50 text-slate-900',
+                ? 'bg-tile-active text-tile-active-fg ring-2 ring-tile-active-fg/25'
+                : 'bg-tile text-tile-fg',
             ].join(' ')}
           >
             {letter === 'Q' && qEqualsQu ? (
@@ -38,7 +40,7 @@ export function BoardGrid({ cells, size, highlight, qEqualsQu = false, compact =
               letter
             )}
             {active && order >= 0 && (
-              <span className="absolute top-0.5 left-1 text-[0.5em] font-semibold text-slate-900/60">
+              <span className="absolute top-0.5 left-1 text-[0.5em] font-semibold text-tile-active-fg/60">
                 {order + 1}
               </span>
             )}

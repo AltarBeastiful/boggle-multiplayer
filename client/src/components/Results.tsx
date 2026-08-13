@@ -3,6 +3,8 @@ import { useState } from 'react';
 import type { PlayerRoundResult, RoomState, RoundResults, ScoredWord } from '@boggle/shared';
 
 import { BoardGrid } from './BoardGrid';
+import { SolutionPanel } from './SolutionPanel';
+import { ThemeToggle } from './ThemeToggle';
 
 interface ResultsProps {
   room: RoomState;
@@ -21,19 +23,19 @@ function WordChip({ word, onHover }: { word: ScoredWord; onHover?: () => void })
       onMouseEnter={onHover}
       className={[
         'rounded-lg px-2.5 py-1 text-sm',
-        cancelled ? 'bg-slate-800/50 text-slate-500 line-through' : 'bg-slate-800 text-slate-200',
+        cancelled ? 'bg-chip/50 text-fg-faint line-through' : 'bg-chip text-fg',
       ].join(' ')}
       title={cancelled ? `Trouvé par ${word.foundBy} joueurs, donc annulé` : undefined}
     >
       {word.word}
-      <span className="ml-1.5 text-xs text-slate-500">{word.points}</span>
+      <span className="ml-1.5 text-xs text-fg-faint">{word.points}</span>
     </span>
   );
 }
 
 function PlayerWords({ player, highlight }: { player: PlayerRoundResult; highlight(word: string): void }) {
   if (player.words.length === 0) {
-    return <p className="text-sm text-slate-600">Aucun mot trouvé.</p>;
+    return <p className="text-sm text-fg-faint">Aucun mot trouvé.</p>;
   }
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -51,8 +53,8 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
 
   /** Retrouve le chemin d'un mot pour l'afficher sur la grille. */
   const highlightWord = (word: string) => {
-    const missed = results.missedWords.find((entry) => entry.word === word);
-    if (missed) setHighlight(missed.path);
+    const found = results.solution.find((entry) => entry.word === word);
+    if (found) setHighlight(found.path);
   };
 
   const me = results.players.find((player) => player.playerId === playerId);
@@ -74,20 +76,23 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-5 px-5 py-8">
-      <header className="text-center">
+      <header className="relative text-center">
+        <div className="absolute top-0 right-0">
+          <ThemeToggle />
+        </div>
         {results.gameOver ? (
           <>
-            <h1 className="text-3xl font-black text-amber-400">Partie terminée</h1>
+            <h1 className="text-3xl font-black text-accent">Partie terminée</h1>
             {winner && (
-              <p className="mt-1 text-slate-300">
+              <p className="mt-1 text-fg-muted">
                 🏆 <span className="font-semibold">{winner.nickname}</span> l’emporte avec {winner.totalScore} points
               </p>
             )}
           </>
         ) : (
           <>
-            <h1 className="text-3xl font-black text-slate-100">Manche {results.roundNumber} terminée</h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <h1 className="text-3xl font-black text-fg">Manche {results.roundNumber} terminée</h1>
+            <p className="mt-1 text-sm text-fg-faint">
               {results.solutionCount} mots dans la grille, {results.solutionPoints} points possibles
             </p>
           </>
@@ -104,9 +109,9 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
         />
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-slate-800">
+      <section className="overflow-hidden rounded-2xl border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-slate-900 text-xs tracking-wide text-slate-500 uppercase">
+          <thead className="bg-panel-soft text-xs tracking-wide text-fg-faint uppercase">
             <tr>
               <th className="px-3 py-2 text-left font-medium">Joueur</th>
               <th className="px-3 py-2 text-right font-medium">Manche</th>
@@ -117,15 +122,15 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
             {standings.map((player, index) => (
               <tr
                 key={player.playerId}
-                className={`border-t border-slate-800 ${player.playerId === playerId ? 'bg-amber-400/5' : ''}`}
+                className={`border-t border-border ${player.playerId === playerId ? 'bg-accent-soft' : ''}`}
               >
-                <td className="px-3 py-2 text-slate-200">
-                  <span className="mr-2 text-slate-600">{index + 1}</span>
+                <td className="px-3 py-2 text-fg">
+                  <span className="mr-2 text-fg-faint">{index + 1}</span>
                   {player.nickname}
-                  {player.playerId === playerId && <span className="ml-1.5 text-xs text-slate-500">(vous)</span>}
+                  {player.playerId === playerId && <span className="ml-1.5 text-xs text-fg-faint">(vous)</span>}
                 </td>
-                <td className="px-3 py-2 text-right text-slate-400">+{player.roundScore}</td>
-                <td className="px-3 py-2 text-right font-semibold text-slate-100">{player.totalScore}</td>
+                <td className="px-3 py-2 text-right text-fg-muted">+{player.roundScore}</td>
+                <td className="px-3 py-2 text-right font-semibold text-fg">{player.totalScore}</td>
               </tr>
             ))}
           </tbody>
@@ -133,11 +138,11 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
       </section>
 
       {me && (
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-          <h2 className="mb-2 text-sm font-semibold tracking-wide text-slate-400 uppercase">
+        <section className="rounded-2xl border border-border bg-panel p-4">
+          <h2 className="mb-2 text-sm font-semibold tracking-wide text-fg-muted uppercase">
             Vos mots : {me.roundScore} pts
             {room.settings.duplicateMode === 'cancel' && (
-              <span className="ml-2 font-normal text-slate-600 normal-case">
+              <span className="ml-2 font-normal text-fg-faint normal-case">
                 (barrés = trouvés par un autre joueur)
               </span>
             )}
@@ -147,8 +152,8 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
       )}
 
       {others.map((player) => (
-        <details key={player.playerId} className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-          <summary className="cursor-pointer text-sm font-semibold tracking-wide text-slate-400 uppercase">
+        <details key={player.playerId} className="rounded-2xl border border-border bg-panel p-4">
+          <summary className="cursor-pointer text-sm font-semibold tracking-wide text-fg-muted uppercase">
             {player.nickname} : {player.roundScore} pts ({player.words.length} mots)
           </summary>
           <div className="mt-3">
@@ -157,29 +162,15 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
         </details>
       ))}
 
-      <details className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-        <summary className="cursor-pointer text-sm font-semibold tracking-wide text-slate-400 uppercase">
-          Les meilleurs mots manqués ({results.missedWords.length})
-        </summary>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {results.missedWords.map((missed) => (
-            <button
-              key={missed.word}
-              type="button"
-              onMouseEnter={() => setHighlight(missed.path)}
-              onClick={() => setHighlight(missed.path)}
-              className="rounded-lg bg-slate-800 px-2.5 py-1 text-sm text-slate-300 transition hover:bg-amber-400 hover:text-slate-950"
-            >
-              {missed.word}
-              <span className="ml-1.5 text-xs opacity-60">{missed.points}</span>
-            </button>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-slate-600">Survolez un mot pour le voir sur la grille.</p>
-      </details>
+      <SolutionPanel
+        solution={results.solution}
+        playerId={playerId}
+        players={room.players}
+        onHighlight={setHighlight}
+      />
 
       {error && (
-        <p role="alert" className="rounded-lg bg-red-950/60 px-4 py-2 text-center text-sm text-red-300">
+        <p role="alert" className="rounded-lg bg-bad-bg px-4 py-2 text-center text-sm text-bad">
           {error}
         </p>
       )}
@@ -191,7 +182,7 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
               type="button"
               disabled={busy}
               onClick={() => void act(onNext)}
-              className="w-full rounded-xl bg-amber-400 px-4 py-4 text-lg font-bold text-slate-950 transition hover:bg-amber-300 disabled:opacity-40"
+              className="w-full rounded-xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition hover:bg-accent-hover disabled:opacity-40"
             >
               Manche suivante
             </button>
@@ -202,15 +193,15 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
             onClick={() => void act(onReset)}
             className={`w-full rounded-xl px-4 py-3 font-semibold transition disabled:opacity-40 ${
               results.gameOver
-                ? 'bg-amber-400 text-slate-950 hover:bg-amber-300'
-                : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                ? 'bg-accent text-accent-fg hover:bg-accent-hover'
+                : 'border border-border-strong text-fg-muted hover:border-accent'
             }`}
           >
             Nouvelle partie
           </button>
         </div>
       ) : (
-        <p className="rounded-xl bg-slate-900 px-4 py-4 text-center text-slate-400">
+        <p className="rounded-xl bg-panel-soft px-4 py-4 text-center text-fg-muted">
           En attente de l’hôte…
         </p>
       )}
@@ -218,7 +209,7 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
       <button
         type="button"
         onClick={onLeave}
-        className="mx-auto block text-sm text-slate-500 underline hover:text-slate-300"
+        className="mx-auto block text-sm text-fg-faint underline hover:text-fg-muted"
       >
         Quitter la salle
       </button>

@@ -46,6 +46,17 @@ npm test
 - Les points **s'additionnent d'une manche à l'autre**. La partie s'arrête au
   nombre de manches ou au score fixé par l'hôte.
 
+Chaque manche démarre par un **décompte de 3 secondes**, grille floutée : le
+serveur donne l'instant du départ, donc tout le monde voit les lettres au même
+moment, même si sa grille est arrivée quelques dizaines de millisecondes plus tôt.
+
+À la fin de la manche, la **page des solutions** liste les mots de la grille
+groupés par longueur, en marquant ceux que vous avez trouvés, ceux qu'un autre
+joueur a trouvés et ceux que personne n'a vus. Un clic trace le mot sur la grille.
+
+L'interface suit le **thème clair ou sombre** du système, avec un bouton pour
+forcer l'un ou l'autre. Les contrastes des deux thèmes vérifient le niveau AA.
+
 ### Variantes disponibles (réglées par l'hôte, avant la partie)
 
 | Variante | Effet |

@@ -1,7 +1,106 @@
 @import 'tailwindcss';
 
-:root {
-  color-scheme: dark;
+/*
+ * Un seul jeu de jetons sémantiques, redéfini par thème. Les composants ne
+ * nomment jamais une couleur brute (« slate-800 ») mais un rôle (« panel »,
+ * « fg-muted ») : les deux thèmes restent cohérents sans classes en double.
+ *
+ * `data-theme` est posé sur <html> avant le premier rendu (script dans
+ * index.html), ce qui évite le flash de thème clair au chargement.
+ */
+
+:root,
+[data-theme='light'] {
+  --bg: #eef2f7;
+  --panel: #ffffff;
+  --panel-soft: #ffffff;
+  --border: #dde3ec;
+  --border-strong: #c4cdda;
+  --fg: #0f172a;
+  --fg-muted: #4a5568;
+  --fg-faint: #5b6676;
+  --chip: #e7edf5;
+  --chip-hover: #d9e2ee;
+
+  --accent: #a34a07;
+  --accent-hover: #8a3d06;
+  --accent-fg: #ffffff;
+  --accent-soft: rgb(180 83 9 / 0.1);
+
+  --tile: #fffdf6;
+  --tile-fg: #1e293b;
+  --tile-active: #f59e0b;
+  --tile-active-fg: #1e293b;
+  --tile-shadow: rgb(15 23 42 / 0.12);
+
+  --ok: #166534;
+  --ok-bg: rgb(21 128 61 / 0.12);
+  --bad: #b91c1c;
+  --bad-bg: rgb(185 28 28 / 0.1);
+  --warn: #b45309;
+  --danger-banner: #b91c1c;
+  --danger-banner-fg: #ffffff;
+}
+
+[data-theme='dark'] {
+  --bg: #020617;
+  --panel: #0c1424;
+  --panel-soft: #0f172a;
+  --border: #1e293b;
+  --border-strong: #334155;
+  --fg: #f1f5f9;
+  --fg-muted: #94a3b8;
+  --fg-faint: #8a99b0;
+  --chip: #1e293b;
+  --chip-hover: #334155;
+
+  --accent: #fbbf24;
+  --accent-hover: #fcd34d;
+  --accent-fg: #020617;
+  --accent-soft: rgb(251 191 36 / 0.1);
+
+  --tile: #fffbeb;
+  --tile-fg: #0f172a;
+  --tile-active: #fbbf24;
+  --tile-active-fg: #0f172a;
+  --tile-shadow: rgb(0 0 0 / 0.35);
+
+  --ok: #6ee7b7;
+  --ok-bg: rgb(16 185 129 / 0.18);
+  --bad: #fca5a5;
+  --bad-bg: rgb(239 68 68 / 0.18);
+  --warn: #fcd34d;
+  --danger-banner: rgb(127 29 29 / 0.85);
+  --danger-banner-fg: #fee2e2;
+}
+
+/* `inline` : les utilitaires émettent var(--x), donc ils suivent le thème. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-soft: var(--panel-soft);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+  --color-chip: var(--chip);
+  --color-chip-hover: var(--chip-hover);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-tile: var(--tile);
+  --color-tile-fg: var(--tile-fg);
+  --color-tile-active: var(--tile-active);
+  --color-tile-active-fg: var(--tile-active-fg);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-bad: var(--bad);
+  --color-bad-bg: var(--bad-bg);
+  --color-warn: var(--warn);
+  --color-danger-banner: var(--danger-banner);
+  --color-danger-banner-fg: var(--danger-banner-fg);
 }
 
 html,
@@ -12,8 +111,8 @@ body,
 
 body {
   margin: 0;
-  background-color: #020617;
-  color: #f1f5f9;
+  background-color: var(--bg);
+  color: var(--fg);
   font-family:
     system-ui,
     -apple-system,
@@ -24,7 +123,43 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
-/* Le zoom automatique de Safari sur un champ de saisie casserait la mise en page. */
+/* Sous 16px, Safari iOS zoome sur le champ actif et casse la mise en page. */
 input {
   font-size: 16px;
+}
+
+/* Cible tactile confortable, recommandation WCAG 2.5.5. */
+button,
+[role='button'] {
+  touch-action: manipulation;
+}
+
+/* Décompte d'avant-manche : le chiffre arrive en grand puis se pose. */
+@keyframes boggle-countdown {
+  0% {
+    opacity: 0;
+    transform: scale(1.75);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.9;
+    transform: scale(0.96);
+  }
+}
+
+.animate-countdown {
+  animation: boggle-countdown 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

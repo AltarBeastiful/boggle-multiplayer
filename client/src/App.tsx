@@ -32,7 +32,7 @@ export function App() {
   };
 
   const banner = !game.connected && (
-    <div className="sticky top-0 z-10 bg-red-900/80 px-4 py-1.5 text-center text-sm text-red-100 backdrop-blur">
+    <div className="sticky top-0 z-10 bg-danger-banner px-4 py-1.5 text-center text-sm text-danger-banner-fg backdrop-blur">
       Connexion perdue, reconnexion en cours…
     </div>
   );

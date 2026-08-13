@@ -19,13 +19,14 @@ import {
   type RoomState,
   type RoundResults,
   type ScoredWord,
+  type SolutionWord,
   type SubmitResult,
 } from '@boggle/shared';
 
 /** Tolérance de latence : un mot parti juste avant le buzzer compte encore. */
 const SUBMIT_GRACE_MS = 700;
-/** Nombre de mots manqués renvoyés en fin de manche. */
-const MISSED_WORDS_SHOWN = 60;
+/** Décompte d'avant-manche : la grille est visible mais floutée. */
+const COUNTDOWN_MS = 3000;
 /** Une salle sans joueur connecté est supprimée après ce délai. */
 const ROOM_TTL_MS = 30 * 60 * 1000;
 
@@ -45,6 +46,8 @@ interface ActiveRound {
   board: Board;
   seed: number;
   startedAt: number;
+  /** Fin du décompte : avant, aucun mot n'est accepté. */
+  startsAt: number;
   endsAt: number;
   /** Tous les mots de la grille : sert à valider en O(1) et à lister les mots manqués. */
   solution: Map<string, number[]>;
@@ -213,12 +216,14 @@ export class Room {
     for (const player of this.players.values()) player.words.clear();
 
     const now = Date.now();
+    const startsAt = now + COUNTDOWN_MS;
     this.round = {
       number,
       board: generated.board,
       seed: generated.seed,
       startedAt: now,
-      endsAt: now + roundSeconds * 1000,
+      startsAt,
+      endsAt: startsAt + roundSeconds * 1000,
       solution: solution.words,
       solutionPoints: solution.totalPoints,
       timer: null,
@@ -227,7 +232,10 @@ export class Room {
     this.results = null;
     this.touch();
 
-    this.round.timer = setTimeout(() => this.endRound(), roundSeconds * 1000 + SUBMIT_GRACE_MS);
+    this.round.timer = setTimeout(
+      () => this.endRound(),
+      COUNTDOWN_MS + roundSeconds * 1000 + SUBMIT_GRACE_MS,
+    );
     this.broadcaster.roundStarted(this);
   }
 
@@ -244,13 +252,17 @@ export class Room {
     if (!round || this.phase !== 'playing') return;
     this.clearTimer();
 
-    // Combien de joueurs ont trouvé chaque mot ?
-    const foundBy = new Map<string, number>();
+    // Qui a trouvé quoi ? Sert au décompte et à la page des solutions.
+    const finders = new Map<string, string[]>();
     for (const player of this.players.values()) {
       for (const word of player.words.keys()) {
-        foundBy.set(word, (foundBy.get(word) ?? 0) + 1);
+        const list = finders.get(word);
+        if (list) list.push(player.id);
+        else finders.set(word, [player.id]);
       }
     }
+    const foundBy = new Map<string, number>();
+    for (const [word, list] of finders) foundBy.set(word, list.length);
 
     const cancelDuplicates = this.settings.duplicateMode === 'cancel';
     const playerResults: PlayerRoundResult[] = [];
@@ -280,13 +292,17 @@ export class Room {
 
     playerResults.sort((a, b) => b.roundScore - a.roundScore || b.totalScore - a.totalScore);
 
-    // Les meilleurs mots que personne n'a trouvés.
-    const missedWords: RoundResults['missedWords'] = [];
+    // Toutes les solutions, du mot le plus long au plus court.
+    const solution: SolutionWord[] = [];
     for (const [word, path] of round.solution) {
-      if (foundBy.has(word)) continue;
-      missedWords.push({ word, points: wordScore(word.length, this.settings.scoringMode), path });
+      solution.push({
+        word,
+        points: wordScore(word.length, this.settings.scoringMode),
+        path,
+        finders: finders.get(word) ?? [],
+      });
     }
-    missedWords.sort((a, b) => b.points - a.points || a.word.localeCompare(b.word, 'fr'));
+    solution.sort((a, b) => b.word.length - a.word.length || a.word.localeCompare(b.word, 'fr'));
 
     this.roundsPlayed = round.number;
     this.gameOver = this.checkGameOver();
@@ -296,7 +312,7 @@ export class Room {
       roundNumber: round.number,
       board: [...round.board.cells],
       players: playerResults,
-      missedWords: missedWords.slice(0, MISSED_WORDS_SHOWN),
+      solution,
       solutionCount: round.solution.size,
       solutionPoints: round.solutionPoints,
       gameOver: this.gameOver,
@@ -327,6 +343,7 @@ export class Room {
 
     const round = this.round;
     if (this.phase !== 'playing' || !round) return { word, accepted: false, reason: 'round-over' };
+    if (Date.now() < round.startsAt) return { word, accepted: false, reason: 'not-started' };
     if (Date.now() > round.endsAt + SUBMIT_GRACE_MS) return { word, accepted: false, reason: 'round-over' };
     if (word.length < this.settings.minWordLength) return { word, accepted: false, reason: 'too-short' };
     if (player.words.has(word)) return { word, accepted: false, reason: 'already-found' };
@@ -367,6 +384,7 @@ export class Room {
         ? {
             number: this.round.number,
             board: [...this.round.board.cells],
+            startsAt: this.round.startsAt,
             endsAt: this.round.endsAt,
             serverNow: Date.now(),
             solutionCount: this.settings.showSolutionCount ? this.round.solution.size : null,

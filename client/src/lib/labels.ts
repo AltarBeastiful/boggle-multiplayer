@@ -2,6 +2,8 @@ import type { EndCondition, GameSettings, RejectReason } from '@boggle/shared';
 
 export function rejectionMessage(reason: RejectReason | undefined, minWordLength: number): string {
   switch (reason) {
+    case 'not-started':
+      return 'la manche n’a pas encore commencé';
     case 'too-short':
       return `${minWordLength} lettres minimum`;
     case 'not-on-board':
