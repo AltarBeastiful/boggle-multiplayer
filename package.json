@@ -1,0 +1,27 @@
+{
+  "name": "boggle-multiplayer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Boggle multijoueur en temps réel, règles et variantes de boggle.fr",
+  "workspaces": [
+    "packages/shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "predev": "npm run build -w @boggle/shared",
+    "dev": "concurrently -n shared,server,client -c gray,green,cyan \"npm run dev -w @boggle/shared\" \"npm run dev -w @boggle/server\" \"npm run dev -w @boggle/client\"",
+    "build": "npm run build -w @boggle/shared && npm run build -w @boggle/client && npm run build -w @boggle/server",
+    "start": "node server/dist/index.js",
+    "test": "npm run test -w @boggle/shared",
+    "typecheck": "tsc -b packages/shared server client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

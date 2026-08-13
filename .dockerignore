@@ -1,0 +1,13 @@
+.git
+.gitignore
+.env
+
+node_modules
+**/node_modules
+
+dist
+**/dist
+
+# Sans cela, tsc croit le projet déjà compilé et n'émet rien dans l'image.
+*.tsbuildinfo
+**/*.tsbuildinfo
