@@ -31,7 +31,12 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   fi
 fi
 
-ssh "$SSH_HOST" REMOTE_DIR="$REMOTE_DIR" REPO_URL="$REPO_URL" BRANCH="$BRANCH" DOCKER="$DOCKER" 'bash -s' <<'REMOTE'
+# ssh concatène ses arguments : sans échappement, DOCKER="sudo docker" se
+# scinderait en deux mots côté serveur. printf %q produit du shell valable.
+remote_env=$(printf 'REMOTE_DIR=%q REPO_URL=%q BRANCH=%q DOCKER=%q' \
+  "$REMOTE_DIR" "$REPO_URL" "$BRANCH" "$DOCKER")
+
+ssh "$SSH_HOST" "$remote_env bash -s" <<'REMOTE'
 set -euo pipefail
 
 if [ ! -d "$REMOTE_DIR/.git" ]; then
