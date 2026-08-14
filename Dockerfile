@@ -13,6 +13,10 @@ COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
 COPY server server
 COPY client client
+
+# Tracé du mot trouvé sur la grille : VITE_WORD_TRACE=off pour le supprimer.
+ARG VITE_WORD_TRACE=on
+ENV VITE_WORD_TRACE=$VITE_WORD_TRACE
 RUN npm run build
 
 # --- exécution --------------------------------------------------------------

@@ -40,7 +40,11 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
   boggle:
-    build: .
+    build:
+      context: .
+      args:
+        # `off` supprime le tracé du mot trouvé sur la grille.
+        VITE_WORD_TRACE: ${VITE_WORD_TRACE:-on}
     image: boggle-multiplayer:latest
     container_name: boggle
     restart: unless-stopped

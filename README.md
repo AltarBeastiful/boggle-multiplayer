@@ -55,6 +55,11 @@ groupés par longueur, en marquant ceux que vous avez trouvés, ceux qu'un autre
 joueur a trouvés et ceux que personne n'a vus. Un clic trace le mot sur la grille
 **et affiche sa définition**, tirée du Wiktionnaire francophone.
 
+Quand un mot est accepté, son chemin est tracé une fraction de seconde sur la
+grille puis s'efface : rien ne reste affiché entre deux mots. Pour supprimer
+complètement ce tracé, compilez avec `VITE_WORD_TRACE=off` (variable reprise par
+`docker compose` comme argument de build).
+
 L'interface suit le **thème clair ou sombre** du système, avec un bouton pour
 forcer l'un ou l'autre. Les contrastes des deux thèmes vérifient le niveau AA.
 

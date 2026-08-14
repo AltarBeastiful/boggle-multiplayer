@@ -5,9 +5,18 @@ interface BoardGridProps {
   highlight?: number[];
   qEqualsQu?: boolean;
   compact?: boolean;
+  /** Anime brièvement les cases mises en évidence (tracé d'un mot trouvé). */
+  animateHighlight?: boolean;
 }
 
-export function BoardGrid({ cells, size, highlight, qEqualsQu = false, compact = false }: BoardGridProps) {
+export function BoardGrid({
+  cells,
+  size,
+  highlight,
+  qEqualsQu = false,
+  compact = false,
+  animateHighlight = false,
+}: BoardGridProps) {
   const highlighted = new Set(highlight ?? []);
 
   return (
@@ -30,6 +39,7 @@ export function BoardGrid({ cells, size, highlight, qEqualsQu = false, compact =
               active
                 ? 'bg-tile-active text-tile-active-fg ring-2 ring-tile-active-fg/25'
                 : 'bg-tile text-tile-fg',
+              active && animateHighlight ? 'animate-trace' : '',
             ].join(' ')}
           >
             {letter === 'Q' && qEqualsQu ? (

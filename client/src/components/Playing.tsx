@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { RoomState, SubmitResult } from '@boggle/shared';
 
 import type { FoundWord } from '../hooks/useGame';
+import { TRACE_DURATION_MS, TRACE_FOUND_WORD } from '../lib/config';
 import { rejectionMessage } from '../lib/labels';
 import { BoardGrid } from './BoardGrid';
 import { RoundCountdown } from './RoundCountdown';
@@ -30,6 +31,23 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
   const [highlight, setHighlight] = useState<number[] | undefined>();
   const inputRef = useRef<HTMLInputElement>(null);
   const flashCounter = useRef(0);
+  const traceTimer = useRef<number | undefined>(undefined);
+
+  /**
+   * Le tracé ne persiste pas : il s'affiche brièvement puis s'efface, sinon la
+   * grille reste barbouillée du dernier mot pendant toute la manche.
+   */
+  const traceWord = (path: number[] | undefined, duration = TRACE_DURATION_MS) => {
+    window.clearTimeout(traceTimer.current);
+    if (!path) {
+      setHighlight(undefined);
+      return;
+    }
+    setHighlight(path);
+    traceTimer.current = window.setTimeout(() => setHighlight(undefined), duration);
+  };
+
+  useEffect(() => () => window.clearTimeout(traceTimer.current), []);
 
   const round = room.round;
   // Vrai tant que le décompte d'avant-manche n'est pas écoulé.
@@ -72,7 +90,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
       flashCounter.current += 1;
       if (result.accepted) {
         setFlash({ word: result.word, ok: true, text: `+${result.points}`, key: flashCounter.current });
-        setHighlight(result.path);
+        if (TRACE_FOUND_WORD) traceWord(result.path);
       } else {
         setFlash({
           word: result.word,
@@ -124,6 +142,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
             size={room.settings.boardSize}
             highlight={highlight}
             qEqualsQu={room.settings.qEqualsQu}
+            animateHighlight
           />
         </div>
         {pending && <RoundCountdown startsAt={round.startsAt} clockOffset={clockOffset} />}
@@ -149,8 +168,11 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
             key={flash.key}
             role="status"
             className={[
-              'pointer-events-none absolute inset-x-0 -top-9 mx-auto w-fit rounded-full px-3 py-1 text-sm font-semibold',
-              flash.ok ? 'bg-ok-bg text-ok' : 'bg-bad-bg text-bad',
+              // Fond opaque et ombre portée : par-dessus les dés ivoire, un fond
+              // translucide était illisible.
+              'pointer-events-none absolute inset-x-0 -top-11 mx-auto w-fit max-w-full truncate',
+              'rounded-full px-4 py-2 text-sm font-semibold shadow-lg',
+              flash.ok ? 'bg-flash-ok text-flash-fg' : 'bg-flash-bad text-flash-fg',
             ].join(' ')}
           >
             {flash.word} : {flash.text}
@@ -174,9 +196,11 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
           <button
             key={found.word}
             type="button"
-            onMouseEnter={() => setHighlight(found.path)}
-            onFocus={() => setHighlight(found.path)}
-            onClick={() => setHighlight(found.path)}
+            onMouseEnter={() => traceWord(found.path, 4000)}
+            onMouseLeave={() => traceWord(undefined)}
+            onFocus={() => traceWord(found.path, 4000)}
+            onBlur={() => traceWord(undefined)}
+            onClick={() => traceWord(found.path, 2000)}
             className="rounded-lg bg-chip px-2.5 py-1 text-sm text-fg transition hover:bg-chip-hover"
           >
             {found.word}
