@@ -3,6 +3,8 @@ import { useState } from 'react';
 import type { GameSettings, RoomState } from '@boggle/shared';
 import { scoringTable } from '@boggle/shared';
 
+import { settingsSummary } from '../lib/labels';
+
 import { SettingsPanel } from './SettingsPanel';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -28,7 +30,7 @@ export function Lobby({ room, isHost, playerId, onStart, onSettings, onLeave }: 
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError("Copie impossible, sélectionnez le lien à la main");
+      setError('Copie impossible, sélectionnez le lien à la main');
     }
   };
 
@@ -89,29 +91,6 @@ export function Lobby({ room, isHost, playerId, onStart, onSettings, onLeave }: 
         )}
       </section>
 
-      <section className="rounded-2xl border border-border bg-panel p-4">
-        <h2 className="mb-3 text-sm font-semibold tracking-wide text-fg-muted uppercase">
-          Règles {isHost ? '' : '(réglées par l’hôte)'}
-        </h2>
-        <SettingsPanel
-          settings={room.settings}
-          disabled={!isHost}
-          onChange={(patch) => {
-            setError(null);
-            onSettings(patch).catch((cause: unknown) =>
-              setError(cause instanceof Error ? cause.message : 'Erreur inconnue'),
-            );
-          }}
-        />
-        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 border-t border-border pt-3 text-xs text-fg-faint">
-          {table.map((row) => (
-            <span key={row.label}>
-              {row.label} lettres : <span className="text-fg-muted">{row.points} pt{row.points > 1 ? 's' : ''}</span>
-            </span>
-          ))}
-        </div>
-      </section>
-
       {error && (
         <p role="alert" className="rounded-lg bg-bad-bg px-4 py-2 text-center text-sm text-bad">
           {error}
@@ -132,6 +111,47 @@ export function Lobby({ room, isHost, playerId, onStart, onSettings, onLeave }: 
           En attente du lancement par l’hôte…
         </p>
       )}
+
+      <details className="rounded-2xl border border-border bg-panel p-4">
+        <summary className="cursor-pointer list-none">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-sm font-semibold tracking-wide text-fg-muted uppercase">
+              Règles {isHost ? '' : '(réglées par l’hôte)'}
+            </h2>
+            <span className="text-xs text-fg-faint">{isHost ? 'modifier' : 'voir le détail'}</span>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {settingsSummary(room.settings).map((part) => (
+              <span key={part} className="rounded-md bg-chip px-2 py-0.5 text-xs text-fg-muted">
+                {part}
+              </span>
+            ))}
+          </div>
+        </summary>
+
+        <div className="mt-4 border-t border-border pt-4">
+          <SettingsPanel
+            settings={room.settings}
+            disabled={!isHost}
+            onChange={(patch) => {
+              setError(null);
+              onSettings(patch).catch((cause: unknown) =>
+                setError(cause instanceof Error ? cause.message : 'Erreur inconnue'),
+              );
+            }}
+          />
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 border-t border-border pt-3 text-xs text-fg-faint">
+            {table.map((row) => (
+              <span key={row.label}>
+                {row.label} lettres :{' '}
+                <span className="text-fg-muted">
+                  {row.points} pt{row.points > 1 ? 's' : ''}
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      </details>
 
       <button
         type="button"

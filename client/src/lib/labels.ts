@@ -43,5 +43,6 @@ export function settingsSummary(settings: GameSettings): string[] {
     endConditionLabel(settings.endCondition),
   ];
   if (settings.qEqualsQu) parts.push('Q = QU');
+  if (settings.showSolutionCount) parts.push('indice affiché');
   return parts;
 }
