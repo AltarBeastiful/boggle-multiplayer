@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
 
 import { getNeighbours } from '@boggle/shared';
 
@@ -11,12 +11,11 @@ interface BoardGridProps {
   compact?: boolean;
   /** Anime brièvement les cases mises en évidence (tracé d'un mot trouvé). */
   animateHighlight?: boolean;
-  /** Autorise le tracé au doigt ou à la souris. */
-  traceable?: boolean;
-  /** Chemin en cours de tracé, à chaque changement. */
-  onTraceChange?(path: number[]): void;
-  /** Chemin terminé, au relâchement. */
-  onTraceEnd?(path: number[]): void;
+  /** Rend la grille cliquable : composition d'un mot au doigt ou à la souris. */
+  interactive?: boolean;
+  /** Chemin en cours de composition, tenu par le parent. */
+  path?: number[];
+  onPathChange?(path: number[]): void;
 }
 
 export function BoardGrid({
@@ -26,28 +25,21 @@ export function BoardGrid({
   qEqualsQu = false,
   compact = false,
   animateHighlight = false,
-  traceable = false,
-  onTraceChange,
-  onTraceEnd,
+  interactive = false,
+  path = [],
+  onPathChange,
 }: BoardGridProps) {
-  const [path, setPath] = useState<number[]>([]);
-  /**
-   * Le chemin fait foi ici, pas dans l'état : deux `pointermove` peuvent tomber
-   * dans le même lot de rendu React, et le second lirait alors un `path` périmé
-   *, une case perdue au milieu d'un tracé rapide.
-   */
-  const pathRef = useRef<number[]>([]);
-  const tracing = useRef(false);
+  /** Dernière case atteinte par le pointeur, pour ne pas la rejouer au glissé. */
+  const pressed = useRef<number | null>(null);
   const container = useRef<HTMLDivElement>(null);
 
-  // Pendant un tracé, c'est lui qu'on montre ; sinon la mise en évidence reçue.
-  const shown = tracing.current && path.length > 0 ? path : (highlight ?? []);
+  const shown = path.length > 0 ? path : (highlight ?? []);
   const highlighted = new Set(shown);
 
   /**
-   * La case sous le doigt. `elementFromPoint` est indispensable : dès le
-   * premier contact le pointeur est capturé par la grille, donc les événements
-   * suivants ne visent plus la case survolée.
+   * La case sous le doigt. `elementFromPoint` est indispensable : dès le premier
+   * contact le pointeur est capturé par la grille, donc les événements suivants
+   * ne visent plus la case survolée.
    */
   const cellAt = (x: number, y: number): number | null => {
     const element = document.elementFromPoint(x, y)?.closest('[data-cell]');
@@ -56,59 +48,59 @@ export function BoardGrid({
     return Number.isInteger(index) ? index : null;
   };
 
-  const update = (next: number[]) => {
-    pathRef.current = next;
-    setPath(next);
-    onTraceChange?.(next);
+  /**
+   * Prolonge le mot d'une case. La même règle sert à l'appui et au glissé, un
+   * appui n'étant qu'un glissé d'une seule case. Le chemin survit au
+   * relâchement, sinon la lettre tapée apparaîtrait puis disparaîtrait.
+   */
+  const extend = (current: number[], index: number): number[] | null => {
+    if (current.length === 0) return [index];
+
+    const last = current[current.length - 1];
+    // Retoucher la dernière case l'enlève : la correction la plus naturelle.
+    if (index === last) return current.slice(0, -1);
+    // Revenir sur l'avant-dernière enlève la dernière, sans relever le doigt.
+    if (current.length >= 2 && index === current[current.length - 2]) return current.slice(0, -1);
+    if (current.includes(index)) return null;
+    if (last === undefined || !getNeighbours(size)[last]?.includes(index)) return null;
+    return [...current, index];
   };
 
-  const start = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!traceable) return;
+  const apply = (index: number) => {
+    const next = extend(path, index);
+    if (next) onPathChange?.(next);
+  };
+
+  const down = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!interactive) return;
     const index = cellAt(event.clientX, event.clientY);
     if (index === null) return;
     event.preventDefault();
-    tracing.current = true;
-    // La capture échoue si le pointeur n'est plus actif : ce n'est pas une
-    // raison d'interrompre le tracé.
     try {
       container.current?.setPointerCapture(event.pointerId);
     } catch {
       /* sans capture, elementFromPoint suffit */
     }
-    update([index]);
+    pressed.current = index;
+    apply(index);
   };
 
   const move = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!tracing.current) return;
+    if (!interactive || pressed.current === null) return;
     const index = cellAt(event.clientX, event.clientY);
-    if (index === null) return;
-
-    const current = pathRef.current;
-    const last = current[current.length - 1];
-    if (index === last) return;
-    // Revenir sur l'avant-dernière case efface la dernière : on se corrige
-    // sans relever le doigt.
-    if (current.length >= 2 && index === current[current.length - 2]) {
-      update(current.slice(0, -1));
-      return;
-    }
-    if (current.includes(index)) return;
-    if (last === undefined || !getNeighbours(size)[last]?.includes(index)) return;
-    update([...current, index]);
+    if (index === null || index === pressed.current) return;
+    pressed.current = index;
+    apply(index);
   };
 
-  const end = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!tracing.current) return;
-    tracing.current = false;
+  const up = (event: ReactPointerEvent<HTMLDivElement>) => {
+    // Le chemin reste affiché : c'est l'envoi du mot qui le remet à zéro.
+    pressed.current = null;
     try {
       container.current?.releasePointerCapture(event.pointerId);
     } catch {
       /* déjà relâché */
     }
-    // Une case seule est presque toujours un appui involontaire.
-    const traced = pathRef.current;
-    update([]);
-    if (traced.length >= 2) onTraceEnd?.(traced);
   };
 
   return (
@@ -117,13 +109,13 @@ export function BoardGrid({
       className={`grid w-full ${compact ? 'gap-1.5' : 'gap-2 sm:gap-3'}`}
       style={{
         gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
-        // Sans cela, le doigt fait défiler la page au lieu de tracer.
-        touchAction: traceable ? 'none' : undefined,
+        // Sans cela, le doigt fait défiler la page au lieu de composer le mot.
+        touchAction: interactive ? 'none' : undefined,
       }}
-      onPointerDown={start}
+      onPointerDown={down}
       onPointerMove={move}
-      onPointerUp={end}
-      onPointerCancel={end}
+      onPointerUp={up}
+      onPointerCancel={up}
     >
       {cells.map((letter, index) => {
         const active = highlighted.has(index);
@@ -135,6 +127,7 @@ export function BoardGrid({
               'relative flex aspect-square items-center justify-center rounded-xl font-bold uppercase',
               'shadow-[0_1px_3px_var(--tile-shadow)] transition-colors duration-150 select-none',
               compact ? 'text-lg sm:text-xl' : 'text-2xl sm:text-4xl',
+              interactive ? 'cursor-pointer' : '',
               // Les jetons gardent leur teinte ivoire dans les deux thèmes :
               // c'est la couleur des dés, et elle reste lisible sur les deux fonds.
               active

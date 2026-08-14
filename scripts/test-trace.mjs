@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Vérifie le tracé des mots, au doigt et à la souris.
+ * Vérifie la composition d'un mot sur la grille : appuis, glissé, clics souris.
  *
  *   node scripts/test-trace.mjs [url]
  *
@@ -8,9 +8,9 @@
  * non par un `dispatchEvent` de page : la capture du pointeur, `touch-action` et
  * le défilement se comportent donc comme sous un vrai doigt.
  *
- * Le mot tracé est choisi en résolvant la grille : tracer trois lettres au
- * hasard ne prouve rien, un mot inexistant étant refusé, ce qui ressemble à une
- * panne du tracé alors que c'est le comportement attendu.
+ * Le mot est choisi en résolvant la grille : composer trois lettres au hasard ne
+ * prouve rien, un mot inexistant étant refusé à juste titre, ce qui se lit
+ * comme une panne de la saisie.
  */
 
 import { createRequire } from 'node:module';
@@ -28,18 +28,19 @@ const URL = process.argv[2] ?? 'http://localhost:3001/';
 const dictionary = buildDictionary(require('an-array-of-french-words'));
 const problems = [];
 
-async function scenario({ nom, contexte, tactile }) {
+async function scenario({ nom, contexte, geste }) {
   console.log(`\n── ${nom} ──`);
   const browser = await chromium.launch();
   const context = await browser.newContext(contexte);
   const page = await context.newPage();
-  const cdp = tactile ? await context.newCDPSession(page) : null;
+  const cdp = await context.newCDPSession(page);
   page.on('pageerror', (error) => problems.push(`${nom} : erreur de page ${error.message}`));
 
   const centre = async (index) => {
     const box = await page.locator(`[data-cell="${index}"]`).boundingBox();
     return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
   };
+  const input = page.locator('input[aria-label="Mot trouvé"]');
 
   try {
     await page.goto(URL, { waitUntil: 'networkidle' });
@@ -50,79 +51,100 @@ async function scenario({ nom, contexte, tactile }) {
 
     const cells = (await page.locator('[data-cell]').allTextContents()).map((c) => c.trim());
     const board = { size: Math.sqrt(cells.length), cells };
-    const solution = solveBoard(board, dictionary, { minWordLength: 3, qEqualsQu: false });
+    const solution = solveBoard(board, dictionary, { minWordLength: 4, qEqualsQu: false });
     const word = [...solution.words.keys()].sort((a, b) => b.length - a.length)[0];
     const path = findPath(board, word);
     console.log(`  grille ${cells.join('')}, mot ${word} par ${path.join(',')}`);
 
-    const toggle = page.locator('button[aria-pressed]');
-    const parDefaut = await toggle.getAttribute('aria-pressed');
-    console.log(`  tracé actif par défaut : ${parDefaut}`);
-    if (parDefaut !== 'true') await toggle.click();
-    if ((await toggle.getAttribute('aria-pressed')) !== 'true') problems.push(`${nom} : activation impossible`);
+    await geste({ page, cdp, centre, path });
+    await page.waitForTimeout(300);
 
-    // -- le geste ------------------------------------------------------------
-    const points = [];
-    for (const index of path) points.push(await centre(index));
+    const compose = await input.inputValue();
+    const avantEnvoi = await page.locator('.flex-1 button').count();
+    console.log(`  champ après le geste : ${JSON.stringify(compose)}`);
+    console.log(`  mots soumis avant l'envoi : ${avantEnvoi} (0 attendu)`);
 
-    if (tactile) {
-      const touch = (type, point) =>
-        cdp.send('Input.dispatchTouchEvent', {
-          type,
-          touchPoints: type === 'touchEnd' ? [] : [{ x: point.x, y: point.y, id: 1 }],
-        });
-      await touch('touchStart', points[0]);
-      await page.waitForTimeout(70);
-      for (const point of points.slice(1)) {
-        await touch('touchMove', point);
-        await page.waitForTimeout(60);
-      }
-      await touch('touchEnd', points[points.length - 1]);
-    } else {
-      await page.mouse.move(points[0].x, points[0].y);
-      await page.mouse.down();
-      for (const point of points.slice(1)) {
-        await page.mouse.move(point.x, point.y);
-        await page.waitForTimeout(60);
-      }
-      await page.mouse.up();
-    }
-    await page.waitForTimeout(400);
-
-    const input = page.locator('input[aria-label="Mot trouvé"]');
-    const apresGeste = await input.inputValue();
-    const motsAvantEnvoi = await page.locator('.flex-1 button').count();
-    console.log(`  champ après le geste : ${JSON.stringify(apresGeste)}`);
-    console.log(`  mots soumis avant l'envoi : ${motsAvantEnvoi} (0 attendu)`);
-
-    // -- l'envoi explicite ---------------------------------------------------
     await page.getByRole('button', { name: 'Envoyer le mot' }).click();
     await page.waitForTimeout(500);
     const mots = (await page.locator('.flex-1 button').allTextContents()).map((m) => m.trim());
-    const champApresEnvoi = await input.inputValue();
+    const champVide = (await input.inputValue()) === '';
     const defilement = await page.evaluate(() => window.scrollY);
     console.log(`  mots soumis : ${JSON.stringify(mots)}`);
-    console.log(`  champ vidé après envoi : ${champApresEnvoi === ''}`);
-    console.log(`  page défilée : ${defilement}px`);
+    console.log(`  champ vidé : ${champVide}, page défilée : ${defilement}px`);
 
-    if (apresGeste !== word) problems.push(`${nom} : champ ${apresGeste} au lieu de ${word}`);
-    if (motsAvantEnvoi !== 0) problems.push(`${nom} : le mot est parti sans qu'on l'envoie`);
+    if (compose !== word) problems.push(`${nom} : champ « ${compose} » au lieu de « ${word} »`);
+    if (avantEnvoi !== 0) problems.push(`${nom} : mot parti sans qu'on l'envoie`);
     if (!mots.some((m) => m.startsWith(word))) problems.push(`${nom} : ${word} non soumis`);
-    if (champApresEnvoi !== '') problems.push(`${nom} : champ non vidé après envoi`);
-    if (defilement !== 0) problems.push(`${nom} : la page a défilé pendant le geste`);
+    if (!champVide) problems.push(`${nom} : champ non vidé après envoi`);
+    if (defilement !== 0) problems.push(`${nom} : la page a défilé`);
   } finally {
     await browser.close();
   }
 }
 
-await scenario({ nom: 'Tactile (Pixel 7)', contexte: { ...devices['Pixel 7'] }, tactile: true });
+/** Un appui franc sur une case, comme un doigt qui tapote. */
+const tap = async (cdp, point) => {
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ x: point.x, y: point.y, id: 1 }],
+  });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+};
+
+const mobile = { ...devices['Pixel 7'] };
+const bureau = { viewport: { width: 1440, height: 900 }, hasTouch: false };
+
+// Le cas signalé : la lettre apparaissait puis disparaissait aussitôt.
 await scenario({
-  nom: 'Souris (bureau 1440x900)',
-  contexte: { viewport: { width: 1440, height: 900 }, hasTouch: false },
-  tactile: false,
+  nom: 'Appuis successifs (tactile)',
+  contexte: mobile,
+  geste: async ({ page, cdp, centre, path }) => {
+    for (const [rang, index] of path.entries()) {
+      await tap(cdp, await centre(index));
+      await page.waitForTimeout(140);
+      const valeur = await page.locator('input[aria-label="Mot trouvé"]').inputValue();
+      if (rang === 0 && valeur.length === 0) {
+        problems.push('Appuis : la première lettre disparaît après le relâchement');
+      }
+    }
+  },
+});
+
+await scenario({
+  nom: 'Glissé du doigt (tactile)',
+  contexte: mobile,
+  geste: async ({ page, cdp, centre, path }) => {
+    const points = [];
+    for (const index of path) points.push(await centre(index));
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x: points[0].x, y: points[0].y, id: 1 }],
+    });
+    await page.waitForTimeout(70);
+    for (const point of points.slice(1)) {
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x: point.x, y: point.y, id: 1 }],
+      });
+      await page.waitForTimeout(60);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  },
+});
+
+await scenario({
+  nom: 'Clics souris (bureau)',
+  contexte: bureau,
+  geste: async ({ page, centre, path }) => {
+    for (const index of path) {
+      const point = await centre(index);
+      await page.mouse.click(point.x, point.y);
+      await page.waitForTimeout(110);
+    }
+  },
 });
 
 console.log('');
-if (problems.length === 0) console.log('✓ tracé au doigt et à la souris : conforme');
+if (problems.length === 0) console.log('✓ appuis, glissé et clics : conformes');
 else for (const p of problems) console.log(`✗ ${p}`);
 process.exitCode = problems.length === 0 ? 0 : 1;

@@ -5,7 +5,6 @@ import type { RoomState, SubmitResult } from '@boggle/shared';
 import type { FoundWord } from '../hooks/useGame';
 import { TRACE_DURATION_MS, TRACE_FOUND_WORD } from '../lib/config';
 import { rejectionMessage } from '../lib/labels';
-import { getTraceMode, setTraceMode } from '../lib/storage';
 import { BoardGrid } from './BoardGrid';
 import { RoundCountdown } from './RoundCountdown';
 import { ThemeToggle } from './ThemeToggle';
@@ -28,8 +27,8 @@ interface Flash {
 
 export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: PlayingProps) {
   const [value, setValue] = useState('');
-  /** Tracé du mot au doigt sur la grille, en plus du clavier. */
-  const [traceMode, setTraceModeState] = useState(getTraceMode);
+  /** Cases composant le mot en cours, quand il est formé sur la grille. */
+  const [path, setPath] = useState<number[]>([]);
   const [flash, setFlash] = useState<Flash | null>(null);
   const [highlight, setHighlight] = useState<number[] | undefined>();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -85,6 +84,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
     const word = raw.trim();
     if (word.length === 0) return;
     setValue('');
+    setPath([]);
     try {
       const result = await onSubmit(word);
       if (result.accepted) {
@@ -118,11 +118,10 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
       })
       .join('');
 
-  const toggleTraceMode = () => {
-    setTraceModeState((current) => {
-      setTraceMode(!current);
-      return !current;
-    });
+  /** Le mot composé sur la grille alimente le champ, qui reste modifiable. */
+  const applyPath = (next: number[]) => {
+    setPath(next);
+    setValue(pathToWord(next));
   };
 
   const others = room.players.filter((player) => player.id !== playerId);
@@ -163,12 +162,9 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
             highlight={highlight}
             qEqualsQu={room.settings.qEqualsQu}
             animateHighlight
-            traceable={traceMode && !pending}
-            onTraceChange={(path) => setValue(pathToWord(path))}
-            // Le mot tracé se dépose dans le champ, il n'est pas envoyé tout
-            // seul : un tracé qui dérape se corrige au clavier au lieu d'être
-            // gâché par un refus.
-            onTraceEnd={(path) => setValue(pathToWord(path))}
+            interactive={!pending}
+            path={path}
+            onPathChange={applyPath}
           />
         </div>
         {pending && <RoundCountdown startsAt={round.startsAt} clockOffset={clockOffset} />}
@@ -178,7 +174,11 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
         <input
           ref={inputRef}
           value={value}
-          onChange={(event) => setValue(event.target.value)}
+          onChange={(event) => {
+            setValue(event.target.value);
+            // Au clavier, le chemin sur la grille n'a plus de rapport avec le mot.
+            if (path.length > 0) setPath([]);
+          }}
           disabled={pending}
           placeholder={pending ? 'La manche va commencer…' : 'Tapez un mot puis Entrée'}
           autoCapitalize="characters"
@@ -208,50 +208,6 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h15m0 0-6-6m6 6-6 6" />
           </svg>
         </button>
-
-        {/* Saisie au doigt : secondaire, mais à portée de pouce. */}
-        <button
-          type="button"
-          onClick={toggleTraceMode}
-          aria-pressed={traceMode}
-          title={traceMode ? 'Tracé sur la grille activé' : 'Tracer les mots sur la grille'}
-          aria-label={traceMode ? 'Désactiver le tracé sur la grille' : 'Tracer les mots sur la grille'}
-          className={[
-            'flex w-12 shrink-0 items-center justify-center rounded-xl border-2 transition',
-            traceMode
-              ? 'border-accent bg-accent text-accent-fg'
-              : 'border-border-strong bg-panel-soft text-fg-faint hover:text-fg-muted',
-          ].join(' ')}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            aria-hidden="true"
-            className="h-6 w-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4 5.5h.01M12 5.5h.01M20 5.5h.01M4 12h.01M20 12h.01M4 18.5h.01M20 18.5h.01"
-            />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 5.5 8.5 12l6 1.5L11 18.5" />
-          </svg>
-        </button>
-        {flash && (
-          <div
-            key={flash.key}
-            role="status"
-            // Fond opaque, un fond translucide était illisible sur les dés ivoire, // mais discret : la couleur ne porte que sur le texte.
-            className={[
-              'animate-flash pointer-events-none absolute inset-x-0 -top-10 mx-auto w-fit max-w-full truncate',
-              'rounded-lg border border-border bg-panel px-3 py-1.5 text-sm font-medium text-bad shadow-sm',
-            ].join(' ')}
-          >
-            {flash.word} : {flash.text}
-          </div>
-        )}
       </form>
 
       <div className="mt-4 flex items-baseline justify-between">

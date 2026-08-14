@@ -56,12 +56,11 @@ groupés par longueur, en marquant ceux que vous avez trouvés, ceux qu'un autre
 joueur a trouvés et ceux que personne n'a vus. Un clic trace le mot sur la grille
 **et affiche sa définition**, tirée du Wiktionnaire francophone.
 
-La saisie se fait au clavier, ou en **traçant le mot sur la grille** au doigt
-comme à la souris : on relie les lettres adjacentes, revenir en arrière efface la
-dernière. Le mot tracé se dépose dans le champ, il n'est pas envoyé tout seul,
-de sorte qu'un tracé qui dérape se corrige au clavier, puis part avec le bouton
-d'envoi. Le tracé est actif d'office sur écran tactile, à activer sur écran à
-souris ; le choix est mémorisé.
+La saisie se fait au clavier, ou **sur la grille** : on tape les lettres une à
+une, ou on glisse le doigt d'une lettre à l'autre. Les deux gestes obéissent à
+la même règle, un appui n'étant qu'un glissé d'une seule case. Retoucher la
+dernière lettre l'enlève. Le mot composé se dépose dans le champ, reste
+modifiable au clavier, et part avec le bouton d'envoi.
 
 ```bash
 npm run test:trace     # vraies entrées tactiles et souris, via Playwright
