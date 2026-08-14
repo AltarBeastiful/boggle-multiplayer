@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { PublicPlayer, SolutionWord } from '@boggle/shared';
 
-import { DefinitionCard } from './DefinitionCard';
+import { DefinitionCard, prefetchDefinition } from './DefinitionCard';
 
 type Filter = 'all' | 'missed' | 'mine';
 
@@ -26,6 +26,18 @@ interface SolutionPanelProps {
 export function SolutionPanel({ solution, playerId, players, onHighlight }: SolutionPanelProps) {
   const [filter, setFilter] = useState<Filter>('all');
   const [selected, setSelected] = useState<string | null>(null);
+  const hoverTimer = useRef<number | undefined>(undefined);
+
+  /**
+   * Précharge après une courte pause : survoler la liste en la parcourant ne
+   * doit pas déclencher une requête par mot traversé.
+   */
+  const prefetchSoon = (word: string) => {
+    window.clearTimeout(hoverTimer.current);
+    hoverTimer.current = window.setTimeout(() => prefetchDefinition(word), 130);
+  };
+
+  useEffect(() => () => window.clearTimeout(hoverTimer.current), []);
 
   const names = useMemo(
     () => new Map(players.map((player) => [player.id, player.nickname])),
@@ -117,8 +129,14 @@ export function SolutionPanel({ solution, playerId, players, onHighlight }: Solu
                   <button
                     key={word.word}
                     type="button"
-                    onMouseEnter={() => onHighlight(word.path)}
-                    onFocus={() => onHighlight(word.path)}
+                    onMouseEnter={() => {
+                      onHighlight(word.path);
+                      prefetchSoon(word.word);
+                    }}
+                    onFocus={() => {
+                      onHighlight(word.path);
+                      prefetchSoon(word.word);
+                    }}
                     onClick={() => {
                       onHighlight(word.path);
                       setSelected((current) => (current === word.word ? null : word.word));

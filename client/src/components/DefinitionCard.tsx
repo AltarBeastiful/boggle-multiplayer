@@ -4,6 +4,38 @@ import type { DefinitionEntry, DefinitionResult } from '@boggle/shared';
 
 /** Les définitions déjà reçues ne sont pas redemandées d'une manche à l'autre. */
 const cache = new Map<string, DefinitionEntry[]>();
+/** Requêtes en cours, pour ne pas relancer un mot déjà demandé. */
+const inFlight = new Map<string, Promise<DefinitionEntry[]>>();
+
+function load(word: string): Promise<DefinitionEntry[]> {
+  const known = cache.get(word);
+  if (known) return Promise.resolve(known);
+
+  const running = inFlight.get(word);
+  if (running) return running;
+
+  const task = fetch(`/api/definition/${encodeURIComponent(word)}`)
+    .then((response) => (response.ok ? (response.json() as Promise<DefinitionResult>) : null))
+    .then((result) => {
+      const found = result?.entries ?? [];
+      cache.set(word, found);
+      return found;
+    })
+    .finally(() => inFlight.delete(word));
+
+  inFlight.set(word, task);
+  return task;
+}
+
+/**
+ * Charge la définition à l'avance, au survol. La recherche prend une à trois
+ * secondes à froid (elle interroge le Wiktionnaire en direct) : la lancer dès
+ * que la souris se pose la rend généralement instantanée au clic.
+ */
+export function prefetchDefinition(word: string): void {
+  if (cache.has(word) || inFlight.has(word)) return;
+  void load(word).catch(() => undefined);
+}
 
 type Status = 'loading' | 'done' | 'error';
 
@@ -23,12 +55,9 @@ export function DefinitionCard({ word, onClose }: { word: string; onClose(): voi
     setStatus('loading');
     setEntries([]);
 
-    fetch(`/api/definition/${encodeURIComponent(word)}`)
-      .then((response) => (response.ok ? (response.json() as Promise<DefinitionResult>) : null))
-      .then((result) => {
+    load(word)
+      .then((found) => {
         if (cancelled) return;
-        const found = result?.entries ?? [];
-        cache.set(word, found);
         setEntries(found);
         setStatus('done');
       })

@@ -24,8 +24,13 @@ const USER_AGENT =
 const REQUEST_TIMEOUT_MS = 8000;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const CACHE_MAX = 5000;
-/** Le Wiktionnaire est un service gratuit : on reste discret. */
-const MAX_CONCURRENT = 4;
+/**
+ * Le Wiktionnaire est un service gratuit : on reste discret. Mais un mot à
+ * plusieurs graphies (« pommes », « pommés ») demandant chacune un second appel
+ * vers son lemme, un plafond de 4 sérialisait la recherche en deux vagues et
+ * doublait le délai. 8 reste dérisoire pour l'API et supprime cette attente.
+ */
+const MAX_CONCURRENT = 8;
 
 // -- sections grammaticales --------------------------------------------------
 
