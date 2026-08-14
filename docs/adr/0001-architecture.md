@@ -176,7 +176,44 @@ type checker points at every place that has to handle it.
 
 ---
 
-## Decision 11: light and dark themes through semantic tokens
+## Decision 11: the grille du jour is derived from the date, and only its scores are stored
+
+One grid a day, the same for everyone, played alone. The grid is **not stored**:
+`dailySeed(day)` seeds the generator, so any server rebuilds the same grid for
+the same day, and a restart or a second instance costs nothing.
+
+**The day turns over at midnight in Paris.** Midnight UTC falls at one or two in
+the morning where the players are, which would change the grid in the middle of
+an evening.
+
+**Its rules are fixed** (4x4, three letters, classic scoring), not the host's to
+choose: a leaderboard across players only means something if they played the
+same game.
+
+**What is written down is the words found, not the score.** Points and paths are
+recomputed from the grid at load time, so a saved day cannot preserve a score
+that the rules no longer support. Only finished attempts are ranked; ranking one
+still in progress would let a player sit at the top of the day with a score they
+had not stopped improving. Ties break on time, which is what gives the
+informative clock a purpose.
+
+**Storage, against decision 3.** Rooms stay in memory: a game is worth nothing
+an hour later. A daily leaderboard is the opposite, being the one thing here
+meant to be read tomorrow, so `server/src/store.ts` writes one JSON file per
+day, atomically and coalesced. A few kilobytes a day did not justify a database.
+In production the directory is a mounted volume, since the container is rebuilt
+on every deploy.
+
+**Known limit.** The player identifier comes from `localStorage`, exactly as it
+does for a room, and is not proof of anything: a determined player can enter the
+leaderboard twice under two names. What the server does not trust is the words,
+every one being checked against the day's grid, so a score cannot be invented,
+only misattributed. That is the right trade at the scale of a server among
+friends, and the wrong one for a public ranking.
+
+---
+
+## Decision 12: light and dark themes through semantic tokens
 
 Components name roles (`bg-panel`, `text-fg-muted`), never colours
 (`bg-slate-800`). The tokens are redefined per theme. The theme is set on
@@ -193,7 +230,7 @@ background pair now passes AA.
 
 ---
 
-## Decision 12: published by Traefik, Let's Encrypt certificate, sslip.io domain
+## Decision 13: published by Traefik, Let's Encrypt certificate, sslip.io domain
 
 The stack carries its own Traefik: 80 redirects to 443, certificate obtained by
 the TLS-ALPN challenge on 443. No other port needed opening.
@@ -210,7 +247,7 @@ access goes through Traefik.
 
 ---
 
-## Decision 13: bundled definitions, Wiktionary as fallback (options C then B)
+## Decision 14: bundled definitions, Wiktionary as fallback (options C then B)
 
 `GET /api/definition/:word` first consults a file shipped with the image
 (7 MB compressed, 315,813 words, 99.1% of the dictionary), and only falls back

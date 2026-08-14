@@ -1,11 +1,50 @@
 # Backlog
 
-Features asked for and not yet built, in the order they were raised. Each one
-records what it has to do and the awkward part, so the work can be picked up
-without rediscovering it.
+Features asked for, in the order they were raised. Each one records what it has
+to do and the awkward part, so the work can be picked up without rediscovering
+it. What is done stays here, struck through, when what it turned out to need is
+worth remembering.
 
-Two of them are done and kept here, struck through, because what they turned out
-to need is worth remembering.
+## 1. Save the room in progress, so a deploy does not end it
+
+Rooms live in the process ([ADR 0001](adr/0001-architecture.md), decision 3), so
+every deploy cuts short whatever is being played. A round lasts three minutes
+and a deploy takes seconds, which was the reasoning; it stops being true the
+moment somebody is actually playing.
+
+What has to survive is small: the room code, the settings, the players with
+their scores and their words, and the current round with its board and its
+`endsAt`. The solution map does not, since solving a grid again takes one or two
+milliseconds.
+
+The awkward part is the clock. A round saved with three seconds left and
+restored forty seconds later has to end at once rather than resume, so the
+restore has to compare `endsAt` with the present and close the round when it has
+passed. Same for the pre-round countdown. An untimed round has no such question,
+having no `endsAt` at all.
+
+`server/src/store.ts` already does the writing, atomically and coalesced, for
+the grille du jour. This needs the same treatment applied to a much larger
+object, and a decision on when to write: on every accepted word is the honest
+answer, since that is what a player would hate to lose.
+
+## 2. Shorten the trace shown when a word is accepted
+
+The trace still holds the eye too long. Today it is `TRACE_DURATION_MS = 380` in
+`client/src/lib/config.ts`, with a 260 ms `boggle-trace` pulse in `index.css`,
+and the tiles carry the full `--tile-active` fill for the whole time.
+
+Shortening the delay alone would make it read as a flicker. The style is the
+part to change: a fainter fill, or an outline rather than a fill, would let the
+same information land in less time, because a weaker mark needs less time to be
+understood and less time to fade. Worth trying at around 220 ms with a lighter
+tile.
+
+To be judged on the real thing, several words in a row: the question is not
+whether one trace looks good but whether the grid is neutral again by the time
+the next word is typed.
+
+---
 
 ## ~~Choose, at the buzzer, between the solutions and playing on~~ (done)
 
@@ -23,60 +62,32 @@ client state. One `useState` in `App` did it.
 cannot be read as "the clock is long", and the type checker points at every
 place that has to handle it. `endsAt` is null to match, and no timer is armed.
 
-## 1. "Grille du jour" on the home page
+## ~~"Grille du jour" on the home page~~ (done)
 
-One grid a day, the same for everyone, playable without creating a room. Its
-timer only informs, it does not close anything: you play as long as you like,
-and can reveal the solutions when you want.
+The grid is derived from the date and never stored: `dailySeed(day)` feeds the
+generator, so any server rebuilds the same grid for the same day, and a restart
+costs nothing. The day turns over at midnight in Paris, which is the point of
+`DAILY_TIME_ZONE`: midnight UTC falls at one or two in the morning where the
+players are.
 
-Two decisions to make. The grid has to be reproducible from the date alone,
-which the seeded generator already allows (`mulberry32`), so the day's grid is
-`drawBoard(seedFromDate(day))` and needs no storage. But the day has to be
-defined in a timezone, and Europe/Paris is the honest choice for a French game.
+The rules are fixed rather than the host's to choose, because a leaderboard
+across players only means something if they played the same game.
 
-## 2. A leaderboard on the "grille du jour"
+## ~~A leaderboard on the "grille du jour"~~ (done)
 
-Once the solutions are revealed, see where you land among the other players of
-the day, by nickname.
+This was the first thing in the project that had to outlive the process, and it
+brought `server/src/store.ts`: one JSON file per day, written atomically and
+coalesced. What is saved is only the words found, never the score: points and
+paths are recomputed from the grid, so a saved day cannot preserve a stale
+score.
 
-This is the first thing in the project that has to **outlive the process**.
-Everything else lives in memory and dies with a restart, which was a deliberate
-decision ([ADR 0001](adr/0001-architecture.md), decision 3). A daily leaderboard
-cannot: it has to survive a deploy. The smallest thing that works is a JSON file
-per day on disk, no database, along the lines of `server/data/`.
+Only finished attempts are ranked. Ranking a grid still being played would let
+anyone sit at the top of the day with a score they had not stopped improving.
+Ties on score are broken by time, which is what gives the informative clock a
+purpose.
 
-Nicknames have to be deduplicated: the same player, coming back, must not appear
-twice. Keying on the `localStorage` identifier and keeping the best score is
-enough, and two different people picking the same nickname stay two entries.
+## ~~Identical nicknames in an ordinary game~~ (done)
 
-## 3. Save the room in progress, so a deploy does not end it
-
-Rooms live in the process ([ADR 0001](adr/0001-architecture.md), decision 3), so
-every deploy cuts short whatever is being played. A round lasts three minutes
-and a deploy takes seconds, which was the reasoning; it stops being true the
-moment somebody is actually playing.
-
-What has to survive is small: the room code, the settings, the players with
-their scores and their words, and the current round with its board and its
-`endsAt`. The solution map does not, since solving a grid again takes one or two
-milliseconds.
-
-The awkward part is the clock. A round saved with three seconds left and
-restored forty seconds later has to end at once rather than resume, so the
-restore has to compare `endsAt` with the present and close the round when it has
-passed. Same for the pre-round countdown.
-
-A plain JSON file written on every state change is enough at this scale, and
-keeps the "no database" decision intact. SQLite would only earn its place
-alongside the daily leaderboard.
-
-## 4. Identical nicknames in an ordinary game
-
-Two players called "Batman" in the same room: the server tells them apart by
-identifier, but the interface does not, and neither does anyone reading the
-scores.
-
-The graceful handling is to disambiguate on display rather than to refuse the
-name: "Batman" and "Batman (2)", numbered in join order. The server already
-holds everything needed, since the identifier is the real key. To be checked in
-the solutions page as well, where finders are shown by name.
+Numbered on display rather than refused, in join order, with case and accents
+folded for the comparison. Applied once where names become public, so the lobby,
+the standings, the solutions and the daily leaderboard all get it.

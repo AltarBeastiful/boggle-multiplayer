@@ -54,15 +54,20 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
+      # Results of the grille du jour. Inside the container they would be lost
+      # at the next rebuild, so they live on the volume mounted below.
+      BOGGLE_STATE_DIR: /app/server/state
 
     # Published on the loopback only; public access goes through Traefik.
     # Handy to diagnose from the server: curl 127.0.0.1:3001/api/health.
     ports:
       - '127.0.0.1:${BOGGLE_PORT:-3001}:3001'
 
-    # Added and excluded words, editable without rebuilding the image.
     volumes:
+      # Added and excluded words, editable without rebuilding the image.
       - ./server/data:/app/server/data:ro
+      # The day's scores, which have to outlive the container.
+      - ./server/state:/app/server/state
 
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3001/api/health']

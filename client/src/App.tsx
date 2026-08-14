@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { normalizeRoomCode } from '@boggle/shared';
 
+import { Daily } from './components/Daily';
 import { Home } from './components/Home';
 import { Lobby } from './components/Lobby';
 import { Playing } from './components/Playing';
@@ -14,6 +15,9 @@ function codeFromUrl(): string {
   return match?.[1] ? normalizeRoomCode(match[1]) : '';
 }
 
+/** The only other address the app answers on. */
+const DAILY_PATH = '/jour';
+
 export function App() {
   const game = useGame();
   const [initialCode] = useState(codeFromUrl);
@@ -24,6 +28,24 @@ export function App() {
    */
   const [showSolutions, setShowSolutions] = useState(false);
   const roundNumber = game.room?.results?.roundNumber ?? game.room?.round?.number;
+  const [onDaily, setOnDaily] = useState(() => location.pathname === DAILY_PATH);
+
+  // Two addresses, so the back button behaves and the grid can be linked to.
+  useEffect(() => {
+    const follow = () => setOnDaily(location.pathname === DAILY_PATH);
+    window.addEventListener('popstate', follow);
+    return () => window.removeEventListener('popstate', follow);
+  }, []);
+
+  const goDaily = () => {
+    history.pushState(null, '', DAILY_PATH);
+    setOnDaily(true);
+  };
+
+  const goHome = () => {
+    history.pushState(null, '', '/');
+    setOnDaily(false);
+  };
 
   // A new round takes the question back: the buzzer has to ask again.
   useEffect(() => {
@@ -49,6 +71,9 @@ export function App() {
     </div>
   );
 
+  // The daily grid needs no room, and the socket is left alone while it is open.
+  if (onDaily && !game.room) return <Daily onLeave={goHome} />;
+
   if (!game.room) {
     return (
       <>
@@ -58,6 +83,7 @@ export function App() {
           initialCode={initialCode}
           onCreate={(nickname) => game.createRoom(nickname)}
           onJoin={(code, nickname) => game.joinRoom(code, nickname)}
+          onDaily={goDaily}
         />
       </>
     );

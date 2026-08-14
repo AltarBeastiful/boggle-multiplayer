@@ -17,10 +17,12 @@ import {
   type ServerToClientEvents,
 } from '@boggle/shared';
 
+import { DailyManager } from './daily.js';
 import { hasLocalDefinitions, localDefinitionCount } from './definitions-local.js';
 import { definitionCacheSize, getDefinition } from './definitions.js';
 import { getDictionary } from './dictionary.js';
 import { RoomManager, type Room, type RoomBroadcaster } from './rooms.js';
+import { flushWrites } from './store.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 3001);
@@ -97,6 +99,57 @@ app.get<{ Params: { word: string } }>('/api/definition/:word', async (request, r
   if (word.length < 2 || word.length > 30) return { word, entries: [] };
   // getDefinition never rejects; no definition simply means an empty list.
   return getDefinition(word);
+});
+
+// ---------------------------------------------------------------------------
+// Grille du jour: one grid a day, played alone, over plain HTTP. No room, no
+// other players to keep in step, so nothing here needs a socket.
+// ---------------------------------------------------------------------------
+
+const daily = new DailyManager(dictionary);
+
+/**
+ * The player identifier comes from the browser's localStorage, exactly as it
+ * does for a room. It is not proof of anything, and the leaderboard is trusting
+ * by design, at the scale of a server among friends. What the server does not
+ * trust is the words: every one is checked against the day's grid, so a score
+ * cannot be invented, only attributed to a made-up name.
+ */
+function playerFrom(body: unknown): string {
+  const id = (body as { playerId?: unknown } | null)?.playerId;
+  if (typeof id !== 'string' || id.length < 8 || id.length > 64) throw new Error('Joueur inconnu');
+  return id;
+}
+
+app.get<{ Querystring: { playerId?: string } }>('/api/daily', async (request) =>
+  daily.teaser(request.query.playerId ?? ''),
+);
+
+app.post('/api/daily/start', async (request, reply) => {
+  try {
+    const body = request.body as { nickname?: unknown };
+    return daily.start(playerFrom(request.body), sanitizeNickname(body?.nickname));
+  } catch (cause) {
+    return reply.code(400).send({ error: cause instanceof Error ? cause.message : 'Requête invalide' });
+  }
+});
+
+app.post('/api/daily/word', async (request, reply) => {
+  try {
+    const body = request.body as { word?: unknown };
+    if (typeof body?.word !== 'string' || body.word.length > 40) throw new Error('Mot invalide');
+    return daily.submit(playerFrom(request.body), body.word);
+  } catch (cause) {
+    return reply.code(400).send({ error: cause instanceof Error ? cause.message : 'Requête invalide' });
+  }
+});
+
+app.post('/api/daily/finish', async (request, reply) => {
+  try {
+    return daily.finish(playerFrom(request.body));
+  } catch (cause) {
+    return reply.code(400).send({ error: cause instanceof Error ? cause.message : 'Requête invalide' });
+  }
 });
 
 /** Lets the home screen check a room code before asking for a nickname. */
@@ -275,6 +328,15 @@ setInterval(() => {
   const now = Date.now();
   for (const [ip, seen] of definitionHits) if (seen.resets < now) definitionHits.delete(ip);
 }, 60_000).unref();
+
+// A deploy stops the container: the daily grid's pending write goes out first,
+// otherwise the last couple of seconds of play are lost.
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+  process.once(signal, () => {
+    flushWrites();
+    process.exit(0);
+  });
+}
 
 await app.listen({ port: PORT, host: HOST });
 console.log(`[server] Boggle multiplayer on http://localhost:${PORT}`);

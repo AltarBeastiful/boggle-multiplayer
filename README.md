@@ -35,6 +35,18 @@ Les tests du moteur de règles :
 npm test
 ```
 
+## La grille du jour
+
+Sur la page d'accueil, une **grille par jour, la même pour tout le monde**, qui
+se joue seul, sans salle ni code. Le chronomètre **compte mais n'arrête rien** :
+on cherche aussi longtemps qu'on veut, et on décide quand voir les solutions.
+Une fois terminée, la grille affiche les solutions manquées et le **classement
+du jour**, où les ex æquo sont départagés par le temps mis.
+
+La grille n'est stockée nulle part : elle se **déduit de la date**, donc
+n'importe quel serveur reconstruit la même. Le jour change à **minuit à Paris**,
+pas à minuit UTC, qui tombe à une ou deux heures du matin ici.
+
 ## Les règles implémentées
 
 - Manche de **3 minutes** (réglable).
@@ -77,6 +89,7 @@ modifiable au clavier, et part avec le bouton d'envoi.
 ```bash
 npm run test:trace     # vraies entrées tactiles et souris, via Playwright
 npm run test:round     # les deux façons de terminer une manche, à deux joueurs
+npm run test:daily     # la grille du jour, de l'accueil au classement
 ```
 
 Quand un mot est accepté, son chemin est tracé une fraction de seconde sur la

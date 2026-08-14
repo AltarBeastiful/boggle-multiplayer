@@ -32,6 +32,8 @@ interface SolutionPanelProps {
   /** Word whose definition is open, owned by the parent. */
   selected: string | null;
   onSelect(word: string | null): void;
+  /** Played alone, as the grille du jour is: nobody else found anything. */
+  solo?: boolean;
 }
 
 /**
@@ -45,6 +47,7 @@ export function SolutionPanel({
   onHighlight,
   selected,
   onSelect,
+  solo = false,
 }: SolutionPanelProps) {
   const [filter, setFilter] = useState<Filter>('all');
   const hoverTimer = useRef<number | undefined>(undefined);
@@ -140,12 +143,15 @@ export function SolutionPanel({
       <ul className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg-faint">
         <li>
           <span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-sm bg-accent align-middle" />
-          trouvé par vous
+          {solo ? 'trouvé' : 'trouvé par vous'}
         </li>
-        <li>
-          <span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-sm bg-ok align-middle" />
-          trouvé par un autre joueur
-        </li>
+        {/* Alone on the grille du jour, there is no other player to credit. */}
+        {!solo && (
+          <li>
+            <span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-sm bg-ok align-middle" />
+            trouvé par un autre joueur
+          </li>
+        )}
         <li>
           <span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-sm bg-chip-hover align-middle" />
           personne
@@ -188,9 +194,11 @@ export function SolutionPanel({
                     }}
                     aria-expanded={open}
                     title={
-                      who
-                        ? `Trouvé par ${who}. Cliquer pour la définition`
-                        : 'Personne ne l’a trouvé. Cliquer pour la définition'
+                      solo
+                        ? `${mine ? 'Trouvé' : 'Manqué'}. Cliquer pour la définition`
+                        : who
+                          ? `Trouvé par ${who}. Cliquer pour la définition`
+                          : 'Personne ne l’a trouvé. Cliquer pour la définition'
                     }
                     className={['rounded-lg px-2.5 py-1.5 text-sm transition', tone(mine, byOthers, open)].join(
                       ' ',

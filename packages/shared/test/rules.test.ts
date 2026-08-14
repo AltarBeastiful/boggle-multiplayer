@@ -5,6 +5,8 @@ import {
   FRENCH_FACE_BAG,
   buildDictionary,
   countVowels,
+  dailyKey,
+  dailySeed,
   disambiguateNicknames,
   expandBag,
   findPath,
@@ -262,6 +264,30 @@ test('valid settings are kept', () => {
   assert.equal(settings.roundSeconds, 120);
   assert.equal(settings.qEqualsQu, true);
   assert.equal(settings.minWordLength, 4);
+});
+
+// ---------------------------------------------------------------------------
+// Grille du jour
+// ---------------------------------------------------------------------------
+
+test('the day turns over at midnight in Paris, not in UTC', () => {
+  // 21:30 UTC on 14 August is 23:30 in Paris, still the 14th.
+  assert.equal(dailyKey(new Date('2026-08-14T21:30:00Z')), '2026-08-14');
+  // 22:30 UTC is half past midnight in Paris: the grid has changed.
+  assert.equal(dailyKey(new Date('2026-08-14T22:30:00Z')), '2026-08-15');
+  // In winter Paris is one hour ahead, so the turn happens at 23:00 UTC.
+  assert.equal(dailyKey(new Date('2026-01-14T22:30:00Z')), '2026-01-14');
+  assert.equal(dailyKey(new Date('2026-01-14T23:30:00Z')), '2026-01-15');
+});
+
+test('a day always yields the same grid, and two days do not', () => {
+  assert.equal(dailySeed('2026-08-14'), dailySeed('2026-08-14'));
+  assert.notEqual(dailySeed('2026-08-14'), dailySeed('2026-08-15'));
+
+  const grid = (day: string) =>
+    generateBoard({ size: 4, seed: dailySeed(day), minWords: 0 }).board.cells.join('');
+  assert.equal(grid('2026-08-14'), grid('2026-08-14'), 'the grid is rebuilt, never stored');
+  assert.notEqual(grid('2026-08-14'), grid('2026-08-15'));
 });
 
 test('players sharing a nickname are numbered, in join order', () => {

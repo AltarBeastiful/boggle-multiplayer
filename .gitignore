@@ -6,3 +6,6 @@ dist/
 
 .work/
 audit-mobile/
+
+# Runtime state: the daily grid results. Kept on a volume in production.
+server/.state/

@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 
-import { normalizeRoomCode } from '@boggle/shared';
+import { normalizeRoomCode, type DailyTeaser } from '@boggle/shared';
 
-import { getNickname } from '../lib/storage';
+import { dailyApi } from '../lib/daily';
+import { getNickname, setNickname } from '../lib/storage';
 import { ThemeToggle } from './ThemeToggle';
 
 interface HomeProps {
@@ -10,13 +11,26 @@ interface HomeProps {
   initialCode: string;
   onCreate(nickname: string): Promise<unknown>;
   onJoin(code: string, nickname: string): Promise<unknown>;
+  onDaily(): void;
 }
 
-export function Home({ connected, initialCode, onCreate, onJoin }: HomeProps) {
+export function Home({ connected, initialCode, onCreate, onJoin, onDaily }: HomeProps) {
   const [nickname, setNicknameValue] = useState(getNickname);
   const [code, setCode] = useState(initialCode);
   const [busy, setBusy] = useState<'create' | 'join' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [daily, setDaily] = useState<DailyTeaser | null>(null);
+
+  // The daily grid is worth mentioning only if the server can serve it.
+  useEffect(() => {
+    let cancelled = false;
+    void dailyApi.teaser().then((teaser) => {
+      if (!cancelled) setDaily(teaser);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const run = async (kind: 'create' | 'join', action: () => Promise<unknown>) => {
     setError(null);
@@ -108,6 +122,31 @@ export function Home({ connected, initialCode, onCreate, onJoin }: HomeProps) {
           {busy === 'join' ? '…' : 'Rejoindre'}
         </button>
       </form>
+
+      {/*
+        The grille du jour asks for nothing: no room, no code, no waiting for
+        anyone. It sits under the multiplayer entry rather than above it,
+        because the game is a game between people first.
+      */}
+      {daily && (
+        <button
+          type="button"
+          onClick={() => {
+            setNickname(nickname.trim() || 'Joueur');
+            onDaily();
+          }}
+          className="rounded-xl border border-border-strong bg-panel px-4 py-3 text-left transition hover:border-accent"
+        >
+          <span className="block font-semibold text-fg">Grille du jour</span>
+          <span className="mt-0.5 block text-sm text-fg-faint">
+            {daily.done
+              ? 'Vous l’avez terminée, revoyez le classement'
+              : 'La même grille pour tout le monde, seul et sans chrono'}
+            {daily.playerCount > 0 &&
+              ` · ${daily.playerCount} joueur${daily.playerCount > 1 ? 's' : ''} aujourd’hui`}
+          </span>
+        </button>
+      )}
 
       {error && (
         <p role="alert" className="rounded-lg bg-bad-bg px-4 py-2 text-center text-sm text-bad">

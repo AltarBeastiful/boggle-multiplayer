@@ -1,7 +1,7 @@
 # Detailed plan for option C: bundled definitions
 
 - **Status**: **implemented** on 14 August 2026, with Wiktionary kept as fallback
-- **Replaces**: the runtime call to Wiktionary ([ADR 0001](adr/0001-architecture.md), decision 13)
+- **Replaces**: the runtime call to Wiktionary ([ADR 0001](adr/0001-architecture.md), decision 14)
 - **Figures**: every size below was measured, not estimated
 
 ## Actual result
