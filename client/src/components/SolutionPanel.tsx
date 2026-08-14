@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 
 import type { PublicPlayer, SolutionWord } from '@boggle/shared';
 
+import { DefinitionCard } from './DefinitionCard';
+
 type Filter = 'all' | 'missed' | 'mine';
 
 const FILTERS: Array<{ value: Filter; label: string }> = [
@@ -23,6 +25,7 @@ interface SolutionPanelProps {
  */
 export function SolutionPanel({ solution, playerId, players, onHighlight }: SolutionPanelProps) {
   const [filter, setFilter] = useState<Filter>('all');
+  const [selected, setSelected] = useState<string | null>(null);
 
   const names = useMemo(
     () => new Map(players.map((player) => [player.id, player.nickname])),
@@ -116,8 +119,12 @@ export function SolutionPanel({ solution, playerId, players, onHighlight }: Solu
                     type="button"
                     onMouseEnter={() => onHighlight(word.path)}
                     onFocus={() => onHighlight(word.path)}
-                    onClick={() => onHighlight(word.path)}
-                    title={who ? `Trouvé par ${who}` : 'Personne ne l’a trouvé'}
+                    onClick={() => {
+                      onHighlight(word.path);
+                      setSelected((current) => (current === word.word ? null : word.word));
+                    }}
+                    aria-expanded={selected === word.word}
+                    title={who ? `Trouvé par ${who}. Cliquer pour la définition` : 'Personne ne l’a trouvé. Cliquer pour la définition'}
                     className={[
                       'rounded-lg px-2.5 py-1 text-sm transition',
                       mine
@@ -137,8 +144,10 @@ export function SolutionPanel({ solution, playerId, players, onHighlight }: Solu
         ))}
       </div>
 
+      {selected && <DefinitionCard word={selected} onClose={() => setSelected(null)} />}
+
       <p className="mt-3 text-xs text-fg-faint">
-        Survolez ou touchez un mot pour le tracer sur la grille.
+        Cliquez un mot pour le tracer sur la grille et lire sa définition.
       </p>
     </section>
   );

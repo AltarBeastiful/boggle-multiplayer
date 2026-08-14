@@ -1,9 +1,19 @@
 # Plan : définition d'un mot au clic
 
-État : **à valider**. La page des solutions est en place et marque déjà les mots
-trouvés / non trouvés ; il ne manque que la définition au clic. Ce document
-explique pourquoi cette dernière partie mérite un accord préalable, et ce que je
-propose de faire.
+État : **option B implémentée** (validée le 14/08/2026). Ce document garde la
+trace des mesures qui ont mené à ce choix ; l'implémentation vit dans
+`server/src/definitions.ts`.
+
+Deux pièges découverts en cours de route, qui ne se voyaient pas à l'analyse :
+
+- le filtre qui saute les lignes de tableaux de flexion supprimait aussi
+  « Pluriel de uropode. », soit la définition de **toutes les formes au
+  pluriel**, une bonne moitié des solutions d'une grille ;
+- les sections de renvoi s'appellent « Forme de verbe » mais aussi
+  « Forme d'adjectif » : ne filtrer que sur « Forme de » perdait les adjectifs.
+
+Couverture mesurée après correction : **19 mots sur 20** d'un échantillon
+représentatif (lemmes, pluriels, conjugaisons, mots rares).
 
 ## Pourquoi ce n'est pas une simple requête HTTP
 

@@ -9,6 +9,7 @@ import { Server as SocketServer, type Socket } from 'socket.io';
 import {
   isValidRoomCode,
   normalizeRoomCode,
+  normalizeWord,
   sanitizeNickname,
   type ClientToServerEvents,
   type GameSettings,
@@ -16,6 +17,7 @@ import {
   type ServerToClientEvents,
 } from '@boggle/shared';
 
+import { definitionCacheSize, getDefinition } from './definitions.js';
 import { getDictionary } from './dictionary.js';
 import { RoomManager, type Room, type RoomBroadcaster } from './rooms.js';
 
@@ -71,8 +73,29 @@ app.get('/api/health', async () => ({
   status: 'ok',
   words: dictionary.size,
   rooms: rooms.size,
+  definitionsCached: definitionCacheSize(),
   uptime: Math.round(process.uptime()),
 }));
+
+// Le Wiktionnaire est un service gratuit : on borne ce qu'un client peut en tirer.
+const DEFINITION_RATE_LIMIT = 90;
+const DEFINITION_WINDOW_MS = 60_000;
+const definitionHits = new Map<string, { count: number; resets: number }>();
+
+app.get<{ Params: { word: string } }>('/api/definition/:word', async (request, reply) => {
+  const now = Date.now();
+  const seen = definitionHits.get(request.ip);
+  if (!seen || seen.resets < now) {
+    definitionHits.set(request.ip, { count: 1, resets: now + DEFINITION_WINDOW_MS });
+  } else if (++seen.count > DEFINITION_RATE_LIMIT) {
+    return reply.code(429).send({ word: '', entries: [] });
+  }
+
+  const word = normalizeWord(request.params.word);
+  if (word.length < 2 || word.length > 30) return { word, entries: [] };
+  // getDefinition ne rejette jamais : pas de définition = liste vide.
+  return getDefinition(word);
+});
 
 /** Permet à l'écran d'accueil de vérifier un code avant de demander un pseudo. */
 app.get<{ Params: { code: string } }>('/api/rooms/:code', async (request) => {
@@ -239,6 +262,8 @@ io.on('connection', (socket: GameSocket) => {
 setInterval(() => {
   const removed = rooms.sweep();
   if (removed > 0) console.log(`[serveur] ${removed} salle(s) expirée(s) supprimée(s)`);
+  const now = Date.now();
+  for (const [ip, seen] of definitionHits) if (seen.resets < now) definitionHits.delete(ip);
 }, 60_000).unref();
 
 await app.listen({ port: PORT, host: HOST });

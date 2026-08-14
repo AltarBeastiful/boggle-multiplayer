@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { buildDictionary, type SortedDictionary } from '@boggle/shared';
+import { buildDictionary, normalizeWord, type SortedDictionary } from '@boggle/shared';
 
 const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
@@ -30,6 +30,38 @@ function readWordFile(name: string): string[] {
 }
 
 let cached: SortedDictionary | null = null;
+let spellingIndex: Map<string, string[]> | null = null;
+
+/**
+ * Index inverse : forme normalisée -> graphies réelles.
+ *
+ * Le jeu ignore les accents (`ETE`) alors que le Wiktionnaire les indexe
+ * (`été`) : sans cet index, aucune définition ne serait trouvable. Seules les
+ * entrées dont la graphie diffère de la forme normalisée sont conservées :
+ * pour les autres, le mot en minuscules suffit. Environ 16 Mo.
+ *
+ * Une clé peut porter plusieurs graphies : `COTE` -> coté, côte, côté.
+ */
+function buildSpellingIndex(words: Iterable<string>): Map<string, string[]> {
+  const index = new Map<string, string[]>();
+  for (const raw of words) {
+    if (!/^[\p{L}]+$/u.test(raw)) continue;
+    const normalized = normalizeWord(raw);
+    if (normalized.length < 3 || normalized === raw.toUpperCase()) continue;
+    const spellings = index.get(normalized);
+    if (spellings) {
+      if (!spellings.includes(raw)) spellings.push(raw);
+    } else {
+      index.set(normalized, [raw]);
+    }
+  }
+  return index;
+}
+
+export function getSpellingIndex(): Map<string, string[]> {
+  if (!spellingIndex) getDictionary();
+  return spellingIndex ?? new Map();
+}
 
 export function getDictionary(): SortedDictionary {
   if (cached) return cached;
@@ -43,7 +75,9 @@ export function getDictionary(): SortedDictionary {
     exclude: excluded.length > 0 ? excluded : undefined,
   });
 
-  const details = [`${cached.size} mots`, `${Date.now() - started} ms`];
+  spellingIndex = buildSpellingIndex([...base, ...extra]);
+
+  const details = [`${cached.size} mots`, `${spellingIndex.size} graphies accentuées`, `${Date.now() - started} ms`];
   if (extra.length > 0) details.push(`+${extra.length} ajoutés`);
   if (excluded.length > 0) details.push(`-${excluded.length} exclus`);
   console.log(`[dictionnaire] ${details.join(', ')}`);

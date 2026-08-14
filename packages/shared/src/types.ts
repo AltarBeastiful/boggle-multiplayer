@@ -163,6 +163,21 @@ export interface RoomState {
   gameOver: boolean;
 }
 
+/** Une définition, telle que renvoyée par GET /api/definition/:mot. */
+export interface DefinitionEntry {
+  /** Graphie réelle interrogée : « été », « côté ». */
+  spelling: string;
+  partOfSpeech: string;
+  definition: string;
+  /** Renseigné quand la graphie est une forme fléchie de ce lemme. */
+  lemma?: string;
+}
+
+export interface DefinitionResult {
+  word: string;
+  entries: DefinitionEntry[];
+}
+
 /** Vue privée : les mots que *moi* j'ai trouvés dans la manche en cours. */
 export interface MyRoundState {
   words: Array<{ word: string; points: number; path: number[] }>;

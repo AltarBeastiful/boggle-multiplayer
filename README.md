@@ -52,7 +52,8 @@ moment, même si sa grille est arrivée quelques dizaines de millisecondes plus 
 
 À la fin de la manche, la **page des solutions** liste les mots de la grille
 groupés par longueur, en marquant ceux que vous avez trouvés, ceux qu'un autre
-joueur a trouvés et ceux que personne n'a vus. Un clic trace le mot sur la grille.
+joueur a trouvés et ceux que personne n'a vus. Un clic trace le mot sur la grille
+**et affiche sa définition**, tirée du Wiktionnaire francophone.
 
 L'interface suit le **thème clair ou sombre** du système, avec un bouton pour
 forcer l'un ou l'autre. Les contrastes des deux thèmes vérifient le niveau AA.
@@ -110,6 +111,24 @@ compris. Volontairement permissif : `déci`, `zut`, `eus`, `ait` et
 écartées : elles ne sont pas traçables sur une grille.
 
 Pour l'ajuster sans reconstruire : voir [`server/data/README.md`](server/data/README.md).
+
+### Les définitions
+
+`GET /api/definition/:mot` interroge le Wiktionnaire francophone. Trois obstacles
+sont traités dans `server/src/definitions.ts` :
+
+- il n'existe pas d'API de définition exploitable (l'endpoint REST répond 501 sur
+  fr.wiktionary), donc la page est récupérée en texte brut puis analysée ;
+- le jeu ignore les accents (`ETE`) alors que le Wiktionnaire les indexe (`été`) :
+  un index inverse (~16 Mo, 130 830 entrées) redonne les graphies réelles, et
+  `COTE` renvoie bien *cote*, *coté*, *côte* et *côté* ;
+- les formes fléchies ne portent pas de définition mais un renvoi : le lemme est
+  suivi automatiquement, donc `DEDOUBLAIT` affiche la définition de *dédoubler*.
+
+Les réponses sont mises en cache (24 h), les appels concurrents pour un même mot
+sont mutualisés, les requêtes sortantes plafonnées à 4 et limitées par IP. Une
+absence de définition n'est jamais une erreur : l'interface propose alors un lien
+vers le Wiktionnaire.
 
 ## Les grilles
 
