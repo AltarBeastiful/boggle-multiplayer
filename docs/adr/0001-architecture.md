@@ -180,7 +180,7 @@ La pile embarque son propre Traefik : redirection 80 → 443, certificat obtenu 
 défi TLS-ALPN sur le 443. Aucun autre port n'a eu besoin d'être ouvert.
 
 **Le domaine.** Il n'y en avait pas. `sslip.io` résout n'importe quelle adresse IP
-sans inscription : `193-122-4-195.sslip.io`. C'est un vrai nom de domaine, ce qui
+sans inscription : `boggle-multiplayer.193-122-4-195.sslip.io`. C'est un vrai nom de domaine, ce qui
 suffit à Let's Encrypt pour émettre un certificat reconnu.
 
 **Autonomie.** La pile ne dépend d'aucun conteneur existant. L'installation
