@@ -15,7 +15,10 @@ import type {
 /** En développement, Vite relaie /socket.io vers le serveur (voir vite.config.ts). */
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io({
   autoConnect: true,
-  transports: ['websocket', 'polling'],
+  // Pas de `transports` imposé : on garde l'ordre par défaut de Socket.IO, qui
+  // établit d'abord une liaison longue durée puis bascule en WebSocket. Forcer
+  // le WebSocket d'emblée laissait WebKit sans connexion : la liaison s'ouvrait
+  // mais la poignée de main n'aboutissait jamais.
 });
 
 /** Transforme un événement à accusé de réception en promesse. */

@@ -21,23 +21,21 @@ export function RoundCountdown({ startsAt, clockOffset }: RoundCountdownProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startsAt, clockOffset]);
 
-  const shown = Math.max(1, Math.ceil(left));
+  // Deux temps valent mieux qu'un décompte chiffré : on lit un mot d'un coup
+  // d'œil, là où un chiffre demande d'attendre le suivant.
+  const label = Math.ceil(left) > 1 ? 'Prêt ?' : 'Partez !';
 
   return (
     <div
       role="status"
       aria-live="assertive"
-      aria-label={`La manche commence dans ${shown}`}
-      className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-bg/45 backdrop-blur-[2px]"
+      className="absolute inset-0 flex items-center justify-center rounded-2xl bg-bg/45 backdrop-blur-[2px]"
     >
       <span
-        key={shown}
-        className="animate-countdown font-black text-accent tabular-nums drop-shadow-lg text-8xl leading-none"
+        key={label}
+        className="animate-countdown text-5xl leading-none font-black text-accent drop-shadow-lg sm:text-6xl"
       >
-        {shown}
-      </span>
-      <span className="text-xs font-semibold tracking-[0.35em] text-fg-muted uppercase">
-        Préparez-vous
+        {label}
       </span>
     </div>
   );

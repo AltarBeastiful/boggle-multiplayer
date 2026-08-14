@@ -25,8 +25,8 @@ import {
 
 /** Tolérance de latence : un mot parti juste avant le buzzer compte encore. */
 const SUBMIT_GRACE_MS = 700;
-/** Décompte d'avant-manche : la grille est visible mais floutée. */
-const COUNTDOWN_MS = 3000;
+/** Décompte d'avant-manche : la grille est visible mais floutée. Deux temps. */
+const COUNTDOWN_MS = 2000;
 /** Une salle sans joueur connecté est supprimée après ce délai. */
 const ROOM_TTL_MS = 30 * 60 * 1000;
 

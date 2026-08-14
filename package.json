@@ -15,10 +15,12 @@
     "build": "npm run build -w @boggle/shared && npm run build -w @boggle/client && npm run build -w @boggle/server",
     "start": "node server/dist/index.js",
     "test": "npm run test -w @boggle/shared",
-    "typecheck": "tsc -b packages/shared server client"
+    "typecheck": "tsc -b packages/shared server client",
+    "test:trace": "node scripts/test-trace.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
+    "playwright": "^1.62.1",
     "typescript": "^5.7.3"
   },
   "engines": {

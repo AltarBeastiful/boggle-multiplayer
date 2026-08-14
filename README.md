@@ -46,7 +46,8 @@ npm test
 - Les points **s'additionnent d'une manche à l'autre**. La partie s'arrête au
   nombre de manches ou au score fixé par l'hôte.
 
-Chaque manche démarre par un **décompte de 3 secondes**, grille floutée : le
+Chaque manche démarre par un **décompte de 2 secondes** (« Prêt ? », « Partez ! »),
+grille floutée : le
 serveur donne l'instant du départ, donc tout le monde voit les lettres au même
 moment, même si sa grille est arrivée quelques dizaines de millisecondes plus tôt.
 
@@ -55,10 +56,16 @@ groupés par longueur, en marquant ceux que vous avez trouvés, ceux qu'un autre
 joueur a trouvés et ceux que personne n'a vus. Un clic trace le mot sur la grille
 **et affiche sa définition**, tirée du Wiktionnaire francophone.
 
-La saisie se fait au clavier. Un bouton à droite du champ active le **tracé au
-doigt** sur la grille, en complément : on relie les lettres adjacentes, revenir
-en arrière efface la dernière, et le mot part au relâchement. Le choix est
-mémorisé d'une partie à l'autre.
+La saisie se fait au clavier, ou en **traçant le mot sur la grille** au doigt
+comme à la souris : on relie les lettres adjacentes, revenir en arrière efface la
+dernière. Le mot tracé se dépose dans le champ, il n'est pas envoyé tout seul,
+de sorte qu'un tracé qui dérape se corrige au clavier, puis part avec le bouton
+d'envoi. Le tracé est actif d'office sur écran tactile, à activer sur écran à
+souris ; le choix est mémorisé.
+
+```bash
+npm run test:trace     # vraies entrées tactiles et souris, via Playwright
+```
 
 Quand un mot est accepté, son chemin est tracé une fraction de seconde sur la
 grille puis s'efface : rien ne reste affiché entre deux mots. Pour supprimer

@@ -165,7 +165,10 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
             animateHighlight
             traceable={traceMode && !pending}
             onTraceChange={(path) => setValue(pathToWord(path))}
-            onTraceEnd={(path) => void send(pathToWord(path))}
+            // Le mot tracé se dépose dans le champ, il n'est pas envoyé tout
+            // seul : un tracé qui dérape se corrige au clavier au lieu d'être
+            // gâché par un refus.
+            onTraceEnd={(path) => setValue(pathToWord(path))}
           />
         </div>
         {pending && <RoundCountdown startsAt={round.startsAt} clockOffset={clockOffset} />}
@@ -184,8 +187,27 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
           spellCheck={false}
           enterKeyHint="send"
           aria-label="Mot trouvé"
-          className="w-full rounded-xl border-2 border-border-strong bg-panel-soft px-4 py-4 text-center text-2xl tracking-wider text-fg uppercase outline-none placeholder:text-base placeholder:tracking-normal placeholder:normal-case placeholder:text-fg-faint focus:border-accent"
+          className="w-full min-w-0 flex-1 rounded-xl border-2 border-border-strong bg-panel-soft px-3 py-4 text-center text-2xl tracking-wider text-fg uppercase outline-none placeholder:text-base placeholder:tracking-normal placeholder:normal-case placeholder:text-fg-faint focus:border-accent"
         />
+
+        <button
+          type="submit"
+          disabled={pending || value.trim().length === 0}
+          title="Envoyer le mot"
+          aria-label="Envoyer le mot"
+          className="flex w-12 shrink-0 items-center justify-center rounded-xl border-2 border-accent bg-accent text-accent-fg transition hover:bg-accent-hover disabled:border-border-strong disabled:bg-panel-soft disabled:text-fg-faint"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            aria-hidden="true"
+            className="h-6 w-6"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h15m0 0-6-6m6 6-6 6" />
+          </svg>
+        </button>
 
         {/* Saisie au doigt : secondaire, mais à portée de pouce. */}
         <button
@@ -195,7 +217,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
           title={traceMode ? 'Tracé sur la grille activé' : 'Tracer les mots sur la grille'}
           aria-label={traceMode ? 'Désactiver le tracé sur la grille' : 'Tracer les mots sur la grille'}
           className={[
-            'flex w-16 shrink-0 items-center justify-center rounded-xl border-2 transition',
+            'flex w-12 shrink-0 items-center justify-center rounded-xl border-2 transition',
             traceMode
               ? 'border-accent bg-accent text-accent-fg'
               : 'border-border-strong bg-panel-soft text-fg-faint hover:text-fg-muted',
