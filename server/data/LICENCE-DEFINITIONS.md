@@ -10,6 +10,9 @@ Wiktionnaire francophone**, et reste donc soumis à la licence de celui-ci.
 - **Extraction** : [wiktextract](https://github.com/tatuylonen/wiktextract) de
   Tatu Ylönen, distribuée sur [kaikki.org](https://kaikki.org/dictionary/French/),
   fichier `fr-extract.jsonl.gz`.
+- **Classement** : [Lexique 3.83](http://www.lexique.org) (CC BY-SA 4.0) fournit
+  les fréquences d'usage qui ordonnent les homographes : « côté » avant « coté ».
+  Aucune fréquence n'est recopiée dans le fichier, seul l'ordre en découle.
 - **Transformation** : `scripts/build-definitions.mjs` ne retient que les mots
   jouables du dictionnaire du jeu, la première définition de chaque graphie, et
   rattache les formes fléchies à leur lemme. Aucun contenu n'est réécrit.

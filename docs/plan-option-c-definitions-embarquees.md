@@ -8,9 +8,10 @@
 
 | | prévu | mesuré |
 | --- | --- | --- |
-| Artefact compressé | ~10 Mo | **4,2 Mo** |
-| Artefact brut | ~38 Mo | 33,3 Mo |
+| Artefact compressé | ~10 Mo | **7,0 Mo** |
+| Artefact brut | ~38 Mo | 65,2 Mo |
 | Couverture du dictionnaire | non chiffré | **99,1 %** (315 813 / 318 800) |
+| Graphies / sens | non chiffré | 350 169 / **688 722** (1,97 par graphie) |
 | Échantillon de référence | ≥ 19/20 | **20/20** |
 | Latence | ~0 | **0,00 à 0,01 s** (contre 0,5 à 0,9 s à froid) |
 | Chargement au démarrage | ~1 s | 1,05 s |
@@ -37,6 +38,21 @@ courants, et plusieurs de ses entrées se normalisent sur la même clé.
 Sans ces deux correctifs la couverture était identique, 20/20, mais trois mots
 sur vingt affichaient la mauvaise définition. **Le nombre de réponses ne dit rien
 de leur justesse** : c'est le contrôle mot à mot qui l'a montré.
+
+### Polysémie et homographes
+
+Une première version ne gardait qu'un sens par graphie, ce qui perdait beaucoup :
+les entrées du Wiktionnaire comptent **2,55 sens en moyenne**, et 55 % en ont au
+moins deux. On en conserve désormais **trois**, dans l'ordre du Wiktionnaire, un
+ordre éditorial où le sens principal vient en tête, et non une mesure d'usage.
+
+Pour les homographes en revanche, l'usage se mesure : **Lexique 3.83** donne la
+fréquence de chaque graphie (occurrences par million, sous-titres et livres).
+`COTE` renvoie donc *côté*, *côte*, *cote*, *coté* dans cet ordre, qu'aucune
+heuristique de forme n'aurait pu deviner. 31 240 formes ont plusieurs
+graphies et bénéficient de ce classement.
+
+Coût : 4,2 → 7,0 Mo compressés, pour deux fois plus de contenu.
 
 ## Ce que ça change
 

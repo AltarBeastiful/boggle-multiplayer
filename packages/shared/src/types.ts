@@ -168,7 +168,12 @@ export interface DefinitionEntry {
   /** Graphie réelle interrogée : « été », « côté ». */
   spelling: string;
   partOfSpeech: string;
-  definition: string;
+  /**
+   * Les sens de cette graphie, le principal en premier. Un mot polysémique en
+   * a plusieurs : « cote » est à la fois une cotation, une cote de rivière et
+   * une dimension sur un plan.
+   */
+  definitions: string[];
   /** Renseigné quand la graphie est une forme fléchie de ce lemme. */
   lemma?: string;
 }

@@ -13,13 +13,17 @@ import type { DefinitionEntry } from '@boggle/shared';
  * fonctionne donc à l'identique sans lui, ce qui permet de le construire, de le
  * comparer, et de revenir en arrière sans rien casser.
  *
- * Format : un TSV trié, une ligne par graphie.
+ * Format : un TSV trié, une ligne par sens.
  *
  *   FORME_NORMALISEE \t nature \t graphie \t lemme \t définition
  *
- * Le lemme est vide quand le mot porte sa propre définition. Plusieurs graphies
- * d'une même forme normalisée (COTE -> cote, coté, côte, côté) donnent plusieurs
- * lignes, regroupées au chargement.
+ * Le lemme est vide quand le mot porte sa propre définition. Une même graphie
+ * occupe autant de lignes qu'elle a de sens, et une même forme normalisée
+ * autant de graphies qu'elle en a (COTE -> côté, côte, cote, coté). Les lignes
+ * consécutives d'une même graphie sont regroupées au chargement.
+ *
+ * Les graphies sont classées par fréquence d'usage réelle, les sens dans
+ * l'ordre du Wiktionnaire (le principal en premier).
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -58,20 +62,30 @@ function load(): void {
     const [word, partOfSpeech, spelling, lemma, definition] = line.split('\t');
     if (!word || !definition) continue;
     lines++;
+
+    const existing = map.get(word);
+    const last = existing?.[existing.length - 1];
+    // Ligne suivante de la même graphie : c'est un sens de plus, pas une entrée.
+    if (last && last.spelling === spelling && last.partOfSpeech === partOfSpeech) {
+      last.definitions.push(definition);
+      continue;
+    }
+
     const entry: DefinitionEntry = {
       spelling: spelling || word.toLowerCase(),
       partOfSpeech: partOfSpeech || '',
-      definition,
+      definitions: [definition],
     };
     if (lemma) entry.lemma = lemma;
-    const existing = map.get(word);
     if (existing) existing.push(entry);
     else map.set(word, [entry]);
   }
 
   index = map;
+  let entries = 0;
+  for (const list of map.values()) entries += list.length;
   console.log(
-    `[définitions] ${map.size} mots (${lines} graphies) chargés depuis ${path.split('/').pop()} en ${Date.now() - started} ms`,
+    `[définitions] ${map.size} mots, ${entries} graphies, ${lines} sens chargés depuis ${path.split('/').pop()} en ${Date.now() - started} ms`,
   );
 }
 

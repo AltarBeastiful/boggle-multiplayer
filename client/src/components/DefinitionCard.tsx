@@ -111,7 +111,16 @@ export function DefinitionCard({ word, onClose }: { word: string; onClose(): voi
               <span className="font-medium text-fg">{entry.spelling}</span>{' '}
               <span className="text-xs text-fg-faint">{entry.partOfSpeech.toLowerCase()}</span>
               {entry.lemma && <span className="text-xs text-fg-faint">, de « {entry.lemma} »</span>}
-              <p className="mt-0.5 text-fg-muted">{entry.definition}</p>
+              {entry.definitions.length === 1 ? (
+                <p className="mt-0.5 text-fg-muted">{entry.definitions[0]}</p>
+              ) : (
+                // Un mot polysémique : on numérote ses sens plutôt que d'en choisir un.
+                <ol className="mt-1 ml-4 list-decimal space-y-1 text-fg-muted marker:text-fg-faint">
+                  {entry.definitions.map((definition) => (
+                    <li key={definition}>{definition}</li>
+                  ))}
+                </ol>
+              )}
             </li>
           ))}
         </ul>

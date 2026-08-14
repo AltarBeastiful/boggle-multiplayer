@@ -13,5 +13,8 @@
  */
 export const TRACE_FOUND_WORD = import.meta.env.VITE_WORD_TRACE !== 'off';
 
-/** Durée d'affichage du tracé, animation comprise. */
-export const TRACE_DURATION_MS = 600;
+/**
+ * Durée d'affichage du tracé, animation comprise. Court volontairement : la
+ * grille doit redevenir neutre vite, pour chercher le mot suivant.
+ */
+export const TRACE_DURATION_MS = 380;

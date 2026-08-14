@@ -36,7 +36,7 @@ export function BoardGrid({
               // Les jetons gardent leur teinte ivoire dans les deux thèmes :
               // c'est la couleur des dés, et elle reste lisible sur les deux fonds.
               active
-                ? 'bg-tile-active text-tile-active-fg ring-2 ring-tile-active-fg/25'
+                ? 'bg-tile-active text-tile-active-fg ring-1 ring-tile-active-fg/15'
                 : 'bg-tile text-tile-fg',
               active && animateHighlight ? 'animate-trace' : '',
             ].join(' ')}

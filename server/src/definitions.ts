@@ -57,9 +57,12 @@ function isNoise(line: string): boolean {
   return TABLE_LINE.test(line) || PRONUNCIATION.test(line);
 }
 
+/** Nombre de sens remontés par graphie, comme pour le fichier embarqué. */
+const MAX_SENSES = 3;
+
 interface ParsedSection {
   partOfSpeech: string;
-  definition: string;
+  definitions: string[];
 }
 
 /** Découpe la section « == Français == » en sections grammaticales. */
@@ -77,10 +80,10 @@ function parseFrenchSections(extract: string): ParsedSection[] {
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
-    // La première ligne est la vedette (« chien \ʃjɛ̃\ masculin ») : la
-    // définition est la première ligne utile qui suit.
-    const definition = lines.slice(1).find((line) => !isNoise(line));
-    if (definition) sections.push({ partOfSpeech, definition });
+    // La première ligne est la vedette (« chien \ʃjɛ̃\ masculin ») : les sens
+    // sont les lignes utiles qui suivent, le principal en premier.
+    const definitions = lines.slice(1).filter((line) => !isNoise(line)).slice(0, MAX_SENSES);
+    if (definitions.length > 0) sections.push({ partOfSpeech, definitions });
   }
   return sections;
 }
@@ -155,15 +158,16 @@ async function lookupSpelling(spelling: string): Promise<DefinitionEntry | null>
 
   const direct = sections.find((section) => REAL_POS.test(section.partOfSpeech));
   if (direct) {
-    return { spelling, partOfSpeech: direct.partOfSpeech, definition: direct.definition };
+    return { spelling, partOfSpeech: direct.partOfSpeech, definitions: direct.definitions };
   }
 
   const form = sections.find((section) => FORM_POS.test(section.partOfSpeech));
   if (!form) return null;
 
-  const lemma = extractLemma(form.definition);
+  const first = form.definitions[0] ?? '';
+  const lemma = extractLemma(first);
   if (!lemma || lemma.toLowerCase() === spelling.toLowerCase()) {
-    return { spelling, partOfSpeech: form.partOfSpeech, definition: form.definition };
+    return { spelling, partOfSpeech: form.partOfSpeech, definitions: form.definitions };
   }
 
   const lemmaExtract = await fetchExtract(lemma);
@@ -172,12 +176,12 @@ async function lookupSpelling(spelling: string): Promise<DefinitionEntry | null>
     : undefined;
 
   if (!lemmaSection) {
-    return { spelling, partOfSpeech: form.partOfSpeech, definition: form.definition };
+    return { spelling, partOfSpeech: form.partOfSpeech, definitions: form.definitions };
   }
   return {
     spelling,
     partOfSpeech: lemmaSection.partOfSpeech,
-    definition: lemmaSection.definition,
+    definitions: lemmaSection.definitions,
     lemma,
   };
 }

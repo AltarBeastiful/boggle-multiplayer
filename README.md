@@ -128,7 +128,10 @@ Pour l'ajuster sans reconstruire : voir [`server/data/README.md`](server/data/RE
 ### Les définitions
 
 `GET /api/definition/:mot` répond depuis un fichier embarqué de
-**315 813 mots, 99,1 % du dictionnaire, 4,2 Mo compressés**, servi en 0,01 s.
+**315 813 mots, 688 722 sens, 99,1 % du dictionnaire, 7 Mo compressés**, servi
+en 0,01 s. Un mot polysémique montre ses trois principaux sens, et les
+homographes sont classés par fréquence d'usage réelle : `COTE` donne *côté*,
+*côte*, *cote*, *coté* dans cet ordre.
 Il est construit par :
 
 ```bash
