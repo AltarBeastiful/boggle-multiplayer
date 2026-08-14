@@ -79,7 +79,10 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-5 px-5 py-8 lg:max-w-6xl">
-      <header className="relative text-center">
+      {/* The theme button floats over the header, so the title keeps clear of
+          it: on a 360 px phone "Manche 1 terminée" ran under the button and
+          lost its last letter. */}
+      <header className="relative px-14 text-center">
         <div className="absolute top-0 right-0">
           <ThemeToggle />
         </div>
@@ -104,9 +107,9 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
       </header>
 
       {/*
-        Sur grand écran, deux colonnes : la grille, le classement et la
-        définition restent sous les yeux pendant qu'on parcourt les solutions.
-        Sans cela il fallait remonter à chaque mot survolé pour voir son tracé.
+        On a wide screen, two columns: the grid, the standings and the
+        definition stay in view while the solutions are read. Without that you
+        had to scroll back up at every word hovered to see its trace.
       */}
       <div className="lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-6">
         <div className="space-y-5 lg:sticky lg:top-6">

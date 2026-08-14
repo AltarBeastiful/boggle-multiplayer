@@ -21,11 +21,15 @@
   --fg-faint: #5b6676;
   --chip: #e7edf5;
   --chip-hover: #d9e2ee;
+  /* A step past the hover shade, so a selected word does not look merely
+     hovered. See `tone()` in SolutionPanel. */
+  --chip-selected: #c3d1e3;
 
   --accent: #a34a07;
   --accent-hover: #8a3d06;
   --accent-fg: #ffffff;
   --accent-soft: rgb(180 83 9 / 0.1);
+  --accent-selected: #6f2f04;
 
   --tile: #fffdf6;
   --tile-fg: #1e293b;
@@ -35,6 +39,7 @@
 
   --ok: #166534;
   --ok-bg: rgb(21 128 61 / 0.12);
+  --ok-bg-selected: rgb(21 128 61 / 0.28);
   --bad: #b91c1c;
   --bad-bg: rgb(185 28 28 / 0.1);
   --warn: #b45309;
@@ -53,11 +58,13 @@
   --fg-faint: #8a99b0;
   --chip: #1e293b;
   --chip-hover: #334155;
+  --chip-selected: #475a75;
 
   --accent: #fbbf24;
   --accent-hover: #fcd34d;
   --accent-fg: #020617;
   --accent-soft: rgb(251 191 36 / 0.1);
+  --accent-selected: #fde68a;
 
   --tile: #fffbeb;
   --tile-fg: #0f172a;
@@ -67,6 +74,7 @@
 
   --ok: #6ee7b7;
   --ok-bg: rgb(16 185 129 / 0.18);
+  --ok-bg-selected: rgb(16 185 129 / 0.38);
   --bad: #fca5a5;
   --bad-bg: rgb(239 68 68 / 0.18);
   --warn: #fcd34d;
@@ -86,16 +94,19 @@
   --color-fg-faint: var(--fg-faint);
   --color-chip: var(--chip);
   --color-chip-hover: var(--chip-hover);
+  --color-chip-selected: var(--chip-selected);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-fg: var(--accent-fg);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-selected: var(--accent-selected);
   --color-tile: var(--tile);
   --color-tile-fg: var(--tile-fg);
   --color-tile-active: var(--tile-active);
   --color-tile-active-fg: var(--tile-active-fg);
   --color-ok: var(--ok);
   --color-ok-bg: var(--ok-bg);
+  --color-ok-bg-selected: var(--ok-bg-selected);
   --color-bad: var(--bad);
   --color-bad-bg: var(--bad-bg);
   --color-warn: var(--warn);

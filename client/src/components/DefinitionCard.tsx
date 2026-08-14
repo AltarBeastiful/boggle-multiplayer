@@ -86,7 +86,7 @@ export function DefinitionCard({
           type="button"
           onClick={onClose}
           aria-label="Fermer la définition"
-          className="-mt-1 -mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-fg-faint transition hover:bg-chip hover:text-fg"
+          className="-mt-2 -mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg text-fg-faint transition hover:bg-chip hover:text-fg"
         >
           ×
         </button>

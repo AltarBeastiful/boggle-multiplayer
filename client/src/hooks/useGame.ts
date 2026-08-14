@@ -35,6 +35,21 @@ export interface Game {
   resetGame(): Promise<void>;
 }
 
+/**
+ * How long a drop is tolerated before the player is told. Socket.IO waits
+ * about a second before its first retry and then backs off, so a shorter delay
+ * mostly announces outages that repair themselves.
+ */
+const LOST_GRACE_MS = 3000;
+
+/**
+ * Coming back to a tab left in the background, the drop is noticed and mended
+ * at the same moment: the browser froze the socket while the tab slept, and
+ * the disconnect only surfaces on waking. Warning there is nearly always
+ * wrong, so waking gets a wider window than an outage under the player's eyes.
+ */
+const WAKE_GRACE_MS = 8000;
+
 export function useGame(): Game {
   const playerId = useRef(getPlayerId()).current;
   const [room, setRoom] = useState<RoomState | null>(null);
@@ -80,19 +95,38 @@ export function useGame(): Game {
       }
     };
 
+    /** Warn only if the drop is still there once the grace has run out. */
+    const armWarning = (grace: number) => {
+      window.clearTimeout(lostTimer.current);
+      // Nothing to announce while the tab is in the background: the banner
+      // would be read on return, when the connection is already coming back.
+      if (document.visibilityState !== 'visible') return;
+      lostTimer.current = window.setTimeout(() => setConnectionLost(true), grace);
+    };
+
     const onDisconnect = () => {
       setConnected(false);
       // A micro-outage recovers on its own, so give Socket.IO time to
       // reconnect before worrying the player.
       if (!everConnected.current) return;
-      window.clearTimeout(lostTimer.current);
-      lostTimer.current = window.setTimeout(() => setConnectionLost(true), 800);
+      armWarning(LOST_GRACE_MS);
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') {
+        // Leaving the tab: drop a pending warning nobody is there to read.
+        window.clearTimeout(lostTimer.current);
+        return;
+      }
+      if (socket.connected || !everConnected.current) return;
+      armWarning(WAKE_GRACE_MS);
     };
 
     socket.on('room:state', onState);
     socket.on('round:started', onRoundStarted);
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       window.clearTimeout(lostTimer.current);
@@ -100,6 +134,7 @@ export function useGame(): Game {
       socket.off('round:started', onRoundStarted);
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [playerId]);
 

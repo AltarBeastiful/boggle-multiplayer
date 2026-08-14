@@ -226,9 +226,9 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
       </form>
 
       {/*
-        Sous le champ, jamais par-dessus les dés : le message n'a plus à masquer
-        quoi que ce soit, et une hauteur fixe évite que la grille sautille quand
-        il apparaît. Seule la couleur du texte signale le refus.
+        Below the field, never over the dice: the message no longer has to hide
+        anything, and a fixed height keeps the grid from jumping when it
+        appears. Only the colour of the text marks the refusal.
       */}
       <p role="status" aria-live="polite" className="mt-2 h-5 text-center text-sm text-bad">
         {flash && (

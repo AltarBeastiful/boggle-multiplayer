@@ -17,7 +17,8 @@
     "test": "npm run test -w @boggle/shared",
     "typecheck": "tsc -b packages/shared server client",
     "test:trace": "node scripts/test-trace.mjs",
-    "test:feedback": "node scripts/test-feedback.mjs"
+    "test:feedback": "node scripts/test-feedback.mjs",
+    "audit:mobile": "node scripts/audit-mobile.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

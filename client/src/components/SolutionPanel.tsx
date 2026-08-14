@@ -12,6 +12,18 @@ const FILTERS: Array<{ value: Filter; label: string }> = [
   { value: 'mine', label: 'Vos mots' },
 ];
 
+/**
+ * Colour of a word chip. The hue says who found it, and stays put when the
+ * word is selected: selection is a step in intensity, not a fourth colour.
+ * Among two hundred words it is what tells you which one the definition below
+ * belongs to, and where to look back after scrolling.
+ */
+function tone(mine: boolean, byOthers: boolean, open: boolean): string {
+  if (mine) return `font-semibold text-accent-fg ${open ? 'bg-accent-selected' : 'bg-accent'}`;
+  if (byOthers) return `text-ok ${open ? 'bg-ok-bg-selected' : 'bg-ok-bg'}`;
+  return open ? 'bg-chip-selected text-fg' : 'bg-chip text-fg-muted hover:bg-chip-hover';
+}
+
 interface SolutionPanelProps {
   solution: SolutionWord[];
   playerId: string;
@@ -36,6 +48,22 @@ export function SolutionPanel({
 }: SolutionPanelProps) {
   const [filter, setFilter] = useState<Filter>('all');
   const hoverTimer = useRef<number | undefined>(undefined);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  /*
+   * On a phone the definition appears under a list up to 400 px tall, so a
+   * word tapped near the top of that list opens a card below the fold, and
+   * nothing seems to happen. Bring it back, with the smallest scroll that
+   * does it. On a wide screen the card sits beside the grid and is hidden
+   * here, so there is nothing to scroll.
+   */
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!selected || !card || card.offsetParent === null) return;
+    const box = card.getBoundingClientRect();
+    if (box.top >= 0 && box.bottom <= window.innerHeight) return;
+    card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [selected]);
 
   /**
    * Prefetch after a short pause, so running the eye down the list does not
@@ -89,7 +117,7 @@ export function SolutionPanel({
               onClick={() => setFilter(option.value)}
               aria-pressed={filter === option.value}
               className={[
-                'rounded-lg px-2.5 py-1.5 text-xs font-medium transition',
+                'rounded-lg px-3 py-2 text-xs font-medium transition',
                 filter === option.value
                   ? 'bg-accent text-accent-fg'
                   : 'bg-chip text-fg-muted hover:bg-chip-hover',
@@ -124,10 +152,13 @@ export function SolutionPanel({
             <h3 className="mb-1.5 text-xs font-semibold tracking-wide text-fg-faint uppercase">
               {length} lettres ({words.length})
             </h3>
-            <div className="flex flex-wrap gap-1.5">
+            {/* A wider gap than elsewhere: under a thumb, what separates two
+                words matters as much as their own size. */}
+            <div className="flex flex-wrap gap-2">
               {words.map((word) => {
                 const mine = word.finders.includes(playerId);
                 const byOthers = word.finders.length > 0 && !mine;
+                const open = selected === word.word;
                 const who = word.finders
                   .map((id) => (id === playerId ? 'vous' : (names.get(id) ?? 'un joueur')))
                   .join(', ');
@@ -147,20 +178,15 @@ export function SolutionPanel({
                       onHighlight(word.path);
                       onSelect(selected === word.word ? null : word.word);
                     }}
-                    aria-expanded={selected === word.word}
+                    aria-expanded={open}
                     title={
                       who
                         ? `Trouvé par ${who}. Cliquer pour la définition`
                         : 'Personne ne l’a trouvé. Cliquer pour la définition'
                     }
-                    className={[
-                      'rounded-lg px-2.5 py-1 text-sm transition',
-                      mine
-                        ? 'bg-accent font-semibold text-accent-fg'
-                        : byOthers
-                          ? 'bg-ok-bg text-ok'
-                          : 'bg-chip text-fg-muted hover:bg-chip-hover',
-                    ].join(' ')}
+                    className={['rounded-lg px-2.5 py-1.5 text-sm transition', tone(mine, byOthers, open)].join(
+                      ' ',
+                    )}
                   >
                     {word.word}
                     <span className="ml-1.5 text-xs opacity-70">{word.points}</span>
@@ -174,7 +200,9 @@ export function SolutionPanel({
 
       {/* On a wide screen the definition shows beside the grid instead. */}
       {selected && (
-        <DefinitionCard className="mt-3 lg:hidden" word={selected} onClose={() => onSelect(null)} />
+        <div ref={cardRef} className="lg:hidden">
+          <DefinitionCard className="mt-3" word={selected} onClose={() => onSelect(null)} />
+        </div>
       )}
 
       <p className="mt-3 text-xs text-fg-faint">

@@ -56,6 +56,10 @@ groupés par longueur, en marquant ceux que vous avez trouvés, ceux qu'un autre
 joueur a trouvés et ceux que personne n'a vus. Un clic trace le mot sur la grille
 **et affiche sa définition**, tirée du Wiktionnaire francophone.
 
+Le mot ouvert garde une **teinte un peu plus soutenue** que ses voisins : la
+couleur dit toujours qui l'a trouvé, la nuance dit lequel on lit. Sur téléphone,
+la définition est ramenée dans l'écran si le mot touché la laissait hors champ.
+
 La saisie se fait au clavier, ou **sur la grille** : on tape les lettres une à
 une, ou on glisse le doigt d'une lettre à l'autre. Les deux gestes obéissent à
 la même règle, un appui n'étant qu'un glissé d'une seule case. Retoucher la
@@ -73,6 +77,15 @@ complètement ce tracé, compilez avec `VITE_WORD_TRACE=off` (variable reprise p
 
 L'interface suit le **thème clair ou sombre** du système, avec un bouton pour
 forcer l'un ou l'autre. Les contrastes des deux thèmes vérifient le niveau AA.
+
+```bash
+npm run audit:mobile   # parcourt une partie en 412x915, mesure et photographie
+```
+
+Le script relève les cibles tactiles sous 44 px, les textes sous 12 px, les
+débordements horizontaux et ce qui reste lisible sans faire défiler. Mesures
+utiles : un dé fait 89 px de côté, la grille et le champ tiennent ensemble dans
+453 px, donc un clavier virtuel peut en prendre 460 sans rien couper.
 
 ### Variantes disponibles (réglées par l'hôte, avant la partie)
 
