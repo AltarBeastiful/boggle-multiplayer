@@ -23,11 +23,11 @@ import {
   type SubmitResult,
 } from '@boggle/shared';
 
-/** Tolérance de latence : un mot parti juste avant le buzzer compte encore. */
+/** Latency tolerance: a word sent just before the buzzer still counts. */
 const SUBMIT_GRACE_MS = 700;
-/** Décompte d'avant-manche : la grille est visible mais floutée. Deux temps. */
+/** Pre-round countdown, two beats, during which the grid shows but stays blurred. */
 const COUNTDOWN_MS = 2000;
-/** Une salle sans joueur connecté est supprimée après ce délai. */
+/** A room with nobody connected is dropped after this delay. */
 const ROOM_TTL_MS = 30 * 60 * 1000;
 
 interface ServerPlayer {
@@ -36,7 +36,7 @@ interface ServerPlayer {
   connected: boolean;
   socketId: string | null;
   totalScore: number;
-  /** Mots trouvés dans la manche en cours. */
+  /** Words found in the current round. */
   words: Map<string, { points: number; path: number[] }>;
   lastSeen: number;
 }
@@ -46,10 +46,10 @@ interface ActiveRound {
   board: Board;
   seed: number;
   startedAt: number;
-  /** Fin du décompte : avant, aucun mot n'est accepté. */
+  /** End of the countdown; no word is accepted before it. */
   startsAt: number;
   endsAt: number;
-  /** Tous les mots de la grille : sert à valider en O(1) et à lister les mots manqués. */
+  /** Every word in the grid, for O(1) validation and for listing missed words. */
   solution: Map<string, number[]>;
   solutionPoints: number;
   timer: NodeJS.Timeout | null;
@@ -84,7 +84,7 @@ export class Room {
     this.hostId = '';
   }
 
-  // -- joueurs --------------------------------------------------------------
+  // -- players ---------------------------------------------------------------
 
   addPlayer(playerId: string, nickname: string, socketId: string): ServerPlayer {
     const existing = this.players.get(playerId);
@@ -159,7 +159,7 @@ export class Room {
     this.lastActivity = Date.now();
   }
 
-  // -- réglages -------------------------------------------------------------
+  // -- settings --------------------------------------------------------------
 
   updateSettings(playerId: string, patch: Partial<GameSettings>): void {
     if (!this.isHost(playerId)) throw new Error("Seul l'hôte peut changer les réglages");
@@ -169,7 +169,7 @@ export class Room {
     this.broadcaster.state(this);
   }
 
-  // -- déroulement ----------------------------------------------------------
+  // -- round lifecycle -------------------------------------------------------
 
   startGame(playerId: string): void {
     if (!this.isHost(playerId)) throw new Error("Seul l'hôte peut lancer la partie");
@@ -246,13 +246,13 @@ export class Room {
     }
   }
 
-  /** Fin de manche : décompte, annulation des doublons, cumul des scores. */
+  /** End of round: scoring, duplicate cancellation, running totals. */
   endRound(): void {
     const round = this.round;
     if (!round || this.phase !== 'playing') return;
     this.clearTimer();
 
-    // Qui a trouvé quoi ? Sert au décompte et à la page des solutions.
+    // Who found what. Feeds both the scoring and the solutions page.
     const finders = new Map<string, string[]>();
     for (const player of this.players.values()) {
       for (const word of player.words.keys()) {
@@ -292,7 +292,7 @@ export class Room {
 
     playerResults.sort((a, b) => b.roundScore - a.roundScore || b.totalScore - a.totalScore);
 
-    // Toutes les solutions, du mot le plus long au plus court.
+    // Every solution, longest word first.
     const solution: SolutionWord[] = [];
     for (const [word, path] of round.solution) {
       solution.push({
@@ -334,7 +334,7 @@ export class Room {
     return false;
   }
 
-  // -- soumission de mots ---------------------------------------------------
+  // -- word submission -------------------------------------------------------
 
   submitWord(playerId: string, raw: string): SubmitResult {
     const player = this.players.get(playerId);
@@ -350,7 +350,7 @@ export class Room {
 
     const path = round.solution.get(word);
     if (!path) {
-      // Distinguer « pas un mot » de « pas dans la grille » : c'est ce qui aide à progresser.
+      // Telling "not a word" from "not on the grid" is what helps a player improve.
       const reason = this.dictionary.has(word) ? 'not-on-board' : 'not-a-word';
       return { word, accepted: false, reason };
     }
@@ -364,7 +364,7 @@ export class Room {
     return { word, accepted: true, path: [...path], points };
   }
 
-  // -- sérialisation --------------------------------------------------------
+  // -- serialisation ---------------------------------------------------------
 
   toState(): RoomState {
     return {
@@ -396,7 +396,7 @@ export class Room {
     };
   }
 
-  /** Vue privée d'un joueur : ses propres mots (restaurés après une reconnexion). */
+  /** A player's private view: their own words, restored after reconnecting. */
   myState(playerId: string): MyRoundState {
     const player = this.players.get(playerId);
     if (!player) return { words: [] };
@@ -434,7 +434,7 @@ export class RoomManager {
       }
       if (!this.rooms.has(code)) return code;
     }
-    // Repli improbable : on rallonge le code.
+    // Unlikely fallback: lengthen the code.
     let code = '';
     for (let i = 0; i < ROOM_CODE_LENGTH + 2; i++) {
       code += ROOM_CODE_ALPHABET[randomInt(ROOM_CODE_ALPHABET.length)];
@@ -459,7 +459,7 @@ export class RoomManager {
     this.rooms.delete(code);
   }
 
-  /** Supprime les salles vides ou abandonnées. */
+  /** Drops empty or abandoned rooms. */
   sweep(): number {
     let removed = 0;
     for (const [code, room] of this.rooms) {

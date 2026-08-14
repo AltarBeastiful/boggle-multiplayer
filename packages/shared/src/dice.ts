@@ -6,13 +6,13 @@ import { solveBoard } from './solver.js';
 import type { BoardSize } from './types.js';
 
 /**
- * Le sachet de 96 faces (16 dés x 6 faces).
+ * The bag of 96 faces, being 16 dice of 6 faces.
  *
- * Hasbro ne publie pas les faces des dés de l'édition française, et aucune source
- * fiable ne les donne. Plutôt que d'inventer un jeu de dés « officiel », la
- * répartition ci-dessous suit la fréquence des lettres en français, arrondie sur
- * 96 faces. Une grille est ensuite tirée *sans remise* dans ce sachet : impossible
- * d'obtenir trois Z, et les voyelles restent proportionnées comme sur de vrais dés.
+ * Hasbro does not publish the faces of the French edition, and no reliable
+ * source gives them. Rather than invent an "official" set, the distribution
+ * below follows French letter frequencies rounded over 96 faces. A grid is then
+ * drawn from that bag *without replacement*: three Z tiles become impossible,
+ * and vowels stay in proportion as they would on real dice.
  */
 export const FRENCH_FACE_BAG: Readonly<Record<string, number>> = Object.freeze({
   E: 14, A: 7, I: 7, S: 7, N: 7, T: 7, R: 6, U: 6, O: 5, L: 5,
@@ -20,7 +20,7 @@ export const FRENCH_FACE_BAG: Readonly<Record<string, number>> = Object.freeze({
   G: 1, B: 1, H: 1, F: 1, Q: 1, X: 1, Y: 1, J: 1, K: 1, Z: 1,
 });
 
-/** Les 96 faces, développées. */
+/** The 96 faces, expanded. */
 export function expandBag(bag: Readonly<Record<string, number>> = FRENCH_FACE_BAG): string[] {
   const faces: string[] = [];
   for (const [letter, count] of Object.entries(bag)) {
@@ -31,12 +31,12 @@ export function expandBag(bag: Readonly<Record<string, number>> = FRENCH_FACE_BA
 
 export const TOTAL_FACES = expandBag().length; // 96
 
-/** Tirage sans remise de `count` faces (Fisher-Yates partiel). */
+/** Draws `count` faces without replacement, by partial Fisher-Yates. */
 function draw(count: number, rng: Rng): string[] {
   const faces = expandBag();
   const drawn: string[] = [];
   for (let i = 0; i < count; i++) {
-    // Le sachet est réapprovisionné si la grille dépasse 96 cases (impossible ici).
+    // The bag would need refilling beyond 96 tiles, which cannot happen here.
     const pick = i + Math.floor(rng() * (faces.length - i));
     const chosen = faces[pick] as string;
     faces[pick] = faces[i] as string;
@@ -48,11 +48,11 @@ function draw(count: number, rng: Rng): string[] {
 
 export interface GenerateBoardOptions {
   size: BoardSize;
-  /** Dictionnaire utilisé pour vérifier qu'une grille est jouable. */
+  /** Dictionary used to check that a grid is worth playing. */
   dictionary?: Dictionary;
   minWordLength?: number;
   qEqualsQu?: boolean;
-  /** Nombre minimal de mots exigé (0 pour désactiver le contrôle qualité). */
+  /** Minimum number of words required; 0 disables the quality check. */
   minWords?: number;
   seed?: number;
   maxAttempts?: number;
@@ -61,19 +61,19 @@ export interface GenerateBoardOptions {
 export interface GeneratedBoard {
   board: Board;
   seed: number;
-  /** Nombre de mots trouvés par le solveur, si le contrôle qualité a tourné. */
+  /** Words found by the solver, when the quality check ran. */
   wordCount: number | null;
   attempts: number;
 }
 
-/** Nombre de mots attendu d'une grille correcte, par taille. */
+/** How many words a decent grid should hold, per size. */
 function defaultMinWords(size: BoardSize): number {
   return size === 4 ? 40 : 120;
 }
 
 /**
- * Tire une grille jouable : proportion de voyelles raisonnable, et assez de mots
- * pour que la manche soit intéressante. Les grilles pauvres sont retirées.
+ * Draws a playable grid: a sensible proportion of vowels, and enough words to
+ * make the round interesting. Poor grids are drawn again.
  */
 export function generateBoard(options: GenerateBoardOptions): GeneratedBoard {
   const {
@@ -106,11 +106,11 @@ export function generateBoard(options: GenerateBoardOptions): GeneratedBoard {
       const wordCount = solution.words.size;
       const candidate: GeneratedBoard = { board, seed, wordCount, attempts: attempt };
       if (wordCount >= minWords) return candidate;
-      // On garde la meilleure grille au cas où aucune n'atteindrait le seuil.
+      // Keep the best grid so far, in case none reaches the threshold.
       if (!best || wordCount > (best.wordCount ?? -1)) best = candidate;
     }
 
-    // Graine suivante, déterministe : une grille rejouable le reste.
+    // Next seed, deterministic, so a replayable grid stays replayable.
     seed = (seed + 0x9e3779b9) >>> 0;
   }
 

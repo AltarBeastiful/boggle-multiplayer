@@ -49,12 +49,12 @@ function PlayerWords({ player, highlight }: { player: PlayerRoundResult; highlig
 
 export function Results({ room, results, isHost, playerId, onNext, onReset, onLeave }: ResultsProps) {
   const [highlight, setHighlight] = useState<number[] | undefined>();
-  /** Mot dont on lit la définition. Remonté ici pour l'afficher à côté de la grille. */
+  /** Word whose definition is being read, lifted here to show it beside the grid. */
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /** Retrouve le chemin d'un mot pour l'afficher sur la grille. */
+  /** Finds a word's path so it can be shown on the grid. */
   const highlightWord = (word: string) => {
     const found = results.solution.find((entry) => entry.word === word);
     if (found) setHighlight(found.path);
@@ -150,7 +150,7 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
             </table>
           </section>
 
-          {/* La définition suit la grille : les deux se lisent ensemble. */}
+          {/* The definition follows the grid; the two are read together. */}
           {selected && (
             <DefinitionCard className="hidden lg:block" word={selected} onClose={() => setSelected(null)} />
           )}

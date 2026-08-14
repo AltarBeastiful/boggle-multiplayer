@@ -8,7 +8,7 @@ import { Playing } from './components/Playing';
 import { Results } from './components/Results';
 import { useGame } from './hooks/useGame';
 
-/** Lit le code de salle dans l'URL (/r/ABCD) pour les liens d'invitation. */
+/** Reads the room code from the URL (/r/ABCD), for invitation links. */
 function codeFromUrl(): string {
   const match = /^\/r\/([A-Za-z0-9]{4,6})\/?$/.exec(location.pathname);
   return match?.[1] ? normalizeRoomCode(match[1]) : '';
@@ -18,8 +18,8 @@ export function App() {
   const game = useGame();
   const [initialCode] = useState(codeFromUrl);
 
-  // L'URL suit la salle rejointe. Tant qu'on ne l'a pas rejointe, on laisse
-  // l'adresse d'invitation intacte : un rafraîchissement ne doit pas perdre le code.
+  // The URL follows the room once joined. Before that the invitation address is
+  // left alone, so a refresh does not lose the code.
   useEffect(() => {
     if (!game.room) return;
     const target = `/r/${game.room.code}`;

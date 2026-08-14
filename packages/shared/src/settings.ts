@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS, type EndCondition, type GameSettings } from './types.js';
 
-/** Alphabet sans caractères ambigus (pas de I/O/0/1) : un code se dicte au téléphone. */
+/** Alphabet without ambiguous characters (no I/O/0/1): a code gets read out over the phone. */
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const ROOM_CODE_LENGTH = 4;
 
@@ -14,7 +14,7 @@ export function normalizeRoomCode(code: string): string {
   return code.trim().toUpperCase().replace(/\s+/g, '');
 }
 
-/** Plancher de sécurité : la manche de référence reste 3 minutes (DEFAULT_SETTINGS). */
+/** Safety floor; the reference round stays 3 minutes, see DEFAULT_SETTINGS. */
 export const MIN_ROUND_SECONDS = 30;
 export const MAX_ROUND_SECONDS = 900;
 export const MAX_NICKNAME_LENGTH = 20;
@@ -40,7 +40,7 @@ function sanitizeEndCondition(input: unknown, fallback: EndCondition): EndCondit
   return fallback;
 }
 
-/** Le serveur ne fait jamais confiance aux réglages envoyés par l'hôte. */
+/** The server never trusts the settings sent by the host. */
 export function sanitizeSettings(
   input: Partial<GameSettings> | undefined,
   base: GameSettings = DEFAULT_SETTINGS,

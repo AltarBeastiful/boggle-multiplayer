@@ -1,22 +1,22 @@
 import type { ScoringMode } from './types.js';
 
 /**
- * Décompte des points, d'après https://www.boggle.fr/regles.php
+ * Scoring, from https://www.boggle.fr/regles.php
  *
- *   3 ou 4 lettres : 1 point
- *   5 lettres      : 2 points
- *   6 lettres      : 3 points
- *   7 lettres      : 5 points
- *   8 lettres ou + : 11 points
+ *   3 or 4 letters : 1 point
+ *   5 letters      : 2 points
+ *   6 letters      : 3 points
+ *   7 letters      : 5 points
+ *   8 letters or + : 11 points
  *
- * Variante « décompte simplifié », d'après https://www.boggle.fr/variantes.php
- * 1 point par lettre supplémentaire au-delà de la troisième :
+ * "Simplified scoring" variant, from https://www.boggle.fr/variantes.php
+ * one point per letter beyond the third:
  *
- *   3 ou 4 lettres : 1 point
- *   5 lettres      : 2 points
- *   6 lettres      : 3 points
- *   7 lettres      : 4 points
- *   8 lettres      : 5 points (8 - 3), et ainsi de suite.
+ *   3 or 4 letters : 1 point
+ *   5 letters      : 2 points
+ *   6 letters      : 3 points
+ *   7 letters      : 4 points
+ *   8 letters      : 5 points (8 - 3), and so on.
  */
 export function wordScore(length: number, mode: ScoringMode): number {
   if (length < 3) return 0;
@@ -28,7 +28,7 @@ export function wordScore(length: number, mode: ScoringMode): number {
   return 11;
 }
 
-/** Petit tableau lisible pour l'interface (le dernier libellé est « 8+ »). */
+/** Small readable table for the interface; the last label reads "8+". */
 export function scoringTable(mode: ScoringMode): Array<{ label: string; points: number }> {
   return [
     { label: '3-4', points: wordScore(4, mode) },

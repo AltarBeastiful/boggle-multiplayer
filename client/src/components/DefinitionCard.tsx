@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 
 import type { DefinitionEntry, DefinitionResult } from '@boggle/shared';
 
-/** Les définitions déjà reçues ne sont pas redemandées d'une manche à l'autre. */
+/** Definitions already received are not asked for again between rounds. */
 const cache = new Map<string, DefinitionEntry[]>();
-/** Requêtes en cours, pour ne pas relancer un mot déjà demandé. */
+/** In-flight requests, so a word already asked for is not asked again. */
 const inFlight = new Map<string, Promise<DefinitionEntry[]>>();
 
 function load(word: string): Promise<DefinitionEntry[]> {
@@ -28,9 +28,9 @@ function load(word: string): Promise<DefinitionEntry[]> {
 }
 
 /**
- * Charge la définition à l'avance, au survol. La recherche prend une à trois
- * secondes à froid (elle interroge le Wiktionnaire en direct) : la lancer dès
- * que la souris se pose la rend généralement instantanée au clic.
+ * Loads the definition ahead of time, on hover. A cold lookup takes one to
+ * three seconds since it queries Wiktionary live, so starting it as the mouse
+ * settles usually makes the click feel instant.
  */
 export function prefetchDefinition(word: string): void {
   if (cache.has(word) || inFlight.has(word)) return;
@@ -120,7 +120,7 @@ export function DefinitionCard({
               {entry.definitions.length === 1 ? (
                 <p className="mt-0.5 text-fg-muted">{entry.definitions[0]}</p>
               ) : (
-                // Un mot polysémique : on numérote ses sens plutôt que d'en choisir un.
+                // A polysemous word: number its senses rather than pick one.
                 <ol className="mt-1 ml-4 list-decimal space-y-1 text-fg-muted marker:text-fg-faint">
                   {entry.definitions.map((definition) => (
                     <li key={definition}>{definition}</li>

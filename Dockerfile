@@ -1,8 +1,8 @@
-# --- construction -----------------------------------------------------------
+# --- build ------------------------------------------------------------------
 FROM node:22-alpine AS build
 WORKDIR /app
 
-# Les manifestes d'abord : la couche npm ci est réutilisée tant qu'ils ne bougent pas.
+# Manifests first: the npm ci layer is reused as long as they do not change.
 COPY package.json package-lock.json ./
 COPY packages/shared/package.json packages/shared/
 COPY server/package.json server/
@@ -14,12 +14,12 @@ COPY packages/shared packages/shared
 COPY server server
 COPY client client
 
-# Tracé du mot trouvé sur la grille : VITE_WORD_TRACE=off pour le supprimer.
+# Trace of a found word on the grid; VITE_WORD_TRACE=off removes it.
 ARG VITE_WORD_TRACE=on
 ENV VITE_WORD_TRACE=$VITE_WORD_TRACE
 RUN npm run build
 
-# --- exécution --------------------------------------------------------------
+# --- runtime ----------------------------------------------------------------
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production

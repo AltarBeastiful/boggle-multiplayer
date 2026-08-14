@@ -6,24 +6,24 @@ import { gunzipSync } from 'node:zlib';
 import type { DefinitionEntry } from '@boggle/shared';
 
 /**
- * Définitions embarquées, servies depuis un fichier livré avec l'image.
+ * Bundled definitions, served from a file shipped with the image.
  *
- * Le fichier est **facultatif** : s'il est absent, `lookup` ne renvoie rien et
- * l'appelant retombe sur la recherche en direct au Wiktionnaire. Le jeu
- * fonctionne donc à l'identique sans lui, ce qui permet de le construire, de le
- * comparer, et de revenir en arrière sans rien casser.
+ * The file is **optional**: without it `lookup` returns nothing and the caller
+ * falls back to the live Wiktionary search. The game therefore behaves exactly
+ * the same without it, which is what allows building it, comparing it, and
+ * rolling back without breaking anything.
  *
- * Format : un TSV trié, une ligne par sens.
+ * Format: a sorted TSV, one line per sense.
  *
- *   FORME_NORMALISEE \t nature \t graphie \t lemme \t définition
+ *   NORMALISED_FORM \t part of speech \t spelling \t lemma \t definition
  *
- * Le lemme est vide quand le mot porte sa propre définition. Une même graphie
- * occupe autant de lignes qu'elle a de sens, et une même forme normalisée
- * autant de graphies qu'elle en a (COTE -> côté, côte, cote, coté). Les lignes
- * consécutives d'une même graphie sont regroupées au chargement.
+ * The lemma is empty when the word carries its own definition. One spelling
+ * takes as many lines as it has senses, and one normalised form as many
+ * spellings as it has (COTE -> côté, côte, cote, coté). Consecutive lines of
+ * the same spelling are grouped at load time.
  *
- * Les graphies sont classées par fréquence d'usage réelle, les sens dans
- * l'ordre du Wiktionnaire (le principal en premier).
+ * Spellings are ranked by measured usage frequency, senses in Wiktionary's own
+ * order, main one first.
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -46,7 +46,7 @@ function load(): void {
   loaded = true;
   const path = findFile();
   if (!path) {
-    console.log('[définitions] aucun fichier embarqué, recherche en direct au Wiktionnaire');
+    console.log('[definitions] no bundled file, falling back to live Wiktionary lookups');
     return;
   }
 
@@ -65,7 +65,7 @@ function load(): void {
 
     const existing = map.get(word);
     const last = existing?.[existing.length - 1];
-    // Ligne suivante de la même graphie : c'est un sens de plus, pas une entrée.
+    // Next line of the same spelling: one more sense, not a new entry.
     if (last && last.spelling === spelling && last.partOfSpeech === partOfSpeech) {
       last.definitions.push(definition);
       continue;
@@ -85,11 +85,11 @@ function load(): void {
   let entries = 0;
   for (const list of map.values()) entries += list.length;
   console.log(
-    `[définitions] ${map.size} mots, ${entries} graphies, ${lines} sens chargés depuis ${path.split('/').pop()} en ${Date.now() - started} ms`,
+    `[definitions] ${map.size} words, ${entries} spellings, ${lines} senses loaded from ${path.split('/').pop()} in ${Date.now() - started} ms`,
   );
 }
 
-/** Définitions embarquées d'un mot normalisé, ou `null` si aucun fichier. */
+/** Bundled definitions for a normalised word, or `null` when no file is present. */
 export function lookupLocal(word: string): DefinitionEntry[] | null {
   if (!loaded) load();
   if (!index) return null;

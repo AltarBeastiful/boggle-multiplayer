@@ -32,7 +32,7 @@ export function endConditionLabel(end: EndCondition): string {
   return 'sans fin';
 }
 
-/** Résumé court des réglages, affiché dans le salon et pendant la partie. */
+/** Short summary of the settings, shown in the lobby and during the game. */
 export function settingsSummary(settings: GameSettings): string[] {
   const parts = [
     `${settings.boardSize}x${settings.boardSize}`,

@@ -24,7 +24,7 @@ function Icon({ preference }: { preference: ThemePreference }) {
       </svg>
     );
   }
-  // Automatique : un disque moitié clair, moitié sombre.
+  // Automatic: a disc half light, half dark.
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
       <circle cx="12" cy="12" r="8.5" />
@@ -33,7 +33,7 @@ function Icon({ preference }: { preference: ThemePreference }) {
   );
 }
 
-/** Bouton compact qui fait tourner automatique → clair → sombre. */
+/** Compact button cycling automatic, then light, then dark. */
 export function ThemeToggle({ className = '' }: { className?: string }) {
   const { preference, setPreference } = useTheme();
   const next = ORDER[(ORDER.indexOf(preference) + 1) % ORDER.length] as ThemePreference;

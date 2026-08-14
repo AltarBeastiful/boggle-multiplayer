@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react';
 
 interface RoundCountdownProps {
-  /** Instant de départ donné par le serveur (epoch ms). */
+  /** Start instant given by the server, epoch ms. */
   startsAt: number;
   clockOffset: number;
 }
 
 /**
- * Décompte affiché par-dessus la grille floutée. Il se cale sur l'horloge du
- * serveur : tout le monde voit les lettres au même instant, quel que soit le
- * moment où sa grille est arrivée.
+ * Countdown shown over the blurred grid. It follows the server clock, so
+ * everyone sees the letters at the same instant whenever their grid arrived.
  */
 export function RoundCountdown({ startsAt, clockOffset }: RoundCountdownProps) {
   const remaining = () => (startsAt - (Date.now() + clockOffset)) / 1000;
@@ -21,8 +20,8 @@ export function RoundCountdown({ startsAt, clockOffset }: RoundCountdownProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startsAt, clockOffset]);
 
-  // Deux temps valent mieux qu'un décompte chiffré : on lit un mot d'un coup
-  // d'œil, là où un chiffre demande d'attendre le suivant.
+  // Two beats beat a numeric countdown: a word reads at a glance, where a
+  // digit makes you wait for the next one.
   const label = Math.ceil(left) > 1 ? 'Prêt ?' : 'Partez !';
 
   return (

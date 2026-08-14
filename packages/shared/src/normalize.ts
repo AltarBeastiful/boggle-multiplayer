@@ -1,13 +1,13 @@
 /**
- * « Les accents ne sont pas importants. E peut être utilisé comme É, È, Ê, etc. »
- * Source : https://www.boggle.fr/regles.php
+ * "Accents do not matter. E can be used as É, È, Ê and so on."
+ * Source: https://www.boggle.fr/regles.php
  *
- * Tout est donc ramené en majuscules non accentuées, ligatures développées.
+ * Everything is therefore folded to unaccented capitals, ligatures expanded.
  */
 
 const DIACRITICS = /[̀-ͯ]/g;
 
-/** Majuscules, ligatures développées, accents supprimés. */
+/** Uppercase, ligatures expanded, accents stripped. */
 export function normalizeLetters(input: string): string {
   return input
     .toUpperCase()
@@ -17,12 +17,12 @@ export function normalizeLetters(input: string): string {
     .replace(DIACRITICS, '');
 }
 
-/** Comme `normalizeLetters`, mais ne garde que A-Z (supprime traits d'union, apostrophes, espaces). */
+/** Like `normalizeLetters`, but keeps only A-Z, dropping hyphens, apostrophes and spaces. */
 export function normalizeWord(input: string): string {
   return normalizeLetters(input).replace(/[^A-Z]/g, '');
 }
 
-/** Un mot est-il formé uniquement de lettres A-Z après normalisation ? */
+/** Is the word made only of A-Z letters once normalised? */
 export function isPlainWord(input: string): boolean {
   const normalized = normalizeLetters(input);
   return /^[A-Z]+$/.test(normalized);

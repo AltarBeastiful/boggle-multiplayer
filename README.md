@@ -96,7 +96,7 @@ et l'autre mode reste disponible.
 - [ADR 0001 : architecture](docs/adr/0001-architecture.md) : moteur partagé,
   serveur faisant autorité, état en mémoire, tirage des grilles, thème,
   publication HTTPS, définitions en direct.
-- [Option C : définitions embarquées](docs/plan-option-c-definitions-embarquees.md) :
+- [Option C : définitions embarquées](docs/plan-option-c-embedded-definitions.md) :
   plan détaillé, chiffré, pour supprimer l'appel au Wiktionnaire à l'exécution.
 
 ## Comment ça marche

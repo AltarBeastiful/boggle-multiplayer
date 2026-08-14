@@ -6,7 +6,7 @@ const API_TARGET = process.env.VITE_SERVER_URL ?? 'http://localhost:3001';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  // Paquet du monorepo : pas de pré-bundling, pour que `tsc --watch` se propage.
+  // Monorepo package: no pre-bundling, so `tsc --watch` propagates.
   optimizeDeps: { exclude: ['@boggle/shared'] },
   server: {
     port: 5173,

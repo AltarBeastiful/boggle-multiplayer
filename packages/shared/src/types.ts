@@ -1,45 +1,45 @@
 /**
- * Types partagés entre le serveur et le client.
- * Les règles proviennent de https://www.boggle.fr/regles.php
- * et les variantes de https://www.boggle.fr/variantes.php
+ * Types shared by server and client.
+ * Rules come from https://www.boggle.fr/regles.php
+ * and variants from https://www.boggle.fr/variantes.php
  */
 
 export type BoardSize = 4 | 5;
 
-/** Barème de points. */
+/** Scoring table. */
 export type ScoringMode =
-  /** Règles de base : 3-4 = 1, 5 = 2, 6 = 3, 7 = 5, 8+ = 11. */
+  /** Base rules: 3-4 = 1, 5 = 2, 6 = 3, 7 = 5, 8+ = 11. */
   | 'classic'
-  /** Variante « décompte simplifié » : 1 point par lettre au-delà de la 3e. */
+  /** "Simplified scoring" variant: 1 point per letter beyond the third. */
   | 'simplified';
 
-/** Que faire lorsque plusieurs joueurs trouvent le même mot. */
+/** What to do when several players find the same word. */
 export type DuplicateMode =
-  /** Règle classique : un mot trouvé par plusieurs joueurs ne rapporte rien à personne. */
+  /** Classic rule: a word found by several players scores for nobody. */
   | 'cancel'
-  /** Chaque joueur marque tous ses mots valides. */
+  /** Every player scores all their valid words. */
   | 'all';
 
-/** Condition de fin de partie (les points s'ajoutent d'une manche à l'autre). */
+/** End-of-game condition (points accumulate from round to round). */
 export type EndCondition =
   | { type: 'rounds'; rounds: number }
   | { type: 'score'; target: number }
   | { type: 'endless' };
 
 export interface GameSettings {
-  /** 4x4 (Boggle classique) ou 5x5 (Big Boggle). */
+  /** 4x4 (classic Boggle) or 5x5 (Big Boggle). */
   boardSize: BoardSize;
-  /** Durée d'une manche en secondes (3 minutes par défaut). */
+  /** Round length in seconds (3 minutes by default). */
   roundSeconds: number;
-  /** Variante « mots de quatre lettres et plus uniquement » : passer à 4. */
+  /** "Four letters and over only" variant: set to 4. */
   minWordLength: 3 | 4;
   scoringMode: ScoringMode;
   duplicateMode: DuplicateMode;
-  /** Variante « QU à la place de Q » : la case Q vaut indifféremment Q ou QU. */
+  /** "QU instead of Q" variant: a Q tile counts as either Q or QU. */
   qEqualsQu: boolean;
   /**
-   * Indice : afficher pendant la manche le nombre de mots que contient la grille
-   * (« 3 mots trouvés sur 121 »). Masqué par défaut.
+   * Hint showing how many words the grid holds during the round
+   * ("3 words found out of 121"). Hidden by default.
    */
   showSolutionCount: boolean;
   endCondition: EndCondition;
@@ -58,7 +58,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
 
 export type RoomPhase = 'lobby' | 'playing' | 'results';
 
-/** Pourquoi un mot soumis a été refusé (retour immédiat au joueur). */
+/** Why a submitted word was refused, reported straight back to the player. */
 export type RejectReason =
   | 'not-started'
   | 'too-short'
@@ -72,11 +72,11 @@ export interface SubmitResult {
   word: string;
   accepted: boolean;
   reason?: RejectReason;
-  /** Chemin sur la grille, si accepté (indices de cases). */
+  /** Path across the grid when accepted, as tile indices. */
   path?: number[];
   /**
-   * Points potentiels du mot. En mode « cancel » ils ne sont acquis
-   * qu'à la fin de la manche, si personne d'autre n'a trouvé le mot.
+   * What the word could be worth. Under duplicate cancellation it is only
+   * earned at the end of the round, if nobody else found the word.
    */
   points?: number;
 }
@@ -87,7 +87,7 @@ export interface ScoredWord {
   word: string;
   points: number;
   status: WordStatus;
-  /** Nombre de joueurs ayant trouvé ce mot. */
+  /** How many players found this word. */
   foundBy: number;
 }
 
@@ -96,9 +96,9 @@ export interface PublicPlayer {
   nickname: string;
   connected: boolean;
   isHost: boolean;
-  /** Score cumulé sur toutes les manches terminées. */
+  /** Score accumulated over every finished round. */
   totalScore: number;
-  /** Nombre de mots validés dans la manche en cours (les mots restent secrets). */
+  /** Words accepted in the current round; the words themselves stay secret. */
   wordCount: number;
 }
 
@@ -110,12 +110,12 @@ export interface PlayerRoundResult {
   totalScore: number;
 }
 
-/** Un mot de la grille, et qui l'a trouvé. */
+/** A word of the grid, and who found it. */
 export interface SolutionWord {
   word: string;
   points: number;
   path: number[];
-  /** Identifiants des joueurs qui l'ont trouvé (vide = personne). */
+  /** Ids of the players who found it; empty means nobody. */
   finders: string[];
 }
 
@@ -123,13 +123,13 @@ export interface RoundResults {
   roundNumber: number;
   board: string[];
   players: PlayerRoundResult[];
-  /** Toutes les solutions de la grille, triées du mot le plus long au plus court. */
+  /** Every solution in the grid, longest word first. */
   solution: SolutionWord[];
-  /** Nombre total de mots présents dans la grille. */
+  /** How many words the grid holds in total. */
   solutionCount: number;
-  /** Total des points disponibles dans la grille. */
+  /** Total points available in the grid. */
   solutionPoints: number;
-  /** La partie est-elle terminée après cette manche ? */
+  /** Is the game over after this round? */
   gameOver: boolean;
 }
 
@@ -137,16 +137,16 @@ export interface RoundState {
   number: number;
   board: string[];
   /**
-   * Début effectif de la manche (epoch ms). Entre la réception de la grille et
-   * cet instant, les lettres sont floutées : tout le monde démarre ensemble,
-   * même si un client a reçu la grille quelques dizaines de ms plus tôt.
+   * When the round actually starts (epoch ms). Between receiving the grid and
+   * that moment the letters stay blurred, so everyone starts together even if
+   * one client got the grid a few dozen milliseconds earlier.
    */
   startsAt: number;
-  /** Date de fin (epoch ms, horloge serveur). */
+  /** End of the round (epoch ms, server clock). */
   endsAt: number;
-  /** Horloge serveur au moment de l'envoi, pour corriger la dérive du client. */
+  /** Server clock at send time, to correct client drift. */
   serverNow: number;
-  /** Nombre de mots de la grille. Renseigné si l'indice est activé, sinon null. */
+  /** Words in the grid. Set when the hint is enabled, null otherwise. */
   solutionCount: number | null;
 }
 
@@ -158,40 +158,39 @@ export interface RoomState {
   players: PublicPlayer[];
   round: RoundState | null;
   results: RoundResults | null;
-  /** Numéro de la dernière manche jouée. */
+  /** Number of the last round played. */
   roundsPlayed: number;
   gameOver: boolean;
 }
 
-/** Une définition, telle que renvoyée par GET /api/definition/:mot. */
+/** A definition, as returned by GET /api/definition/:word. */
 export interface DefinitionEntry {
-  /** Graphie réelle interrogée : « été », « côté ». */
+  /** The real spelling looked up: "été", "côté". */
   spelling: string;
   partOfSpeech: string;
   /**
-   * Les sens de cette graphie, le principal en premier. Un mot polysémique en
-   * a plusieurs : « cote » est à la fois une cotation, une cote de rivière et
-   * une dimension sur un plan.
+   * The senses of that spelling, main one first. A polysemous word has
+   * several: "cote" is a rating, a river level and a dimension on a drawing.
    */
   definitions: string[];
-  /** Renseigné quand la graphie est une forme fléchie de ce lemme. */
+  /** Set when the spelling is an inflected form of that lemma. */
   lemma?: string;
 }
 
 export interface DefinitionResult {
   word: string;
   entries: DefinitionEntry[];
-  /** D'où vient la réponse : fichier embarqué ou appel au Wiktionnaire. */
+  /** Where the answer came from: bundled file or Wiktionary call. */
   source?: 'local' | 'wiktionary';
 }
 
-/** Vue privée : les mots que *moi* j'ai trouvés dans la manche en cours. */
+/** Private view: the words *I* have found in the current round. */
 export interface MyRoundState {
   words: Array<{ word: string; points: number; path: number[] }>;
 }
 
 // ---------------------------------------------------------------------------
-// Protocole Socket.IO
+// Socket.IO protocol
 // ---------------------------------------------------------------------------
 
 export interface CreateRoomPayload {

@@ -19,10 +19,10 @@ import {
 } from '../dist/index.js';
 
 // ---------------------------------------------------------------------------
-// Décompte des points, d'après https://www.boggle.fr/regles.php
+// Scoring, from https://www.boggle.fr/regles.php
 // ---------------------------------------------------------------------------
 
-test('barème classique : 3-4=1, 5=2, 6=3, 7=5, 8+=11', () => {
+test('classic scoring: 3-4=1, 5=2, 6=3, 7=5, 8+=11', () => {
   assert.equal(wordScore(3, 'classic'), 1);
   assert.equal(wordScore(4, 'classic'), 1);
   assert.equal(wordScore(5, 'classic'), 2);
@@ -32,23 +32,23 @@ test('barème classique : 3-4=1, 5=2, 6=3, 7=5, 8+=11', () => {
   assert.equal(wordScore(12, 'classic'), 11);
 });
 
-// Variante « décompte simplifié », d'après https://www.boggle.fr/variantes.php
-test('barème simplifié : 1 point par lettre au-delà de la troisième', () => {
+// "Simplified scoring" variant, from https://www.boggle.fr/variantes.php
+test('simplified scoring: one point per letter beyond the third', () => {
   assert.equal(wordScore(3, 'simplified'), 1);
   assert.equal(wordScore(4, 'simplified'), 1);
   assert.equal(wordScore(5, 'simplified'), 2);
   assert.equal(wordScore(6, 'simplified'), 3);
   assert.equal(wordScore(7, 'simplified'), 4);
-  assert.equal(wordScore(8, 'simplified'), 5, 'la page donne 8 - 3 = 5');
+  assert.equal(wordScore(8, 'simplified'), 5, 'the page gives 8 - 3 = 5');
   assert.equal(wordScore(10, 'simplified'), 7);
 });
 
-test('un mot de moins de 3 lettres ne vaut rien', () => {
+test('a word under 3 letters is worth nothing', () => {
   assert.equal(wordScore(2, 'classic'), 0);
   assert.equal(wordScore(2, 'simplified'), 0);
 });
 
-test('le tableau des points reflète le barème choisi', () => {
+test('the points table reflects the chosen scoring', () => {
   assert.deepEqual(
     scoringTable('classic').map((row) => row.points),
     [1, 2, 3, 5, 11],
@@ -60,10 +60,10 @@ test('le tableau des points reflète le barème choisi', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Normalisation : « les accents ne sont pas importants »
+// Normalisation: "accents do not matter"
 // ---------------------------------------------------------------------------
 
-test('accents, ligatures et casse sont neutralisés', () => {
+test('accents, ligatures and case are all folded away', () => {
   assert.equal(normalizeWord('été'), 'ETE');
   assert.equal(normalizeWord('Élève'), 'ELEVE');
   assert.equal(normalizeWord('cœur'), 'COEUR');
@@ -72,7 +72,7 @@ test('accents, ligatures et casse sont neutralisés', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Chemins sur la grille
+// Paths across the grid
 // ---------------------------------------------------------------------------
 
 const board: Board = { size: 4, cells: 'ABCDEFGHIJKLMNOP'.split('') };
@@ -81,64 +81,64 @@ const board: Board = { size: 4, cells: 'ABCDEFGHIJKLMNOP'.split('') };
 //  I J K L
 //  M N O P
 
-test('un mot se trace horizontalement, verticalement et en diagonale', () => {
+test('a word traces horizontally, vertically and diagonally', () => {
   assert.deepEqual(findPath(board, 'ABC'), [0, 1, 2]);
   assert.deepEqual(findPath(board, 'AEI'), [0, 4, 8]);
-  assert.deepEqual(findPath(board, 'AFK'), [0, 5, 10], 'diagonale');
+  assert.deepEqual(findPath(board, 'AFK'), [0, 5, 10], 'diagonal');
 });
 
-test('deux cases non adjacentes ne forment pas un mot', () => {
+test('two non-adjacent tiles do not form a word', () => {
   assert.equal(findPath(board, 'AC'), null);
   assert.equal(findPath(board, 'AP'), null);
 });
 
-test('une case ne peut pas servir deux fois dans le même mot', () => {
+test('a tile cannot serve twice in the same word', () => {
   const repeated: Board = { size: 2, cells: ['T', 'O', 'X', 'Y'] };
   assert.deepEqual(findPath(repeated, 'TO'), [0, 1]);
-  assert.equal(findPath(repeated, 'TOT'), null, 'le T devrait être réutilisé');
+  assert.equal(findPath(repeated, 'TOT'), null, 'the T would have to be reused');
 });
 
-test('une lettre présente deux fois sur la grille reste utilisable deux fois', () => {
+test('a letter appearing twice on the grid can be used twice', () => {
   const twice: Board = { size: 2, cells: ['T', 'O', 'T', 'X'] };
   assert.deepEqual(findPath(twice, 'TOT'), [0, 1, 2]);
 });
 
-// Variante « QU à la place de Q »
-test('variante Q=QU : la case Q vaut Q ou QU', () => {
+// "QU instead of Q" variant
+test('Q=QU variant: a Q tile counts as Q or QU', () => {
   const withQ: Board = { size: 2, cells: ['Q', 'I', 'X', 'Y'] };
-  assert.equal(findPath(withQ, 'QUI'), null, 'sans la variante, il faut un U sur la grille');
+  assert.equal(findPath(withQ, 'QUI'), null, 'without the variant, a U must be on the grid');
   assert.deepEqual(findPath(withQ, 'QUI', { qEqualsQu: true }), [0, 1]);
 });
 
-test('variante Q=QU : le mot reste traçable quand le U est sur la grille', () => {
+test('Q=QU variant: the word stays traceable when the U is on the grid', () => {
   const withU: Board = { size: 2, cells: ['Q', 'U', 'I', 'X'] };
-  assert.deepEqual(findPath(withU, 'QUI'), [0, 1, 2], 'sans la variante : Q puis U puis I');
-  // Avec la variante, la case Q absorbe le QU : chemin plus court, tout aussi valide.
+  assert.deepEqual(findPath(withU, 'QUI'), [0, 1, 2], 'without the variant: Q then U then I');
+  // With the variant the Q tile absorbs the QU: a shorter path, just as valid.
   assert.deepEqual(findPath(withU, 'QUI', { qEqualsQu: true }), [0, 2]);
 });
 
-test('variante Q=QU : le U de la grille sert quand le Q ne peut pas absorber', () => {
-  // QUE : le Q absorbe QU puis il faut un E ; sinon Q + U + E.
+test('Q=QU variant: the grid U is used when the Q cannot absorb it', () => {
+  // QUE: the Q absorbs QU and then needs an E, otherwise Q + U + E.
   const grid: Board = { size: 2, cells: ['Q', 'U', 'E', 'X'] };
   assert.deepEqual(findPath(grid, 'QUE'), [0, 1, 2]);
   assert.notEqual(findPath(grid, 'QUE', { qEqualsQu: true }), null);
 });
 
 // ---------------------------------------------------------------------------
-// Dictionnaire
+// Dictionary
 // ---------------------------------------------------------------------------
 
-test('le dictionnaire normalise et écarte les entrées non alphabétiques', () => {
+test('the dictionary normalises and drops non-alphabetic entries', () => {
   const dictionary = buildDictionary(['déci', 'zut', "aujourd'hui", 'a-t-il', 'ok', 'ÉTÉ']);
   assert.ok(dictionary.has('DECI'));
   assert.ok(dictionary.has('ZUT'));
   assert.ok(dictionary.has('ETE'));
-  assert.ok(!dictionary.has('AUJOURDHUI'), 'apostrophe : entrée écartée');
-  assert.ok(!dictionary.has('ATIL'), 'trait d’union : entrée écartée');
-  assert.ok(!dictionary.has('OK'), 'moins de 3 lettres');
+  assert.ok(!dictionary.has('AUJOURDHUI'), 'apostrophe: entry dropped');
+  assert.ok(!dictionary.has('ATIL'), 'hyphen: entry dropped');
+  assert.ok(!dictionary.has('OK'), 'under 3 letters');
 });
 
-test('la recherche par préfixe alimente l’élagage du solveur', () => {
+test('prefix search feeds the solver pruning', () => {
   const dictionary = buildDictionary(['chat', 'chien', 'chienne']);
   assert.ok(dictionary.hasPrefix('CH'));
   assert.ok(dictionary.hasPrefix('CHIEN'));
@@ -146,25 +146,25 @@ test('la recherche par préfixe alimente l’élagage du solveur', () => {
   assert.ok(!dictionary.hasPrefix('Z'));
 });
 
-test('une liste d’exclusion retire des mots', () => {
+test('an exclusion list removes words', () => {
   const dictionary = buildDictionary(['chat', 'chien'], { exclude: ['chien'] });
   assert.ok(dictionary.has('CHAT'));
   assert.ok(!dictionary.has('CHIEN'));
 });
 
 // ---------------------------------------------------------------------------
-// Solveur
+// Solver
 // ---------------------------------------------------------------------------
 
-test('le solveur trouve les mots traçables et ignore les autres', () => {
+test('the solver finds traceable words and ignores the rest', () => {
   const dictionary = buildDictionary(['rat', 'art', 'tar', 'chien']);
   const small: Board = { size: 2, cells: ['R', 'A', 'T', 'X'] };
   const solution = solveBoard(small, dictionary, { minWordLength: 3, qEqualsQu: false });
   assert.deepEqual([...solution.words.keys()].sort(), ['ART', 'RAT', 'TAR']);
-  assert.equal(solution.totalPoints, 3, '3 mots de 3 lettres');
+  assert.equal(solution.totalPoints, 3, '3 words of 3 letters');
 });
 
-test('le solveur respecte la longueur minimale de la variante', () => {
+test('the solver honours the variant minimum length', () => {
   const dictionary = buildDictionary(['rat', 'rats']);
   const small: Board = { size: 2, cells: ['R', 'A', 'T', 'S'] };
   const three = solveBoard(small, dictionary, { minWordLength: 3, qEqualsQu: false });
@@ -174,44 +174,44 @@ test('le solveur respecte la longueur minimale de la variante', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Tirage des grilles
+// Drawing grids
 // ---------------------------------------------------------------------------
 
-test('le sachet contient 96 faces (16 dés x 6)', () => {
+test('the bag holds 96 faces, being 16 dice of 6', () => {
   assert.equal(expandBag().length, 96);
   assert.equal(Object.values(FRENCH_FACE_BAG).reduce((sum, count) => sum + count, 0), 96);
 });
 
-test('une grille tirée a la bonne taille et assez de voyelles', () => {
+test('a drawn grid has the right size and enough vowels', () => {
   for (const size of [4, 5] as const) {
     const { board: grid } = generateBoard({ size, minWords: 0, seed: 12345 });
     assert.equal(grid.cells.length, size * size);
     assert.ok(grid.cells.every((cell) => /^[A-Z]$/.test(cell)));
     const vowels = countVowels(grid.cells);
-    assert.ok(vowels >= Math.round(size * size * 0.28), `voyelles insuffisantes : ${vowels}`);
+    assert.ok(vowels >= Math.round(size * size * 0.28), `not enough vowels: ${vowels}`);
   }
 });
 
-test('une même graine redonne la même grille', () => {
+test('the same seed gives back the same grid', () => {
   const first = generateBoard({ size: 4, minWords: 0, seed: 42 });
   const second = generateBoard({ size: 4, minWords: 0, seed: 42 });
   assert.deepEqual(first.board.cells, second.board.cells);
 });
 
-test('le tirage est sans remise : jamais plus de faces qu’il n’en existe', () => {
-  // Le sachet ne contient qu'un Z ; une grille ne peut donc pas en contenir deux.
+test('drawing is without replacement, never more faces than exist', () => {
+  // The bag holds a single Z, so a grid cannot contain two.
   for (let seed = 0; seed < 60; seed++) {
     const { board: grid } = generateBoard({ size: 4, minWords: 0, seed });
     const zeds = grid.cells.filter((cell) => cell === 'Z').length;
-    assert.ok(zeds <= 1, `grille avec ${zeds} Z`);
+    assert.ok(zeds <= 1, `grid holding ${zeds} Z`);
   }
 });
 
 // ---------------------------------------------------------------------------
-// Réglages
+// Settings
 // ---------------------------------------------------------------------------
 
-test('les réglages envoyés par le client sont bornés', () => {
+test('settings sent by the client are clamped', () => {
   const settings = sanitizeSettings({
     boardSize: 9 as never,
     roundSeconds: 99999,
@@ -219,24 +219,24 @@ test('les réglages envoyés par le client sont bornés', () => {
     scoringMode: 'triche' as never,
     endCondition: { type: 'rounds', rounds: 9999 },
   });
-  assert.equal(settings.boardSize, 4, 'valeur invalide : on garde la valeur de base');
+  assert.equal(settings.boardSize, 4, 'invalid value: the base value is kept');
   assert.equal(settings.roundSeconds, 900);
   assert.equal(settings.minWordLength, 3);
   assert.equal(settings.scoringMode, 'classic');
   assert.deepEqual(settings.endCondition, { type: 'rounds', rounds: 50 });
 });
 
-test('l’indice du nombre de mots est masqué par défaut', () => {
+test('the word-count hint is hidden by default', () => {
   assert.equal(sanitizeSettings({}).showSolutionCount, false);
   assert.equal(sanitizeSettings({ showSolutionCount: true }).showSolutionCount, true);
   assert.equal(
     sanitizeSettings({ showSolutionCount: 'oui' as never }).showSolutionCount,
     false,
-    'valeur invalide : on reste sur l’indice masqué',
+    'invalid value: the hint stays hidden',
   );
 });
 
-test('les réglages valides sont conservés', () => {
+test('valid settings are kept', () => {
   const settings = sanitizeSettings({ boardSize: 5, roundSeconds: 120, qEqualsQu: true, minWordLength: 4 });
   assert.equal(settings.boardSize, 5);
   assert.equal(settings.roundSeconds, 120);
@@ -244,16 +244,16 @@ test('les réglages valides sont conservés', () => {
   assert.equal(settings.minWordLength, 4);
 });
 
-test('les pseudos sont nettoyés', () => {
+test('nicknames are cleaned up', () => {
   assert.equal(sanitizeNickname('  Rémi  '), 'Rémi');
   assert.equal(sanitizeNickname(''), 'Joueur');
   assert.equal(sanitizeNickname(null), 'Joueur');
   assert.equal(sanitizeNickname('x'.repeat(50)).length, 20);
 });
 
-test('les codes de salle excluent les caractères ambigus', () => {
+test('room codes exclude ambiguous characters', () => {
   assert.ok(isValidRoomCode('ABCD'));
   assert.ok(!isValidRoomCode('ABC'));
-  assert.ok(!isValidRoomCode('ABC0'), '0 est exclu (confusion avec O)');
-  assert.ok(!isValidRoomCode('ABCI'), 'I est exclu (confusion avec 1)');
+  assert.ok(!isValidRoomCode('ABC0'), '0 is excluded, too close to O');
+  assert.ok(!isValidRoomCode('ABCI'), 'I is excluded, too close to 1');
 });

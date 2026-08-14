@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import { formatDuration } from '../lib/labels';
 
 interface TimerProps {
-  /** Début effectif : pendant le décompte, le chrono affiche la durée pleine. */
+  /** Actual start; during the countdown the clock shows the full duration. */
   startsAt: number;
   endsAt: number;
-  /** Décalage horloge serveur - client. */
+  /** Offset between the server clock and the client one. */
   clockOffset: number;
   totalSeconds: number;
 }

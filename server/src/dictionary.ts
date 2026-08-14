@@ -9,13 +9,14 @@ const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
 
 /**
- * Le dictionnaire vient de `an-array-of-french-words` (MIT), dérivé du lexique
- * Dicollecte/Grammalecte : ~336 000 formes fléchies, conjugaisons et pluriels
- * compris. Volontairement permissif : il accepte « déci », « zut », « eus »…
+ * The dictionary comes from `an-array-of-french-words` (MIT), derived from the
+ * Dicollecte/Grammalecte lexicon: around 336,000 inflected forms, conjugations
+ * and plurals included. Deliberately permissive: it accepts "déci", "zut",
+ * "eus" and the like.
  *
- * Deux fichiers optionnels permettent de l'ajuster sans le reconstruire :
- *   data/extra-words.txt    mots ajoutés (un par ligne)
- *   data/excluded-words.txt mots retirés (un par ligne)
+ * Two optional files adjust it without rebuilding anything:
+ *   data/extra-words.txt    words to add, one per line
+ *   data/excluded-words.txt words to drop, one per line
  */
 function readWordFile(name: string): string[] {
   for (const base of [resolve(here, '..', 'data'), resolve(here, '..', '..', 'data')]) {
@@ -33,14 +34,14 @@ let cached: SortedDictionary | null = null;
 let spellingIndex: Map<string, string[]> | null = null;
 
 /**
- * Index inverse : forme normalisée -> graphies réelles.
+ * Reverse index: normalised form -> real spellings.
  *
- * Le jeu ignore les accents (`ETE`) alors que le Wiktionnaire les indexe
- * (`été`) : sans cet index, aucune définition ne serait trouvable. Seules les
- * entrées dont la graphie diffère de la forme normalisée sont conservées :
- * pour les autres, le mot en minuscules suffit. Environ 16 Mo.
+ * The game ignores accents (`ETE`) where Wiktionary indexes them (`été`), so
+ * without this index no definition could be found. Only entries whose spelling
+ * differs from the normalised form are kept; for the rest the lowercase word is
+ * enough. Around 16 MB.
  *
- * Une clé peut porter plusieurs graphies : `COTE` -> coté, côte, côté.
+ * One key can carry several spellings: `COTE` -> coté, côte, côté.
  */
 function buildSpellingIndex(words: Iterable<string>): Map<string, string[]> {
   const index = new Map<string, string[]>();
@@ -77,10 +78,10 @@ export function getDictionary(): SortedDictionary {
 
   spellingIndex = buildSpellingIndex([...base, ...extra]);
 
-  const details = [`${cached.size} mots`, `${spellingIndex.size} graphies accentuées`, `${Date.now() - started} ms`];
-  if (extra.length > 0) details.push(`+${extra.length} ajoutés`);
-  if (excluded.length > 0) details.push(`-${excluded.length} exclus`);
-  console.log(`[dictionnaire] ${details.join(', ')}`);
+  const details = [`${cached.size} words`, `${spellingIndex.size} accented spellings`, `${Date.now() - started} ms`];
+  if (extra.length > 0) details.push(`+${extra.length} added`);
+  if (excluded.length > 0) details.push(`-${excluded.length} excluded`);
+  console.log(`[dictionary] ${details.join(', ')}`);
 
   return cached;
 }

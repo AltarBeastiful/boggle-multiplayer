@@ -1,25 +1,24 @@
 #!/usr/bin/env node
 /**
- * Construit le fichier de définitions embarquées (option C).
+ * Builds the bundled definitions file (option C).
  *
  *   node scripts/build-definitions.mjs
  *
  * Deux sources, toutes deux libres :
  *
- * - **kaikki.org**, l'extraction du Wiktionnaire francophone par wiktextract,
- *   déjà analysée. Le champ `form_of` donne le lemme explicitement, ce que la
- *   recherche en direct devait deviner au dernier mot d'une phrase.
- * - **Lexique 3.83**, les fréquences d'usage réelles (occurrences par million,
- *   sous-titres de films et livres). Elles servent à classer les homographes :
- *   pour COTE, « côté » doit passer avant « coté », ce qu'aucune heuristique de
- *   forme ne peut deviner.
+ * - **kaikki.org**, the wiktextract extraction of the French Wiktionary,
+ *   already parsed. Its `form_of` field names the lemma outright, where the
+ *   live lookup had to guess it from a sentence's last word.
+ * - **Lexique 3.83**, measured usage frequencies in occurrences per million,
+ *   from film subtitles and books. They rank homographs: for COTE, "côté" must
+ *   come before "coté", which no rule about word shape could ever work out.
  *
- * Aucun des deux fichiers n'est décompressé sur disque : lecture en flux.
+ * Neither file is decompressed to disk; both are read as streams.
  *
- * Sortie : server/data/definitions.tsv.gz, **une ligne par sens**
- *   FORME_NORMALISEE \t nature \t graphie \t lemme \t définition
+ * Output: server/data/definitions.tsv.gz, **one line per sense**
+ *   NORMALISED_FORM \t part of speech \t spelling \t lemma \t definition
  *
- * Contenu sous CC BY-SA 4.0, voir server/data/LICENCE-DEFINITIONS.md
+ * Content under CC BY-SA 4.0, see server/data/LICENCE-DEFINITIONS.md
  */
 
 import { createReadStream, createWriteStream, existsSync, mkdirSync, statSync } from 'node:fs';
@@ -45,27 +44,27 @@ const WIKT_FILE = resolve(WORK_DIR, 'fr-extract.jsonl.gz');
 const LEXIQUE_FILE = resolve(WORK_DIR, 'Lexique383.tsv');
 const OUT_FILE = resolve(root, 'server/data/definitions.tsv.gz');
 
-/** Une définition plus longue relève de l'encyclopédie, pas du jeu. */
+/** Anything longer belongs to an encyclopaedia, not to a word game. */
 const MAX_DEFINITION = 400;
-/** Sens conservés par graphie. Au-delà, on encombre plus qu'on n'informe. */
+/** Senses kept per spelling. Beyond this it clutters more than it informs. */
 const MAX_SENSES = 3;
-/** Graphies conservées par forme normalisée. */
+/** Spellings kept per normalised form. */
 const MAX_SPELLINGS = 4;
 
-const log = (message) => console.log(`[définitions] ${message}`);
+const log = (message) => console.log(`[definitions] ${message}`);
 
 // ---------------------------------------------------------------------------
 
 async function download(url, target, minSize) {
   mkdirSync(WORK_DIR, { recursive: true });
   if (existsSync(target) && statSync(target).size > minSize) {
-    log(`déjà présent : ${target.split('/').pop()} (${(statSync(target).size / 1e6).toFixed(0)} Mo)`);
+    log(`already present: ${target.split('/').pop()} (${(statSync(target).size / 1e6).toFixed(0)} MB)`);
     return;
   }
 
-  log(`téléchargement de ${url}`);
+  log(`downloading ${url}`);
   const response = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
-  if (!response.ok || !response.body) throw new Error(`téléchargement impossible : ${response.status}`);
+  if (!response.ok || !response.body) throw new Error(`download failed: ${response.status}`);
 
   const total = Number(response.headers.get('content-length') ?? 0);
   let received = 0;
@@ -75,20 +74,22 @@ async function download(url, target, minSize) {
       received += chunk.length;
       if (received - lastLogged > 100_000_000) {
         lastLogged = received;
-        log(`  ${(received / 1e6).toFixed(0)} Mo${total ? ` (${((received / total) * 100).toFixed(0)} %)` : ''}`);
+        log(
+          `  ${(received / 1e6).toFixed(0)} Mo${total ? ` (${((received / total) * 100).toFixed(0)} %)` : ''}`,
+        );
       }
       controller.enqueue(chunk);
     },
   });
 
   await pipeline(response.body.pipeThrough(progress), createWriteStream(target));
-  log(`téléchargé : ${(statSync(target).size / 1e6).toFixed(0)} Mo`);
+  log(`downloaded: ${(statSync(target).size / 1e6).toFixed(0)} MB`);
 }
 
 /**
- * Fréquence d'usage par graphie, en occurrences par million.
- * Une même graphie apparaît plusieurs fois (par lemme et catégorie) : on garde
- * la plus élevée, celle de l'emploi le plus courant.
+ * Usage frequency per spelling, in occurrences per million.
+ * One spelling appears several times, once per lemma and category, so keep the
+ * highest: the most common use.
  */
 async function loadFrequencies() {
   const frequencies = new Map();
@@ -126,7 +127,7 @@ async function forEachFrenchEntry(onEntry) {
       continue;
     }
     seen++;
-    // Le fichier couvre toutes les langues décrites par le Wiktionnaire francophone.
+    // The file covers every language the French Wiktionary describes.
     if (entry.lang_code === 'fr') onEntry(entry);
   }
   return seen;
@@ -140,7 +141,7 @@ function cleanDefinition(text) {
   return (stop > MAX_DEFINITION / 2 ? cut.slice(0, stop + 1) : cut).trim() + '…';
 }
 
-/** Les sens propres d'une entrée (hors renvois), le principal en premier. */
+/** An entry's own senses, pointers excluded, main one first. */
 function ownSenses(entry) {
   const senses = [];
   for (const sense of entry.senses ?? []) {
@@ -154,7 +155,7 @@ function ownSenses(entry) {
   return senses;
 }
 
-/** Premier sens qui renvoie vers un lemme. */
+/** First sense pointing at a lemma. */
 function formSense(entry) {
   for (const sense of entry.senses ?? []) {
     const target = sense.form_of?.[0]?.word ?? sense.alt_of?.[0]?.word;
@@ -169,16 +170,16 @@ async function main() {
   await download(WIKT_URL, WIKT_FILE, 600_000_000);
   await download(LEXIQUE_URL, LEXIQUE_FILE, 20_000_000);
 
-  log('chargement des fréquences d’usage (Lexique 3.83)');
+  log('loading usage frequencies (Lexique 3.83)');
   const frequencies = await loadFrequencies();
-  log(`${frequencies.size} graphies avec fréquence connue`);
+  log(`${frequencies.size} spellings with a known frequency`);
 
-  log('chargement du dictionnaire du jeu');
+  log('loading the game dictionary');
   const dictionary = buildDictionary(require('an-array-of-french-words'));
-  log(`${dictionary.size} mots jouables`);
+  log(`${dictionary.size} playable words`);
 
   // -- passe 1 : les sens des lemmes ----------------------------------------
-  log('passe 1/2 : sens des lemmes');
+  log('pass 1/2: lemma senses');
   const lemmaDefs = new Map();
   const totalRead = await forEachFrenchEntry((entry) => {
     const senses = ownSenses(entry);
@@ -187,10 +188,10 @@ async function main() {
     if (!word || lemmaDefs.has(word)) return;
     lemmaDefs.set(word, { partOfSpeech: entry.pos_title ?? entry.pos ?? '', definitions: senses });
   });
-  log(`${totalRead} entrées lues, ${lemmaDefs.size} lemmes définis`);
+  log(`${totalRead} entries read, ${lemmaDefs.size} lemmas defined`);
 
   // -- passe 2 : ne garder que les mots jouables ----------------------------
-  log('passe 2/2 : rattachement des formes fléchies');
+  log('pass 2/2: attaching inflected forms');
   const rows = new Map();
   let direct = 0;
   let viaLemma = 0;
@@ -199,17 +200,17 @@ async function main() {
   await forEachFrenchEntry((entry) => {
     const spelling = String(entry.word ?? '');
     if (!spelling) return;
-    // Le Wiktionnaire décrit aussi les affixes et les locutions à trait d'union.
-    // Sans ce filtre, « -eté » écrase « été », « -ane » écrase « âne » et
-    // « de-ci » écrase « déci » : ils se normalisent sur la même clé. C'est la
-    // règle qu'applique déjà le dictionnaire du jeu.
+    // Wiktionary also describes affixes and hyphenated phrases. Without this
+    // filter "-eté" overrides "été", "-ane" overrides "âne" and "de-ci"
+    // overrides "déci", since they normalise onto the same key. It is the rule
+    // the game dictionary already applies.
     if (!/^[\p{L}]+$/u.test(spelling)) return;
     const normalized = normalizeWord(spelling);
     if (normalized.length < 3 || !dictionary.has(normalized)) return;
 
     const key = `${normalized}\t${spelling}`;
     const existing = rows.get(key);
-    if (existing && existing.lemma === '') return; // déjà une définition propre
+    if (existing && existing.lemma === '') return; // already has a definition of its own
 
     const own = ownSenses(entry);
     if (own.length > 0) {
@@ -251,14 +252,16 @@ async function main() {
     }
   });
 
-  log(`${rows.size} graphies : ${direct} définies en propre, ${viaLemma} via lemme, ${unresolved} renvois seuls`);
+  log(
+    `${rows.size} spellings: ${direct} defined outright, ${viaLemma} via lemma, ${unresolved} pointers only`,
+  );
 
-  // -- classement des graphies ----------------------------------------------
+  // -- ranking the spellings ------------------------------------------------
   //
-  // Le Wiktionnaire décrit aussi les sigles et les noms propres : sans
-  // classement, ETE renvoie « Excédent de trésorerie d'exploitation » avant
-  // « été ». On écarte d'abord ces entrées, puis on ordonne le reste par
-  // fréquence d'usage mesurée, ce qui met « côté » devant « coté ».
+  // Wiktionary also describes acronyms and proper nouns, so without ranking
+  // ETE returns an accounting term before "été". Those entries are pushed back
+  // first, then the rest is ordered by measured usage frequency, which is what
+  // puts "côté" ahead of "coté".
   const penalty = (row) => {
     let score = 0;
     if (row.spelling !== row.spelling.toLowerCase()) score += 4; // Ane, ANE, Añe
@@ -266,7 +269,8 @@ async function main() {
     if (/^(Abréviation|Sigle|Initiales|Variante|Symbole)\b/i.test(row.definitions[0] ?? '')) score += 3;
     return score;
   };
-  const frequency = (row) => frequencies.get(row.spelling) ?? frequencies.get(row.spelling.toLowerCase()) ?? 0;
+  const frequency = (row) =>
+    frequencies.get(row.spelling) ?? frequencies.get(row.spelling.toLowerCase()) ?? 0;
 
   const byWord = new Map();
   for (const row of rows.values()) {
@@ -288,9 +292,9 @@ async function main() {
     );
     ordered.push(...list.slice(0, MAX_SPELLINGS));
   }
-  log(`${ranked} formes à plusieurs graphies, classées par fréquence d’usage`);
+  log(`${ranked} forms with several spellings, ranked by usage frequency`);
 
-  // -- écriture --------------------------------------------------------------
+  // -- writing ---------------------------------------------------------------
   mkdirSync(dirname(OUT_FILE), { recursive: true });
   const gzip = createGzip({ level: 9 });
   const written = gzip.pipe(createWriteStream(OUT_FILE));
@@ -309,17 +313,19 @@ async function main() {
 
   const words = new Set(ordered.map((row) => row.normalized));
   const size = statSync(OUT_FILE).size;
-  log(`écrit : ${OUT_FILE}`);
-  log(`  ${words.size} mots sur ${dictionary.size} (${((words.size / dictionary.size) * 100).toFixed(1)} %)`);
-  log(`  ${ordered.length} graphies, ${senses} sens (${(senses / ordered.length).toFixed(2)} par graphie)`);
-  log(`  ${(raw / 1e6).toFixed(1)} Mo bruts, ${(size / 1e6).toFixed(1)} Mo compressés`);
+  log(`written: ${OUT_FILE}`);
+  log(`  ${words.size} words of ${dictionary.size} (${((words.size / dictionary.size) * 100).toFixed(1)}%)`);
+  log(
+    `  ${ordered.length} spellings, ${senses} senses (${(senses / ordered.length).toFixed(2)} per spelling)`,
+  );
+  log(`  ${(raw / 1e6).toFixed(1)} MB raw, ${(size / 1e6).toFixed(1)} MB compressed`);
 
   if (words.size < dictionary.size * 0.5) {
-    throw new Error(`couverture anormalement basse (${words.size}), extraction suspecte`);
+    throw new Error(`coverage suspiciously low (${words.size}), extraction looks wrong`);
   }
 }
 
 main().catch((error) => {
-  console.error('[définitions] échec :', error.message);
+  console.error('[definitions] failed:', error.message);
   process.exitCode = 1;
 });

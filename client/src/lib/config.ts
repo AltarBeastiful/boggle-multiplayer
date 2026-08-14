@@ -1,20 +1,20 @@
 /**
- * Réglages figés à la compilation.
+ * Settings frozen at build time.
  *
- * Pour désactiver, au moment du build :
+ * To turn one off while building:
  *   VITE_WORD_TRACE=off npm run build
- * ou, avec Docker, VITE_WORD_TRACE=off dans .env (le compose le passe en
- * argument de build à l'image).
+ * or, with Docker, VITE_WORD_TRACE=off in .env, which compose passes to the
+ * image as a build argument.
  */
 
 /**
- * Bref tracé du mot sur la grille quand il est accepté. Le chemin s'efface
- * tout seul : rien ne reste affiché entre deux mots.
+ * Brief trace of the word on the grid once accepted. The path clears itself,
+ * so nothing stays on screen between two words.
  */
 export const TRACE_FOUND_WORD = import.meta.env.VITE_WORD_TRACE !== 'off';
 
 /**
- * Durée d'affichage du tracé, animation comprise. Court volontairement : la
- * grille doit redevenir neutre vite, pour chercher le mot suivant.
+ * How long the trace shows, animation included. Deliberately short: the grid
+ * must go neutral again quickly, ready for the next word.
  */
 export const TRACE_DURATION_MS = 380;

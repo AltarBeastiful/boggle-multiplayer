@@ -1,17 +1,17 @@
 import { normalizeWord } from './normalize.js';
 
 export interface Dictionary {
-  /** Le mot (normalisé) existe-t-il ? */
+  /** Does the normalised word exist? */
   has(word: string): boolean;
-  /** Existe-t-il au moins un mot commençant par ce préfixe ? (élagage du solveur) */
+  /** Is there any word starting with this prefix? Used to prune the solver. */
   hasPrefix(prefix: string): boolean;
   readonly size: number;
 }
 
 /**
- * Dictionnaire compact : un Set pour les recherches exactes et un tableau trié
- * pour les préfixes (recherche dichotomique). Pas de trie en mémoire : à 336 000
- * mots, un trie d'objets coûterait plusieurs centaines de Mo pour un gain minime.
+ * Compact dictionary: a Set for exact lookups and a sorted array for prefixes,
+ * searched by bisection. No in-memory trie: at 336,000 words a trie of objects
+ * would cost several hundred megabytes for a negligible gain.
  */
 export class SortedDictionary implements Dictionary {
   private readonly exact: Set<string>;
@@ -44,18 +44,18 @@ export class SortedDictionary implements Dictionary {
 }
 
 export interface BuildDictionaryOptions {
-  /** Longueur minimale conservée (3 : la plus permissive des règles). */
+  /** Shortest word kept; 3 is the most permissive of the rules. */
   minLength?: number;
-  /** Longueur maximale utile (une grille 5x5 ne peut pas tracer plus de 25 lettres). */
+  /** Longest useful word: a 5x5 grid cannot trace more than 25 letters. */
   maxLength?: number;
-  /** Mots à retirer (liste d'exclusion locale). */
+  /** Words to drop, from the local exclusion list. */
   exclude?: Iterable<string>;
 }
 
 /**
- * Normalise, filtre et trie une liste brute.
- * Les entrées contenant autre chose que des lettres (« a-t-il », « aujourd'hui »)
- * sont écartées : elles ne sont de toute façon pas traçables sur une grille.
+ * Normalises, filters and sorts a raw list.
+ * Entries holding anything but letters, such as "a-t-il" or "aujourd'hui", are
+ * dropped: they cannot be traced on a grid anyway.
  */
 export function buildDictionary(
   rawWords: Iterable<string>,
@@ -66,8 +66,9 @@ export function buildDictionary(
 
   for (const raw of rawWords) {
     if (!raw) continue;
-    // Rejette avant normalisation les entrées à trait d'union / apostrophe :
-    // normalizeWord les collerait en un mot qui n'existe pas (« a-t-il » -> « ATIL »).
+    // Reject hyphenated and apostrophised entries before normalising, since
+    // normalizeWord would glue them into a word that does not exist
+    // ("a-t-il" would become "ATIL").
     if (!/^[\p{L}]+$/u.test(raw)) continue;
     const word = normalizeWord(raw);
     if (word.length < minLength || word.length > maxLength) continue;

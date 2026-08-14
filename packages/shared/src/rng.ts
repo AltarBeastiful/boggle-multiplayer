@@ -1,4 +1,4 @@
-/** Générateur pseudo-aléatoire déterministe (mulberry32), pour rejouer une grille à l'identique. */
+/** Deterministic pseudo-random generator (mulberry32), so a grid can be replayed exactly. */
 export type Rng = () => number;
 
 export function mulberry32(seed: number): Rng {

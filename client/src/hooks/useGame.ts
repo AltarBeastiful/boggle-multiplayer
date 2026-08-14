@@ -17,13 +17,12 @@ export interface Game {
   myWords: FoundWord[];
   connected: boolean;
   /**
-   * Vrai seulement après une connexion établie puis perdue. À distinguer de
-   * `connected`, faux dès le premier rendu tant que la poignée de main n'a pas
-   * abouti : afficher une alerte à ce moment-là ferait clignoter du rouge à
-   * chaque ouverture de la page.
+   * True only once a connection was established and then lost. Distinct from
+   * `connected`, which is false on the very first render until the handshake
+   * completes: warning at that point would flash red on every page load.
    */
   connectionLost: boolean;
-  /** Décalage horloge serveur - horloge client (ms), pour un chrono juste. */
+  /** Server clock minus client clock, in ms, to keep the timer honest. */
   clockOffset: number;
   isHost: boolean;
   createRoom(nickname: string, settings?: Partial<GameSettings>): Promise<string>;
@@ -42,11 +41,11 @@ export function useGame(): Game {
   const [myWords, setMyWords] = useState<FoundWord[]>([]);
   const [connected, setConnected] = useState(socket.connected);
   const [connectionLost, setConnectionLost] = useState(false);
-  /** Une première connexion a-t-elle abouti ? */
+  /** Has a first connection ever succeeded? */
   const everConnected = useRef(socket.connected);
   const lostTimer = useRef<number | undefined>(undefined);
   const [clockOffset, setClockOffset] = useState(0);
-  /** Dernière salle rejointe : sert à revenir automatiquement après une coupure. */
+  /** Last room joined, used to rejoin automatically after a drop. */
   const lastJoin = useRef<{ code: string; nickname: string } | null>(null);
 
   useEffect(() => {
@@ -74,7 +73,7 @@ export function useGame(): Game {
             setMyWords(joined.me.words);
           })
           .catch(() => {
-            // La salle a disparu pendant la coupure : retour à l'accueil.
+            // The room vanished during the outage; back to the home screen.
             lastJoin.current = null;
             setRoom(null);
           });
@@ -83,8 +82,8 @@ export function useGame(): Game {
 
     const onDisconnect = () => {
       setConnected(false);
-      // Une micro-coupure se rattrape toute seule : on laisse à Socket.IO le
-      // temps de se reconnecter avant d'inquiéter le joueur.
+      // A micro-outage recovers on its own, so give Socket.IO time to
+      // reconnect before worrying the player.
       if (!everConnected.current) return;
       window.clearTimeout(lostTimer.current);
       lostTimer.current = window.setTimeout(() => setConnectionLost(true), 800);

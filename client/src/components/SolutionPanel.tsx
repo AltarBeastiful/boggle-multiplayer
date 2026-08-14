@@ -17,14 +17,14 @@ interface SolutionPanelProps {
   playerId: string;
   players: PublicPlayer[];
   onHighlight(path: number[]): void;
-  /** Mot dont la définition est ouverte (géré par le parent). */
+  /** Word whose definition is open, owned by the parent. */
   selected: string | null;
   onSelect(word: string | null): void;
 }
 
 /**
- * Toutes les solutions de la grille en fin de manche, marquées selon qui les a
- * trouvées. Un clic met le mot en évidence sur la grille.
+ * Every solution of the grid at the end of a round, marked by who found it.
+ * Clicking a word highlights it on the grid.
  */
 export function SolutionPanel({
   solution,
@@ -38,8 +38,8 @@ export function SolutionPanel({
   const hoverTimer = useRef<number | undefined>(undefined);
 
   /**
-   * Précharge après une courte pause : survoler la liste en la parcourant ne
-   * doit pas déclencher une requête par mot traversé.
+   * Prefetch after a short pause, so running the eye down the list does not
+   * fire one request per word crossed.
    */
   const prefetchSoon = (word: string) => {
     window.clearTimeout(hoverTimer.current);
@@ -59,7 +59,7 @@ export function SolutionPanel({
     [solution, playerId],
   );
 
-  /** Les mots restent groupés par longueur : c'est ainsi qu'on les lit. */
+  /** Words stay grouped by length, which is how they get read. */
   const groups = useMemo(() => {
     const visible = solution.filter((word) => {
       if (filter === 'mine') return word.finders.includes(playerId);
@@ -172,7 +172,7 @@ export function SolutionPanel({
         ))}
       </div>
 
-      {/* Sur grand écran, la définition s'affiche à côté de la grille. */}
+      {/* On a wide screen the definition shows beside the grid instead. */}
       {selected && (
         <DefinitionCard className="mt-3 lg:hidden" word={selected} onClose={() => onSelect(null)} />
       )}

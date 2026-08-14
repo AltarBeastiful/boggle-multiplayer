@@ -1,14 +1,14 @@
-# Pile autonome : Traefik en façade (80/443, certificat Let's Encrypt) et le jeu
-# derrière. Elle ne dépend d'aucun autre conteneur.
+# Self-contained stack: Traefik in front on 80 and 443 with a Let's Encrypt
+# certificate, the game behind it. It depends on no other container.
 #
-#   cp .env.example .env              puis renseigner BOGGLE_HOST
-#   docker compose up -d --build      démarrer / mettre à jour
-#   docker compose logs -f traefik    suivre l'obtention du certificat
-#   docker compose down               arrêter
+#   cp .env.example .env              then fill in BOGGLE_HOST
+#   docker compose up -d --build      start or update
+#   docker compose logs -f traefik    follow the certificate issuance
+#   docker compose down               stop
 #
-# BOGGLE_HOST doit pointer (DNS) vers ce serveur : Let's Encrypt vérifie le
-# domaine en se connectant au port 443. Sans nom de domaine, sslip.io et nip.io
-# résolvent n'importe quelle adresse IP sans inscription (voir .env.example).
+# BOGGLE_HOST must resolve to this server: Let's Encrypt checks the domain by
+# connecting to port 443. Without a domain name, sslip.io and nip.io resolve any
+# IP address with no registration, see .env.example.
 
 services:
   traefik:
@@ -18,15 +18,15 @@ services:
     command:
       - --log.level=INFO
       - --providers.docker=true
-      # Rien n'est exposé sans label explicite.
+      # Nothing is exposed without an explicit label.
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
-      # Tout le trafic en clair est renvoyé vers HTTPS.
+      # All plaintext traffic is redirected to HTTPS.
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
       - --entrypoints.websecure.address=:443
-      # TLS-ALPN-01 : la validation passe par le 443, déjà ouvert. Pas besoin
-      # d'exposer quoi que ce soit d'autre.
+      # TLS-ALPN-01: validation goes through 443, which is already open. Nothing
+      # else needs exposing.
       - --certificatesresolvers.le.acme.tlschallenge=true
       - --certificatesresolvers.le.acme.email=${ACME_EMAIL}
       - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
@@ -34,8 +34,8 @@ services:
       - '80:80'
       - '443:443'
     volumes:
-      # Les certificats survivent aux redémarrages : Let's Encrypt limite le
-      # nombre d'émissions par semaine, il ne faut pas les redemander à chaque fois.
+      # Certificates survive restarts. Let's Encrypt caps issuance per week, so
+      # they must not be requested again on every start.
       - ./letsencrypt:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
@@ -43,7 +43,7 @@ services:
     build:
       context: .
       args:
-        # `off` supprime le tracé du mot trouvé sur la grille.
+        # `off` removes the trace of a found word on the grid.
         VITE_WORD_TRACE: ${VITE_WORD_TRACE:-on}
     image: boggle-multiplayer:latest
     container_name: boggle
@@ -55,12 +55,12 @@ services:
       NODE_ENV: production
       PORT: 3001
 
-    # Publié sur la boucle locale seulement : l'accès public passe par Traefik.
-    # Permet de diagnostiquer depuis le serveur (curl 127.0.0.1:3001/api/health).
+    # Published on the loopback only; public access goes through Traefik.
+    # Handy to diagnose from the server: curl 127.0.0.1:3001/api/health.
     ports:
       - '127.0.0.1:${BOGGLE_PORT:-3001}:3001'
 
-    # Mots ajoutés / exclus modifiables sans reconstruire l'image.
+    # Added and excluded words, editable without rebuilding the image.
     volumes:
       - ./server/data:/app/server/data:ro
 

@@ -18,7 +18,7 @@ interface PlayingProps {
   onSubmit(word: string): Promise<SubmitResult>;
 }
 
-/** Un mot accepté ne déclenche plus de message : seul un refus s'affiche. */
+/** An accepted word no longer shows a message; only a refusal does. */
 interface Flash {
   word: string;
   text: string;
@@ -27,7 +27,7 @@ interface Flash {
 
 export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: PlayingProps) {
   const [value, setValue] = useState('');
-  /** Cases composant le mot en cours, quand il est formé sur la grille. */
+  /** Tiles making up the current word, when built on the grid. */
   const [path, setPath] = useState<number[]>([]);
   const [flash, setFlash] = useState<Flash | null>(null);
   const [highlight, setHighlight] = useState<number[] | undefined>();
@@ -36,8 +36,8 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
   const traceTimer = useRef<number | undefined>(undefined);
 
   /**
-   * Le tracé ne persiste pas : il s'affiche brièvement puis s'efface, sinon la
-   * grille reste barbouillée du dernier mot pendant toute la manche.
+   * The trace does not persist: it shows briefly then clears, otherwise the
+   * grid stays smeared with the last word for the whole round.
    */
   const traceWord = (path: number[] | undefined, duration = TRACE_DURATION_MS) => {
     window.clearTimeout(traceTimer.current);
@@ -52,7 +52,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
   useEffect(() => () => window.clearTimeout(traceTimer.current), []);
 
   const round = room.round;
-  // Vrai tant que le décompte d'avant-manche n'est pas écoulé.
+  // True until the pre-round countdown has elapsed.
   const [pending, setPending] = useState(() => round !== null && Date.now() + clockOffset < round.startsAt);
 
   useEffect(() => {
@@ -73,7 +73,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
     return () => clearTimeout(id);
   }, [flash]);
 
-  // Le clavier doit reprendre la main dès la fin du décompte, sur ordinateur.
+  // On a desktop the keyboard takes over as soon as the countdown ends.
   useEffect(() => {
     if (!pending && window.matchMedia('(pointer: fine)').matches) inputRef.current?.focus();
   }, [round?.number, pending]);
@@ -83,18 +83,18 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
   const send = async (raw: string) => {
     const word = raw.trim();
     if (word.length === 0) return;
-    // Le chemin que le joueur a formé lui-même, avant de le remettre à zéro.
+    // The path the player built themselves, before it gets cleared.
     const composed = path;
     setValue('');
     setPath([]);
     try {
       const result = await onSubmit(word);
       if (result.accepted) {
-        // Le mot rejoint la liste et son chemin clignote : cela suffit.
-        // On retrace les cases du joueur, pas celles du serveur : un même mot
-        // peut se lire à plusieurs endroits de la grille, et voir s'allumer des
-        // dés auxquels on n'a pas touché est déroutant. Le serveur ne renvoie
-        // qu'un chemin valide, pas forcément celui qu'on avait sous les yeux.
+        // The word joins the list and its path flashes, which is enough.
+        // We retrace the player's own tiles rather than the server's: one word
+        // can be read in several places, and seeing dice light up that you
+        // never touched is confusing. The server only returns a valid path, not
+        // necessarily the one you had in front of you.
         if (TRACE_FOUND_WORD) traceWord(composed.length > 0 ? composed : result.path);
         return;
       }
@@ -115,7 +115,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
     void send(value);
   };
 
-  /** Les lettres d'un chemin tracé. Une case Q vaut QU sous la variante. */
+  /** The letters of a traced path. A Q tile counts as QU under the variant. */
   const pathToWord = (path: number[]) =>
     path
       .map((index) => {
@@ -124,7 +124,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
       })
       .join('');
 
-  /** Le mot composé sur la grille alimente le champ, qui reste modifiable. */
+  /** The word built on the grid feeds the field, which stays editable. */
   const applyPath = (next: number[]) => {
     setPath(next);
     setValue(pathToWord(next));
@@ -175,7 +175,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
         </div>
         {pending && <RoundCountdown startsAt={round.startsAt} clockOffset={clockOffset} />}
 
-        {/* Halo de refus : autour de la grille, jamais par-dessus les lettres. */}
+        {/* Refusal halo: around the grid, never over the letters. */}
         {flash && (
           <div
             key={flash.key}
@@ -191,7 +191,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
           value={value}
           onChange={(event) => {
             setValue(event.target.value);
-            // Au clavier, le chemin sur la grille n'a plus de rapport avec le mot.
+            // Once typing, the path on the grid no longer matches the word.
             if (path.length > 0) setPath([]);
           }}
           disabled={pending}

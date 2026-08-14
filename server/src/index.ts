@@ -36,14 +36,14 @@ type GameSocket = Socket<ClientToServerEvents, ServerToClientEvents, Record<stri
 
 const app = Fastify({ logger: false });
 
-// Le dictionnaire est chargé au démarrage : la première partie ne doit pas attendre.
+// The dictionary loads at startup, so the first game never waits for it.
 const dictionary = getDictionary();
 
 const io = new SocketServer<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>(
   app.server,
   {
     cors: isProduction ? undefined : { origin: true, credentials: true },
-    // Une manche dure 3 minutes : mieux vaut tolérer une coupure réseau brève.
+    // A round lasts 3 minutes, so a brief network drop is worth tolerating.
     pingTimeout: 30_000,
     connectionStateRecovery: { maxDisconnectionDuration: 60_000 },
   },
@@ -79,7 +79,7 @@ app.get('/api/health', async () => ({
   uptime: Math.round(process.uptime()),
 }));
 
-// Le Wiktionnaire est un service gratuit : on borne ce qu'un client peut en tirer.
+// Wiktionary is a free service, so bound what a single client can draw from it.
 const DEFINITION_RATE_LIMIT = 90;
 const DEFINITION_WINDOW_MS = 60_000;
 const definitionHits = new Map<string, { count: number; resets: number }>();
@@ -95,11 +95,11 @@ app.get<{ Params: { word: string } }>('/api/definition/:word', async (request, r
 
   const word = normalizeWord(request.params.word);
   if (word.length < 2 || word.length > 30) return { word, entries: [] };
-  // getDefinition ne rejette jamais : pas de définition = liste vide.
+  // getDefinition never rejects; no definition simply means an empty list.
   return getDefinition(word);
 });
 
-/** Permet à l'écran d'accueil de vérifier un code avant de demander un pseudo. */
+/** Lets the home screen check a room code before asking for a nickname. */
 app.get<{ Params: { code: string } }>('/api/rooms/:code', async (request) => {
   const code = normalizeRoomCode(request.params.code);
   const room = rooms.get(code);
@@ -116,7 +116,7 @@ app.get<{ Params: { code: string } }>('/api/rooms/:code', async (request) => {
 const clientDist = resolve(here, '..', '..', 'client', 'dist');
 if (existsSync(clientDist)) {
   await app.register(fastifyStatic, { root: clientDist });
-  // SPA : toute autre route sert index.html (les liens /r/CODE doivent fonctionner).
+  // Single-page app: any other route serves index.html, so /r/CODE links work.
   app.setNotFoundHandler((request, reply) => {
     if (request.method !== 'GET' || request.url.startsWith('/api')) {
       return reply.code(404).send({ error: 'Not found' });
@@ -124,7 +124,7 @@ if (existsSync(clientDist)) {
     return reply.sendFile('index.html');
   });
 } else {
-  console.log('[serveur] client/dist absent, mode développement (client servi par Vite)');
+  console.log('[server] client/dist missing, development mode with the client served by Vite');
 }
 
 // ---------------------------------------------------------------------------
@@ -143,7 +143,7 @@ function joinedPayload(room: Room, playerId: string): JoinedPayload {
   return { state: room.toState(), me: room.myState(playerId), playerId };
 }
 
-/** Retrouve la salle et le joueur attachés à cette socket. */
+/** Finds the room and player attached to this socket. */
 function context(socket: GameSocket): { room: Room; playerId: string } {
   const { code, playerId } = socket.data;
   if (!code || !playerId) throw new Error("Vous n'êtes pas dans une salle");
@@ -152,7 +152,7 @@ function context(socket: GameSocket): { room: Room; playerId: string } {
   return { room, playerId };
 }
 
-/** Exécute une action d'hôte et renvoie l'erreur au client plutôt que de couper la socket. */
+/** Runs a host action and reports the error back rather than killing the socket. */
 function guard<T>(ack: ((res: { ok: true; data: T } | { ok: false; error: string }) => void) | undefined, run: () => T): void {
   try {
     const data = run();
@@ -263,10 +263,10 @@ io.on('connection', (socket: GameSocket) => {
 
 setInterval(() => {
   const removed = rooms.sweep();
-  if (removed > 0) console.log(`[serveur] ${removed} salle(s) expirée(s) supprimée(s)`);
+  if (removed > 0) console.log(`[server] removed ${removed} expired room(s)`);
   const now = Date.now();
   for (const [ip, seen] of definitionHits) if (seen.resets < now) definitionHits.delete(ip);
 }, 60_000).unref();
 
 await app.listen({ port: PORT, host: HOST });
-console.log(`[serveur] Boggle multijoueur sur http://localhost:${PORT}`);
+console.log(`[server] Boggle multiplayer on http://localhost:${PORT}`);

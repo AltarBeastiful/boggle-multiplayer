@@ -9,15 +9,16 @@ export interface SolveOptions {
 }
 
 export interface Solution {
-  /** Tous les mots de la grille, associés à un chemin possible. */
+  /** Every word in the grid, each with one possible path. */
   words: Map<string, number[]>;
-  /** Somme des points de tous les mots (barème donné). */
+  /** Sum of every word's points under the given scoring table. */
   totalPoints: number;
 }
 
 /**
- * Énumère tous les mots traçables sur la grille (DFS avec élagage par préfixe).
- * Sert à afficher les mots manqués en fin de manche et à jauger la qualité d'une grille.
+ * Lists every word traceable on the grid, depth-first with prefix pruning.
+ * Used to show the words missed at the end of a round, and to judge whether a
+ * grid is worth playing.
  */
 export function solveBoard(
   board: Board,
@@ -38,7 +39,7 @@ export function solveBoard(
     used[cellIndex] = true;
     path.push(cellIndex);
 
-    // Une case Q peut produire deux préfixes différents avec la variante Q=QU.
+    // Under the Q=QU variant a Q tile yields two different prefixes.
     const variants = qEqualsQu && letter === 'Q' ? ['Q', 'QU'] : [letter];
     for (const variant of variants) {
       const current = prefix + variant;

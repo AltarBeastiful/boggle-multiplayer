@@ -23,9 +23,9 @@ function apply(theme: ResolvedTheme): void {
 }
 
 /**
- * Thème clair / sombre. « auto » suit le réglage du système et continue de le
- * suivre s'il change en cours de partie ; un choix explicite est mémorisé.
- * Le thème initial est déjà posé par le script de index.html (pas de flash).
+ * Light and dark theme. "auto" follows the system setting and keeps following
+ * it if it changes mid-game; an explicit choice is remembered. The initial
+ * theme is already set by the script in index.html, so nothing flashes.
  */
 export function useTheme() {
   const [preference, setPreferenceState] = useState<ThemePreference>(readPreference);

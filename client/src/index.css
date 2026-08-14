@@ -1,12 +1,12 @@
 @import 'tailwindcss';
 
 /*
- * Un seul jeu de jetons sémantiques, redéfini par thème. Les composants ne
- * nomment jamais une couleur brute (« slate-800 ») mais un rôle (« panel »,
- * « fg-muted ») : les deux thèmes restent cohérents sans classes en double.
+ * One set of semantic tokens, redefined per theme. Components never name a raw
+ * colour such as "slate-800" but a role such as "panel" or "fg-muted", which
+ * keeps both themes consistent without doubling every class.
  *
- * `data-theme` est posé sur <html> avant le premier rendu (script dans
- * index.html), ce qui évite le flash de thème clair au chargement.
+ * `data-theme` is set on <html> before the first paint, by the script in
+ * index.html, which avoids a flash of the light theme on load.
  */
 
 :root,
@@ -74,7 +74,7 @@
   --danger-banner-fg: #fee2e2;
 }
 
-/* `inline` : les utilitaires émettent var(--x), donc ils suivent le thème. */
+/* `inline` makes the utilities emit var(--x), so they follow the theme. */
 @theme inline {
   --color-bg: var(--bg);
   --color-panel: var(--panel);
@@ -123,18 +123,18 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
-/* Sous 16px, Safari iOS zoome sur le champ actif et casse la mise en page. */
+/* Below 16px, Safari on iOS zooms the focused field and breaks the layout. */
 input {
   font-size: 16px;
 }
 
-/* Cible tactile confortable, recommandation WCAG 2.5.5. */
+/* Comfortable touch target, as WCAG 2.5.5 recommends. */
 button,
 [role='button'] {
   touch-action: manipulation;
 }
 
-/* Décompte d'avant-manche : le chiffre arrive en grand puis se pose. */
+/* Pre-round countdown: the word arrives large, then settles. */
 @keyframes boggle-countdown {
   0% {
     opacity: 0;
@@ -154,9 +154,9 @@ button,
   animation: boggle-countdown 900ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Refus : un halo rouge autour de la grille, qui s'efface de lui-même. Il
-   entoure les dés sans rien masquer : un fond posé par-dessus rendrait les
-   lettres illisibles au moment précis où on veut les relire. */
+/* Refusal: a red halo around the grid that fades by itself. It frames the dice
+   without hiding anything, since a background laid over them would make the
+   letters unreadable exactly when you want to reread them. */
 @keyframes boggle-reject {
   0% {
     opacity: 0;
@@ -169,13 +169,13 @@ button,
   }
 }
 
-/* Un trait fin et pâle : on veut un signal perçu du coin de l'œil, pas un
-   cadre qui capte le regard alors qu'il est sur les lettres. */
+/* A thin pale stroke: the point is a signal caught from the corner of the eye,
+   not a frame that pulls attention off the letters. */
 .animate-reject {
   animation: boggle-reject 700ms ease-out forwards;
 }
 
-/* Message de refus : une arrivée discrète, sans clignotement. */
+/* Refusal message: a discreet arrival, without blinking. */
 @keyframes boggle-flash {
   from {
     opacity: 0;
@@ -191,7 +191,7 @@ button,
   animation: boggle-flash 180ms ease-out;
 }
 
-/* Tracé d'un mot trouvé : une pulsation brève, puis la case revient au repos. */
+/* Trace of a found word: a brief pulse, then the tile settles back. */
 @keyframes boggle-trace {
   0% {
     transform: scale(1);

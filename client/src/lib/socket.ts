@@ -12,16 +12,16 @@ import type {
   SubmitResult,
 } from '@boggle/shared';
 
-/** En développement, Vite relaie /socket.io vers le serveur (voir vite.config.ts). */
+/** In development Vite proxies /socket.io to the server, see vite.config.ts. */
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io({
   autoConnect: true,
-  // Pas de `transports` imposé : on garde l'ordre par défaut de Socket.IO, qui
-  // établit d'abord une liaison longue durée puis bascule en WebSocket. Forcer
-  // le WebSocket d'emblée laissait WebKit sans connexion : la liaison s'ouvrait
-  // mais la poignée de main n'aboutissait jamais.
+  // No `transports` forced: keep Socket.IO's default order, which opens a
+  // long-polling link first then upgrades to WebSocket. Forcing WebSocket from
+  // the start left WebKit unconnected, the link opening but the handshake
+  // never completing.
 });
 
-/** Transforme un événement à accusé de réception en promesse. */
+/** Turns an acknowledged event into a promise. */
 function request<T>(event: string, payload?: unknown): Promise<T> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Le serveur ne répond pas')), 10_000);

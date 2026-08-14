@@ -4,19 +4,19 @@ import { lookupLocal } from './definitions-local.js';
 import { getSpellingIndex } from './dictionary.js';
 
 /**
- * Définitions tirées du Wiktionnaire francophone.
+ * Definitions drawn from the French Wiktionary.
  *
- * Trois difficultés, traitées ici :
+ * Three obstacles, all handled here:
  *
- * 1. Il n'existe pas d'API de définition exploitable : l'endpoint REST
- *    `/page/definition/` répond 501 sur fr.wiktionary. On passe donc par
- *    `action=query&prop=extracts`, qui renvoie la page en texte brut, et on
- *    en extrait la première définition.
- * 2. Nos mots ont perdu leurs accents (règle du jeu) alors que le Wiktionnaire
- *    les indexe accentués : `getSpellingIndex()` redonne les graphies réelles.
- * 3. Les formes fléchies, qui font l'essentiel des solutions d'une grille, ne portent
- *    pas de définition mais un renvoi (« ... du verbe bouder »). On suit alors
- *    le lemme pour aller chercher la vraie définition.
+ * 1. There is no usable definition API: the REST endpoint
+ *    `/page/definition/` answers 501 on fr.wiktionary. So we go through
+ *    `action=query&prop=extracts`, which returns the page as plain text, and
+ *    pull the first definition out of it.
+ * 2. Our words have lost their accents, as the rules demand, while Wiktionary
+ *    indexes them accented: `getSpellingIndex()` gives the real spellings back.
+ * 3. Inflected forms, which make up most of a grid's solutions, carry no
+ *    definition but a pointer ("... du verbe bouder"). We then follow the lemma
+ *    to fetch the real definition.
  */
 
 const API = 'https://fr.wiktionary.org/w/api.php';
@@ -26,28 +26,28 @@ const REQUEST_TIMEOUT_MS = 8000;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const CACHE_MAX = 5000;
 /**
- * Le Wiktionnaire est un service gratuit : on reste discret. Mais un mot à
- * plusieurs graphies (« pommes », « pommés ») demandant chacune un second appel
- * vers son lemme, un plafond de 4 sérialisait la recherche en deux vagues et
- * doublait le délai. 8 reste dérisoire pour l'API et supprime cette attente.
+ * Wiktionary is a free service, so we stay discreet. But a word with several
+ * spellings ("pommes", "pommés"), each needing a second call to its lemma, made
+ * a cap of 4 serialise the lookup into two waves and double the delay. Eight
+ * stays negligible for the API and removes that wait.
  */
 const MAX_CONCURRENT = 8;
 
-// -- sections grammaticales --------------------------------------------------
+// -- grammatical sections ----------------------------------------------------
 
-/** Sections qui portent une vraie définition. */
+/** Sections carrying a real definition. */
 const REAL_POS =
   /^(Nom commun|Nom propre|Verbe|Adjectif[^\n]*|Adverbe[^\n]*|Interjection|Préposition|Conjonction[^\n]*|Pronom[^\n]*|Article[^\n]*|Locution[^\n]*|Symbole|Onomatopée)$/;
-/** Sections de renvoi : « Forme de verbe », « Forme d'adjectif »… (de / d' / d’) */
+/** Pointer sections: "Forme de verbe", "Forme d'adjectif" and so on. */
 const FORM_POS = /^Forme d/;
 
 /**
- * Lignes à sauter avant la définition : en-têtes de tableaux de flexion
- * (« Singulier Pluriel ») et lignes de prononciation (« mot \mo\ masculin »).
+ * Lines to skip before the definition: inflection-table headers
+ * ("Singulier Pluriel") and pronunciation lines ("mot \mo\ masculin").
  *
- * L'ancrage de fin est indispensable : « Pluriel de uropode. » commence par un
- * mot de tableau mais c'est bien la définition d'une forme au pluriel, donc de
- * la moitié des solutions d'une grille.
+ * Anchoring the end is essential: "Pluriel de uropode." opens with a table word
+ * yet is the definition of a plural form, and therefore of half a grid's
+ * solutions.
  */
 const TABLE_WORDS = 'Singulier|Pluriel|Masculin|Féminin|Invariable';
 const TABLE_LINE = new RegExp(`^(?:${TABLE_WORDS})(?:\\s+(?:${TABLE_WORDS}))*$`);
@@ -57,7 +57,7 @@ function isNoise(line: string): boolean {
   return TABLE_LINE.test(line) || PRONUNCIATION.test(line);
 }
 
-/** Nombre de sens remontés par graphie, comme pour le fichier embarqué. */
+/** Senses returned per spelling, matching the bundled file. */
 const MAX_SENSES = 3;
 
 interface ParsedSection {
@@ -65,7 +65,7 @@ interface ParsedSection {
   definitions: string[];
 }
 
-/** Découpe la section « == Français == » en sections grammaticales. */
+/** Splits the "== Français ==" section into grammatical sections. */
 function parseFrenchSections(extract: string): ParsedSection[] {
   const french = /^== Français ==$([\s\S]*?)(?=^== [^=]+ ==$|$(?![\s\S]))/m.exec(extract);
   if (!french?.[1]) return [];
@@ -80,8 +80,8 @@ function parseFrenchSections(extract: string): ParsedSection[] {
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
-    // La première ligne est la vedette (« chien \ʃjɛ̃\ masculin ») : les sens
-    // sont les lignes utiles qui suivent, le principal en premier.
+    // The first line is the headword ("chien \ʃjɛ̃\ masculin"); the senses are
+    // the useful lines that follow, main one first.
     const definitions = lines.slice(1).filter((line) => !isNoise(line)).slice(0, MAX_SENSES);
     if (definitions.length > 0) sections.push({ partOfSpeech, definitions });
   }
@@ -89,29 +89,29 @@ function parseFrenchSections(extract: string): ParsedSection[] {
 }
 
 /**
- * Retrouve le lemme cité par une section « Forme de ... ». Ces renvois se
- * terminent toujours par le mot visé, quelle que soit la tournure :
- *   « ... du passé simple de bouder. »        -> bouder
- *   « ... du passé simple du verbe bouder. »  -> bouder
- *   « Pluriel de uropode. »                   -> uropode
- * On prend donc le dernier mot, ce qui couvre les trois formulations.
+ * Finds the lemma named by a "Forme de ..." section. These pointers always end
+ * on the word they target, whatever the wording:
+ *   "... du passé simple de bouder."        -> bouder
+ *   "... du passé simple du verbe bouder."  -> bouder
+ *   "Pluriel de uropode."                   -> uropode
+ * Taking the last word therefore covers all three phrasings.
  */
 function extractLemma(definition: string): string | null {
   const cleaned = definition.trim().replace(/[.\s]+$/, '');
   const match = /([\p{L}][\p{L}’'-]*)$/u.exec(cleaned);
   const lemma = match?.[1];
   if (!lemma || lemma.length < 2) return null;
-  // Un renvoi se termine par un mot, pas par une catégorie grammaticale.
+  // A pointer ends on a word, not on a grammatical category.
   if (/^(verbe|singulier|pluriel|masculin|féminin|présent|passé|futur)$/i.test(lemma)) return null;
   return lemma;
 }
 
-// -- appels réseau -----------------------------------------------------------
+// -- network calls -----------------------------------------------------------
 
 let inFlight = 0;
 const queue: Array<() => void> = [];
 
-/** Petit sémaphore : jamais plus de MAX_CONCURRENT requêtes sortantes. */
+/** Small semaphore: never more than MAX_CONCURRENT outbound requests. */
 async function withSlot<T>(run: () => Promise<T>): Promise<T> {
   if (inFlight >= MAX_CONCURRENT) {
     await new Promise<void>((resolve) => queue.push(resolve));
@@ -143,12 +143,12 @@ async function fetchExtract(title: string): Promise<string | null> {
     if (!page || 'missing' in page) return null;
     return page.extract ?? null;
   } catch {
-    // Réseau coupé, délai dépassé, JSON inattendu : le jeu continue sans définition.
+    // Network down, timeout, unexpected JSON: the game carries on without a definition.
     return null;
   }
 }
 
-/** Définition d'une graphie précise, en suivant le lemme si nécessaire. */
+/** Definition of one precise spelling, following the lemma when needed. */
 async function lookupSpelling(spelling: string): Promise<DefinitionEntry | null> {
   const extract = await fetchExtract(spelling);
   if (!extract) return null;
@@ -198,7 +198,7 @@ function readCache(word: string): DefinitionResult | null {
     cache.delete(word);
     return null;
   }
-  // Remise en fin de Map : les entrées les plus anciennes sortent en premier.
+  // Move to the end of the Map, so the oldest entries are evicted first.
   cache.delete(word);
   cache.set(word, hit);
   return hit.value;
@@ -214,11 +214,11 @@ function writeCache(word: string, value: DefinitionResult): void {
 }
 
 /**
- * Définitions d'un mot normalisé (majuscules, sans accents).
+ * Definitions of a normalised word, in capitals and without accents.
  *
- * Le fichier embarqué est consulté en premier ; le Wiktionnaire ne sert que de
- * secours, pour les mots qu'il ne couvre pas ou quand aucun fichier n'est livré.
- * Ne rejette jamais : une absence de définition est un résultat vide.
+ * The bundled file is consulted first; Wiktionary only serves as a fallback,
+ * for words it does not cover or when no file is shipped. Never rejects: a
+ * missing definition is an empty result.
  */
 export async function getDefinition(normalized: string): Promise<DefinitionResult> {
   const word = normalized.toUpperCase();
@@ -233,9 +233,9 @@ export async function getDefinition(normalized: string): Promise<DefinitionResul
   if (running) return running;
 
   const task = (async (): Promise<DefinitionResult> => {
-    // Graphies possibles : « COTE » -> cote, coté, côte, côté.
-    // La forme sans accent passe en premier : elle existe souvent aussi, et
-    // c'est généralement celle que le joueur avait en tête (portes / portés).
+    // Possible spellings: "COTE" -> cote, coté, côte, côté.
+    // The unaccented form goes first: it usually exists too, and is generally
+    // the one the player had in mind (portes rather than portés).
     const spellings = [...new Set([word.toLowerCase(), ...(getSpellingIndex().get(word) ?? [])])];
     const found = await Promise.all(spellings.slice(0, 4).map((spelling) => lookupSpelling(spelling)));
     const entries = found.filter((entry): entry is DefinitionEntry => entry !== null);

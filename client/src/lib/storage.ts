@@ -1,7 +1,7 @@
 const PLAYER_ID_KEY = 'boggle.playerId';
 const NICKNAME_KEY = 'boggle.nickname';
 
-/** Identité stable du joueur : permet de retrouver ses mots et son score après une coupure. */
+/** Stable player identity, so words and score survive a disconnection. */
 export function getPlayerId(): string {
   let id = localStorage.getItem(PLAYER_ID_KEY);
   if (!id || id.length < 8) {

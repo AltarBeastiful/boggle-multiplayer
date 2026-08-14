@@ -1,21 +1,21 @@
 /**
- * Grille et validation des chemins.
+ * The grid, and path validation.
  *
- * « Vous pouvez passer d'une lettre à la suivante située directement à gauche,
- *   à droite, en haut, en bas, ou sur l'une des quatre cases diagonales.
- *   Une lettre ne peut pas être utilisée plus d'une fois pour un même mot. »
- * Source : https://www.boggle.fr/regles.php
+ * "You may move from one letter to the next directly to the left, to the
+ *  right, above, below, or on any of the four diagonal tiles. A letter cannot
+ *  be used more than once in the same word."
+ * Source: https://www.boggle.fr/regles.php
  */
 
 export interface Board {
   size: number;
-  /** Lettres, ligne par ligne, en majuscules non accentuées. */
+  /** Letters, row by row, as unaccented capitals. */
   cells: string[];
 }
 
 const neighbourCache = new Map<number, number[][]>();
 
-/** Voisins (8 directions) de chaque case, mis en cache par taille de grille. */
+/** The eight neighbours of every tile, cached per grid size. */
 export function getNeighbours(size: number): number[][] {
   const cached = neighbourCache.get(size);
   if (cached) return cached;
@@ -41,14 +41,14 @@ export function getNeighbours(size: number): number[][] {
 }
 
 export interface PathOptions {
-  /** Variante « QU à la place de Q » : une case Q peut valoir Q ou QU. */
+  /** "QU instead of Q" variant: a Q tile may count as Q or QU. */
   qEqualsQu?: boolean;
 }
 
 /**
- * Cherche un chemin traçant `word` sur la grille, sans réutiliser une case.
- * Retourne les indices des cases, ou `null` si le mot n'est pas traçable.
- * `word` doit déjà être normalisé (majuscules, sans accents).
+ * Looks for a path spelling `word` across the grid without reusing a tile.
+ * Returns the tile indices, or `null` when the word cannot be traced.
+ * `word` must already be normalised: capitals, no accents.
  */
 export function findPath(board: Board, word: string, options: PathOptions = {}): number[] | null {
   const { qEqualsQu = false } = options;
@@ -58,13 +58,13 @@ export function findPath(board: Board, word: string, options: PathOptions = {}):
   const used = new Array<boolean>(board.cells.length).fill(false);
   const path: number[] = [];
 
-  /** Longueurs de mot que cette case peut consommer à la position `at`. */
+  /** How many characters this tile can consume at position `at`. */
   const consumable = (cellIndex: number, at: number): number[] => {
     const letter = board.cells[cellIndex];
     if (letter === undefined) return [];
     const lengths: number[] = [];
-    // La variante Q=QU est essayée en premier (chemin le plus court),
-    // mais le Q « simple » reste possible : QUI peut se tracer Q+U+I.
+    // The Q=QU variant is tried first since it gives the shorter path, but a
+    // plain Q stays possible: QUI can also be traced as Q, then U, then I.
     if (qEqualsQu && letter === 'Q' && word.startsWith('QU', at)) lengths.push(2);
     if (word.startsWith(letter, at)) lengths.push(letter.length);
     return lengths;
@@ -96,7 +96,7 @@ export function findPath(board: Board, word: string, options: PathOptions = {}):
   return null;
 }
 
-/** Le mot est-il traçable sur la grille ? */
+/** Can the word be traced on the grid? */
 export function isOnBoard(board: Board, word: string, options: PathOptions = {}): boolean {
   return findPath(board, word, options) !== null;
 }

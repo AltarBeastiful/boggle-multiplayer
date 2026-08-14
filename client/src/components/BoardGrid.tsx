@@ -5,15 +5,15 @@ import { getNeighbours } from '@boggle/shared';
 interface BoardGridProps {
   cells: string[];
   size: number;
-  /** Chemin à mettre en évidence (indices de cases, dans l'ordre). */
+  /** Path to highlight, as tile indices in order. */
   highlight?: number[];
   qEqualsQu?: boolean;
   compact?: boolean;
-  /** Anime brièvement les cases mises en évidence (tracé d'un mot trouvé). */
+  /** Briefly animates the highlighted tiles, when a found word is traced. */
   animateHighlight?: boolean;
-  /** Rend la grille cliquable : composition d'un mot au doigt ou à la souris. */
+  /** Makes the grid clickable, so a word can be built by finger or mouse. */
   interactive?: boolean;
-  /** Chemin en cours de composition, tenu par le parent. */
+  /** Path being built, owned by the parent. */
   path?: number[];
   onPathChange?(path: number[]): void;
 }
@@ -29,7 +29,7 @@ export function BoardGrid({
   path = [],
   onPathChange,
 }: BoardGridProps) {
-  /** Dernière case atteinte par le pointeur, pour ne pas la rejouer au glissé. */
+  /** Last tile the pointer reached, so a drag does not replay it. */
   const pressed = useRef<number | null>(null);
   const container = useRef<HTMLDivElement>(null);
 
@@ -37,9 +37,9 @@ export function BoardGrid({
   const highlighted = new Set(shown);
 
   /**
-   * La case sous le doigt. `elementFromPoint` est indispensable : dès le premier
-   * contact le pointeur est capturé par la grille, donc les événements suivants
-   * ne visent plus la case survolée.
+   * The tile under the finger. `elementFromPoint` is essential: the grid
+   * captures the pointer on first contact, so later events no longer target the
+   * tile being crossed.
    */
   const cellAt = (x: number, y: number): number | null => {
     const element = document.elementFromPoint(x, y)?.closest('[data-cell]');
@@ -49,17 +49,17 @@ export function BoardGrid({
   };
 
   /**
-   * Prolonge le mot d'une case. La même règle sert à l'appui et au glissé, un
-   * appui n'étant qu'un glissé d'une seule case. Le chemin survit au
-   * relâchement, sinon la lettre tapée apparaîtrait puis disparaîtrait.
+   * Extends the word by one tile. The same rule serves tap and drag, a tap
+   * being a drag over a single tile. The path survives release, otherwise a
+   * tapped letter would appear and vanish at once.
    */
   const extend = (current: number[], index: number): number[] | null => {
     if (current.length === 0) return [index];
 
     const last = current[current.length - 1];
-    // Retoucher la dernière case l'enlève : la correction la plus naturelle.
+    // Touching the last tile again removes it, the most natural correction.
     if (index === last) return current.slice(0, -1);
-    // Revenir sur l'avant-dernière enlève la dernière, sans relever le doigt.
+    // Going back to the one before removes the last, without lifting the finger.
     if (current.length >= 2 && index === current[current.length - 2]) return current.slice(0, -1);
     if (current.includes(index)) return null;
     if (last === undefined || !getNeighbours(size)[last]?.includes(index)) return null;
@@ -79,7 +79,7 @@ export function BoardGrid({
     try {
       container.current?.setPointerCapture(event.pointerId);
     } catch {
-      /* sans capture, elementFromPoint suffit */
+      /* without capture, elementFromPoint is enough */
     }
     pressed.current = index;
     apply(index);
@@ -94,12 +94,12 @@ export function BoardGrid({
   };
 
   const up = (event: ReactPointerEvent<HTMLDivElement>) => {
-    // Le chemin reste affiché : c'est l'envoi du mot qui le remet à zéro.
+    // The path stays on screen; sending the word is what clears it.
     pressed.current = null;
     try {
       container.current?.releasePointerCapture(event.pointerId);
     } catch {
-      /* déjà relâché */
+      /* already released */
     }
   };
 
@@ -109,7 +109,7 @@ export function BoardGrid({
       className={`grid w-full ${compact ? 'gap-1.5' : 'gap-2 sm:gap-3'}`}
       style={{
         gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
-        // Sans cela, le doigt fait défiler la page au lieu de composer le mot.
+        // Without this the finger scrolls the page instead of building the word.
         touchAction: interactive ? 'none' : undefined,
       }}
       onPointerDown={down}
@@ -128,8 +128,8 @@ export function BoardGrid({
               'shadow-[0_1px_3px_var(--tile-shadow)] transition-colors duration-150 select-none',
               compact ? 'text-lg sm:text-xl' : 'text-2xl sm:text-4xl',
               interactive ? 'cursor-pointer' : '',
-              // Les jetons gardent leur teinte ivoire dans les deux thèmes :
-              // c'est la couleur des dés, et elle reste lisible sur les deux fonds.
+              // Tiles keep their ivory tone in both themes: it is the colour of
+              // the dice, and it stays readable on either background.
               active
                 ? 'bg-tile-active text-tile-active-fg ring-1 ring-tile-active-fg/15'
                 : 'bg-tile text-tile-fg',
