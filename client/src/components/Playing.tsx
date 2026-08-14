@@ -44,6 +44,7 @@ export function Playing({
   const [path, setPath] = useState<number[]>([]);
   const [flash, setFlash] = useState<Flash | null>(null);
   const [highlight, setHighlight] = useState<number[] | undefined>();
+  const [faintTrace, setFaintTrace] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const flashCounter = useRef(0);
   const traceTimer = useRef<number | undefined>(undefined);
@@ -51,13 +52,18 @@ export function Playing({
   /**
    * The trace does not persist: it shows briefly then clears, otherwise the
    * grid stays smeared with the last word for the whole round.
+   *
+   * `faint` separates the two reasons a path lights up. The flick after a word
+   * is accepted is over in a fifth of a second and only has to confirm; a path
+   * held under the cursor is being read, and keeps the full mark.
    */
-  const traceWord = (path: number[] | undefined, duration = TRACE_DURATION_MS) => {
+  const traceWord = (path: number[] | undefined, duration = TRACE_DURATION_MS, faint = false) => {
     window.clearTimeout(traceTimer.current);
     if (!path) {
       setHighlight(undefined);
       return;
     }
+    setFaintTrace(faint);
     setHighlight(path);
     traceTimer.current = window.setTimeout(() => setHighlight(undefined), duration);
   };
@@ -128,7 +134,7 @@ export function Playing({
         // can be read in several places, and seeing dice light up that you
         // never touched is confusing. The server only returns a valid path, not
         // necessarily the one you had in front of you.
-        if (TRACE_FOUND_WORD) traceWord(composed.length > 0 ? composed : result.path);
+        if (TRACE_FOUND_WORD) traceWord(composed.length > 0 ? composed : result.path, TRACE_DURATION_MS, true);
         return;
       }
       flashCounter.current += 1;
@@ -218,6 +224,7 @@ export function Playing({
             highlight={highlight}
             qEqualsQu={room.settings.qEqualsQu}
             animateHighlight
+            faintHighlight={faintTrace}
             interactive={!pending && !over}
             path={path}
             onPathChange={applyPath}

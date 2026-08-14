@@ -92,10 +92,14 @@ npm run test:round     # les deux façons de terminer une manche, à deux joueur
 npm run test:daily     # la grille du jour, de l'accueil au classement
 ```
 
-Quand un mot est accepté, son chemin est tracé une fraction de seconde sur la
-grille puis s'efface : rien ne reste affiché entre deux mots. Pour supprimer
-complètement ce tracé, compilez avec `VITE_WORD_TRACE=off` (variable reprise par
-`docker compose` comme argument de build).
+Quand un mot est accepté, son chemin s'éclaire **deux dixièmes de seconde** puis
+s'efface : rien ne reste affiché entre deux mots. La marque est volontairement
+**plus pâle** que celle d'un mot en cours de composition ; une marque légère se
+comprend plus vite, donc elle peut partir plus tôt, et l'œil est déjà reparti
+chercher le mot suivant. Survoler un mot déjà trouvé garde en revanche la marque
+franche : là, on regarde. Pour supprimer complètement ce tracé, compilez avec
+`VITE_WORD_TRACE=off` (variable reprise par `docker compose` comme argument de
+build).
 
 L'interface suit le **thème clair ou sombre** du système, avec un bouton pour
 forcer l'un ou l'autre. Les contrastes des deux thèmes vérifient le niveau AA.

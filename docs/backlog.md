@@ -5,23 +5,22 @@ to do and the awkward part, so the work can be picked up without rediscovering
 it. What is done stays here, struck through, when what it turned out to need is
 worth remembering.
 
-## 1. Shorten the trace shown when a word is accepted
-
-The trace still holds the eye too long. Today it is `TRACE_DURATION_MS = 380` in
-`client/src/lib/config.ts`, with a 260 ms `boggle-trace` pulse in `index.css`,
-and the tiles carry the full `--tile-active` fill for the whole time.
-
-Shortening the delay alone would make it read as a flicker. The style is the
-part to change: a fainter fill, or an outline rather than a fill, would let the
-same information land in less time, because a weaker mark needs less time to be
-understood and less time to fade. Worth trying at around 220 ms with a lighter
-tile.
-
-To be judged on the real thing, several words in a row: the question is not
-whether one trace looks good but whether the grid is neutral again by the time
-the next word is typed.
+Nothing is outstanding. What follows is what was asked for and built.
 
 ---
+
+## ~~Shorten the trace shown when a word is accepted~~ (done)
+
+380 ms down to 200, with the pulse from 260 ms to 170 and its scale from 1.035
+to 1.02. Shortening alone would have made it a flicker, so the mark changed
+too: a new `--tile-trace`, much paler than `--tile-active`, on the principle
+that a weaker mark is understood faster and can therefore leave sooner.
+
+The two reasons a path lights up had to be told apart, which the code did not
+do before. The flick after a word is accepted is a confirmation and is now
+faint; a path held under the cursor is being read and keeps the full mark.
+Hence `faintHighlight` on `BoardGrid`, which a path being built overrides in
+any case.
 
 ## ~~Choose, at the buzzer, between the solutions and playing on~~ (done)
 

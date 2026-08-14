@@ -42,6 +42,7 @@ export function Daily({ onLeave }: { onLeave(): void }) {
   const [path, setPath] = useState<number[]>([]);
   const [flash, setFlash] = useState<Flash | null>(null);
   const [highlight, setHighlight] = useState<number[] | undefined>();
+  const [faintTrace, setFaintTrace] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -94,12 +95,14 @@ export function Daily({ onLeave }: { onLeave(): void }) {
     if (state && !state.finished && window.matchMedia('(pointer: fine)').matches) inputRef.current?.focus();
   }, [state?.finished, Boolean(state)]);
 
-  const traceWord = (tiles: number[] | undefined, duration = TRACE_DURATION_MS) => {
+  /** `faint` marks the quick flick after a word is accepted; see Playing. */
+  const traceWord = (tiles: number[] | undefined, duration = TRACE_DURATION_MS, faint = false) => {
     window.clearTimeout(traceTimer.current);
     if (!tiles) {
       setHighlight(undefined);
       return;
     }
+    setFaintTrace(faint);
     setHighlight(tiles);
     traceTimer.current = window.setTimeout(() => setHighlight(undefined), duration);
   };
@@ -140,7 +143,7 @@ export function Daily({ onLeave }: { onLeave(): void }) {
               }
             : current,
         );
-        if (TRACE_FOUND_WORD) traceWord(composed.length > 0 ? composed : result.path);
+        if (TRACE_FOUND_WORD) traceWord(composed.length > 0 ? composed : result.path, TRACE_DURATION_MS, true);
         return;
       }
       flashCounter.current += 1;
@@ -211,6 +214,7 @@ export function Daily({ onLeave }: { onLeave(): void }) {
               size={state.size}
               highlight={highlight}
               animateHighlight
+              faintHighlight={faintTrace}
               interactive={!state.finished}
               compact={state.finished}
               path={path}

@@ -47,9 +47,15 @@ const centre = async (index) => {
   const box = await page.locator(`[data-cell="${index}"]`).boundingBox();
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 };
+/**
+ * Lit tiles, under either mark: `bg-tile-active` for a path being built or
+ * held, `bg-tile-trace` for the lighter flick after a word is accepted.
+ */
 const litTiles = () =>
   page.$$eval('[data-cell]', (els) =>
-    els.filter((e) => e.className.includes('bg-tile-active')).map((e) => Number(e.dataset.cell)),
+    els
+      .filter((e) => /bg-tile-(active|trace)\b/.test(e.className))
+      .map((e) => Number(e.dataset.cell)),
   );
 
 try {

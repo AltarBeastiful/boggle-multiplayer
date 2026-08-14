@@ -15,6 +15,8 @@ export const TRACE_FOUND_WORD = import.meta.env.VITE_WORD_TRACE !== 'off';
 
 /**
  * How long the trace shows, animation included. Deliberately short: the grid
- * must go neutral again quickly, ready for the next word.
+ * must go neutral again quickly, ready for the next word. The mark itself is
+ * faint (`--tile-trace`), which is what makes so brief a flick readable rather
+ * than a flicker.
  */
-export const TRACE_DURATION_MS = 380;
+export const TRACE_DURATION_MS = 200;

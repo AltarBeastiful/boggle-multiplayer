@@ -11,6 +11,13 @@ interface BoardGridProps {
   compact?: boolean;
   /** Briefly animates the highlighted tiles, when a found word is traced. */
   animateHighlight?: boolean;
+  /**
+   * Marks the tiles lightly rather than fully. Used for the flick after a word
+   * is accepted, which lasts a fifth of a second: at that length a strong fill
+   * reads as a flash, where a light one reads as a confirmation. A path being
+   * built, or one held under the cursor, keeps the full mark.
+   */
+  faintHighlight?: boolean;
   /** Makes the grid clickable, so a word can be built by finger or mouse. */
   interactive?: boolean;
   /** Path being built, owned by the parent. */
@@ -25,6 +32,7 @@ export function BoardGrid({
   qEqualsQu = false,
   compact = false,
   animateHighlight = false,
+  faintHighlight = false,
   interactive = false,
   path = [],
   onPathChange,
@@ -35,6 +43,8 @@ export function BoardGrid({
 
   const shown = path.length > 0 ? path : (highlight ?? []);
   const highlighted = new Set(shown);
+  // A word being built always gets the full mark, whatever the caller asked for.
+  const faint = faintHighlight && path.length === 0;
 
   /**
    * The tile under the finger. `elementFromPoint` is essential: the grid
@@ -131,7 +141,9 @@ export function BoardGrid({
               // Tiles keep their ivory tone in both themes: it is the colour of
               // the dice, and it stays readable on either background.
               active
-                ? 'bg-tile-active text-tile-active-fg ring-1 ring-tile-active-fg/15'
+                ? faint
+                  ? 'bg-tile-trace text-tile-active-fg'
+                  : 'bg-tile-active text-tile-active-fg ring-1 ring-tile-active-fg/15'
                 : 'bg-tile text-tile-fg',
               active && animateHighlight ? 'animate-trace' : '',
             ].join(' ')}
