@@ -50,10 +50,20 @@ git checkout --quiet "$BRANCH"
 git merge --ff-only "origin/$BRANCH"
 echo "→ Version déployée : $(git log --oneline -1)"
 
-# .env n'est pas dans le dépôt : on le crée au premier passage.
+# .env n'est pas dans le dépôt : on le crée au premier passage, et on y ajoute
+# ensuite les nouvelles clés sans jamais écraser une valeur déjà renseignée.
 if [ ! -f .env ]; then
   cp .env.example .env
-  echo "→ .env créé depuis .env.example (port par défaut)"
+  echo "→ .env créé depuis .env.example"
+else
+  while IFS= read -r line; do
+    case "$line" in '' | \#*) continue ;; esac
+    key=${line%%=*}
+    if ! grep -q "^${key}=" .env; then
+      printf '%s\n' "$line" >> .env
+      echo "→ .env : clé ${key} ajoutée"
+    fi
+  done < .env.example
 fi
 
 echo "→ Construction et démarrage"
@@ -69,8 +79,23 @@ done
 
 port=$(grep -E '^BOGGLE_PORT=' .env | cut -d= -f2)
 port=${port:-3001}
+host=$(grep -E '^BOGGLE_HOST=' .env | cut -d= -f2)
 echo "→ État : $($DOCKER inspect --format '{{.State.Health.Status}}' boggle)"
 curl -fsS "http://127.0.0.1:$port/api/health" && echo
+
+# Le certificat peut mettre quelques secondes à être émis au premier démarrage.
+if [ -n "$host" ]; then
+  echo "→ Vérification HTTPS sur https://$host"
+  for _ in $(seq 1 30); do
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "https://$host/api/health" || echo 000)
+    [ "$code" = "200" ] && { echo "   certificat valide, le jeu répond en HTTPS"; break; }
+    sleep 3
+  done
+  [ "$code" = "200" ] || {
+    echo "   HTTPS pas encore prêt (code $code), journaux Traefik :"
+    $DOCKER compose logs --tail 25 traefik
+  }
+fi
 REMOTE
 
 echo "✓ Déploiement terminé"

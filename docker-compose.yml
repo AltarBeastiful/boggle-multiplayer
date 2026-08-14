@@ -1,27 +1,60 @@
-# Pile autonome : elle ne touche à aucun conteneur existant (WordPress, base…).
-# Elle peut tourner seule sur un port, ou être publiée par Traefik.
+# Pile autonome : Traefik en façade (80/443, certificat Let's Encrypt) et le jeu
+# derrière. Elle ne dépend d'aucun autre conteneur.
 #
+#   cp .env.example .env              puis renseigner BOGGLE_HOST
 #   docker compose up -d --build      démarrer / mettre à jour
-#   docker compose logs -f boggle     suivre les journaux
+#   docker compose logs -f traefik    suivre l'obtention du certificat
 #   docker compose down               arrêter
+#
+# BOGGLE_HOST doit pointer (DNS) vers ce serveur : Let's Encrypt vérifie le
+# domaine en se connectant au port 443. Sans nom de domaine, sslip.io et nip.io
+# résolvent n'importe quelle adresse IP sans inscription (voir .env.example).
 
 services:
+  traefik:
+    image: traefik:v3.3
+    container_name: boggle-traefik
+    restart: unless-stopped
+    command:
+      - --log.level=INFO
+      - --providers.docker=true
+      # Rien n'est exposé sans label explicite.
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      # Tout le trafic en clair est renvoyé vers HTTPS.
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      # TLS-ALPN-01 : la validation passe par le 443, déjà ouvert. Pas besoin
+      # d'exposer quoi que ce soit d'autre.
+      - --certificatesresolvers.le.acme.tlschallenge=true
+      - --certificatesresolvers.le.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      # Les certificats survivent aux redémarrages : Let's Encrypt limite le
+      # nombre d'émissions par semaine, il ne faut pas les redemander à chaque fois.
+      - ./letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
   boggle:
     build: .
     image: boggle-multiplayer:latest
     container_name: boggle
     restart: unless-stopped
+    depends_on:
+      - traefik
 
     environment:
       NODE_ENV: production
-      # Port *dans* le conteneur : ne pas changer, voir BOGGLE_PORT pour l'hôte.
       PORT: 3001
 
-    # Port publié sur l'hôte. Changez BOGGLE_PORT dans .env (défaut 3001).
-    # Derrière Traefik, cette section devient facultative : vous pouvez la
-    # commenter pour n'exposer le jeu que par le reverse proxy.
+    # Publié sur la boucle locale seulement : l'accès public passe par Traefik.
+    # Permet de diagnostiquer depuis le serveur (curl 127.0.0.1:3001/api/health).
     ports:
-      - '${BOGGLE_PORT:-3001}:3001'
+      - '127.0.0.1:${BOGGLE_PORT:-3001}:3001'
 
     # Mots ajoutés / exclus modifiables sans reconstruire l'image.
     volumes:
@@ -34,25 +67,10 @@ services:
       start_period: 40s
       retries: 3
 
-    # --- Publication HTTPS par Traefik ---------------------------------------
-    # 1. Faites pointer BOGGLE_HOST (DNS) vers ce serveur.
-    # 2. Renseignez BOGGLE_HOST dans .env.
-    # 3. Décommentez le bloc `labels` ci-dessous ET le bloc `networks` en bas.
-    # 4. docker compose up -d
-    # Le nom du resolver (`myresolver`) et de l'entrypoint (`websecure`) suivent
-    # la configuration Traefik déjà en place sur ce serveur.
-    #
-    # labels:
-    #   - 'traefik.enable=true'
-    #   - 'traefik.http.routers.boggle.rule=Host(`${BOGGLE_HOST}`)'
-    #   - 'traefik.http.routers.boggle.entrypoints=websecure'
-    #   - 'traefik.http.routers.boggle.tls=true'
-    #   - 'traefik.http.routers.boggle.tls.certresolver=myresolver'
-    #   - 'traefik.http.services.boggle.loadbalancer.server.port=3001'
-# Traefik ne route que vers les conteneurs de son propre réseau Docker.
-# `ubuntu_default` est le réseau du docker-compose.yml qui fait tourner Traefik.
-#
-# networks:
-#   default:
-#     name: ubuntu_default
-#     external: true
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.boggle.rule=Host(`${BOGGLE_HOST}`)'
+      - 'traefik.http.routers.boggle.entrypoints=websecure'
+      - 'traefik.http.routers.boggle.tls=true'
+      - 'traefik.http.routers.boggle.tls.certresolver=le'
+      - 'traefik.http.services.boggle.loadbalancer.server.port=3001'
