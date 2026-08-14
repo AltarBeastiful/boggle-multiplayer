@@ -180,7 +180,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
           <div
             key={flash.key}
             aria-hidden="true"
-            className="animate-reject pointer-events-none absolute -inset-1.5 rounded-2xl ring-2 ring-bad"
+            className="animate-reject pointer-events-none absolute -inset-1.5 rounded-2xl ring-1 ring-bad/25"
           />
         )}
       </div>

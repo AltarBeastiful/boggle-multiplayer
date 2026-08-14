@@ -66,7 +66,7 @@ export function Home({ connected, initialCode, onCreate, onJoin }: HomeProps) {
           value={nickname}
           onChange={(event) => setNicknameValue(event.target.value)}
           maxLength={20}
-          placeholder="Ex. Camille"
+          placeholder="Ex. Batman"
           autoComplete="nickname"
           className="w-full rounded-xl border border-border-strong bg-panel-soft px-4 py-3 text-lg text-fg outline-none placeholder:text-fg-faint focus:border-accent"
         />

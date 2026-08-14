@@ -169,6 +169,8 @@ button,
   }
 }
 
+/* Un trait fin et pâle : on veut un signal perçu du coin de l'œil, pas un
+   cadre qui capte le regard alors qu'il est sur les lettres. */
 .animate-reject {
   animation: boggle-reject 700ms ease-out forwards;
 }
