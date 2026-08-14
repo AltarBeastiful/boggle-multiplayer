@@ -36,7 +36,7 @@ export function endConditionLabel(end: EndCondition): string {
 export function settingsSummary(settings: GameSettings): string[] {
   const parts = [
     `${settings.boardSize}x${settings.boardSize}`,
-    formatDuration(settings.roundSeconds),
+    settings.roundSeconds === null ? 'sans limite' : formatDuration(settings.roundSeconds),
     `${settings.minWordLength} lettres min`,
     settings.scoringMode === 'classic' ? 'barème classique' : 'barème simplifié',
     settings.duplicateMode === 'cancel' ? 'doublons annulés' : 'doublons comptés',

@@ -43,6 +43,7 @@ export const api = {
   joinRoom: (payload: JoinRoomPayload) => request<JoinedPayload>('room:join', payload),
   updateSettings: (patch: Partial<GameSettings>) => request<RoomState>('settings:update', patch),
   startGame: () => request<null>('game:start'),
+  endRound: () => request<null>('round:end'),
   nextRound: () => request<null>('round:next'),
   resetGame: () => request<null>('game:reset'),
   submitWord: (word: string) => request<SubmitResult>('word:submit', word),

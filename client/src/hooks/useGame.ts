@@ -31,6 +31,8 @@ export interface Game {
   submitWord(word: string): Promise<SubmitResult>;
   updateSettings(patch: Partial<GameSettings>): Promise<void>;
   startGame(): Promise<void>;
+  /** Host only: closes the round now, which an untimed one needs. */
+  endRound(): Promise<void>;
   nextRound(): Promise<void>;
   resetGame(): Promise<void>;
 }
@@ -188,6 +190,10 @@ export function useGame(): Game {
     await api.startGame();
   }, []);
 
+  const endRound = useCallback(async () => {
+    await api.endRound();
+  }, []);
+
   const nextRound = useCallback(async () => {
     await api.nextRound();
   }, []);
@@ -210,6 +216,7 @@ export function useGame(): Game {
     submitWord,
     updateSettings,
     startGame,
+    endRound,
     nextRound,
     resetGame,
   };

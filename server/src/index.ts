@@ -227,6 +227,14 @@ io.on('connection', (socket: GameSocket) => {
     });
   });
 
+  socket.on('round:end', (ack) => {
+    guard(ack, () => {
+      const { room, playerId } = context(socket);
+      room.endRoundNow(playerId);
+      return null;
+    });
+  });
+
   socket.on('round:next', (ack) => {
     guard(ack, () => {
       const { room, playerId } = context(socket);

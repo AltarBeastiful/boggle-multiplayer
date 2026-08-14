@@ -49,20 +49,28 @@ export function SolutionPanel({
   const [filter, setFilter] = useState<Filter>('all');
   const hoverTimer = useRef<number | undefined>(undefined);
   const cardRef = useRef<HTMLDivElement>(null);
+  const [cardInView, setCardInView] = useState(true);
 
   /*
    * On a phone the definition appears under a list up to 400 px tall, so a
-   * word tapped near the top of that list opens a card below the fold, and
-   * nothing seems to happen. Bring it back, with the smallest scroll that
-   * does it. On a wide screen the card sits beside the grid and is hidden
-   * here, so there is nothing to scroll.
+   * word tapped near the top opens a card below the fold. Going there by
+   * itself turned out to be wrong twice over: half the time a word is tapped
+   * only to see where it runs on the grid, and the card grows as the
+   * definition lands, so the scroll chased a target that was still moving.
+   * The card is announced instead, and the trip stays the reader's to take.
    */
   useEffect(() => {
     const card = cardRef.current;
-    if (!selected || !card || card.offsetParent === null) return;
-    const box = card.getBoundingClientRect();
-    if (box.top >= 0 && box.bottom <= window.innerHeight) return;
-    card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (!selected || !card) {
+      setCardInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[entries.length - 1];
+      if (entry) setCardInView(entry.isIntersecting);
+    });
+    observer.observe(card);
+    return () => observer.disconnect();
   }, [selected]);
 
   /**
@@ -208,6 +216,18 @@ export function SolutionPanel({
       <p className="mt-3 text-xs text-fg-faint">
         Cliquez un mot pour le tracer sur la grille et lire sa définition.
       </p>
+
+      {/* Only while the card is out of sight, and only on a narrow screen,
+          where it is the one place the definition can be. */}
+      {selected && !cardInView && (
+        <button
+          type="button"
+          onClick={() => cardRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })}
+          className="fixed bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-full border border-border bg-panel/95 px-4 py-3 text-sm text-fg-muted shadow-lg backdrop-blur transition hover:text-fg lg:hidden"
+        >
+          Définition <span aria-hidden="true">↓</span>
+        </button>
+      )}
     </section>
   );
 }

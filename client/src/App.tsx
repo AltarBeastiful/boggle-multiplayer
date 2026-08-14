@@ -17,6 +17,18 @@ function codeFromUrl(): string {
 export function App() {
   const game = useGame();
   const [initialCode] = useState(codeFromUrl);
+  /*
+   * Each player leaves the grid for the solutions when they want to. The room
+   * has one phase for everyone, but looking at the answers is a private act:
+   * one player reads them while another is still staring at the letters.
+   */
+  const [showSolutions, setShowSolutions] = useState(false);
+  const roundNumber = game.room?.results?.roundNumber ?? game.room?.round?.number;
+
+  // A new round takes the question back: the buzzer has to ask again.
+  useEffect(() => {
+    if (game.room?.phase !== 'results') setShowSolutions(false);
+  }, [game.room?.phase, roundNumber]);
 
   // The URL follows the room once joined. Before that the invitation address is
   // left alone, so a refresh does not lose the code.
@@ -52,17 +64,22 @@ export function App() {
   }
 
   const { room } = game;
+  const playing = room.phase === 'playing' && room.round !== null;
+  // The round is over, but the grid stays until this player asks for the answers.
+  const lingering = room.phase === 'results' && room.results !== null && !showSolutions;
 
   return (
     <>
       {banner}
-      {room.phase === 'playing' && room.round ? (
+      {playing || lingering ? (
         <Playing
           room={room}
           myWords={game.myWords}
           clockOffset={game.clockOffset}
           playerId={game.playerId}
           onSubmit={game.submitWord}
+          onEndRound={game.endRound}
+          onShowSolutions={() => setShowSolutions(true)}
         />
       ) : room.phase === 'results' && room.results ? (
         <Results

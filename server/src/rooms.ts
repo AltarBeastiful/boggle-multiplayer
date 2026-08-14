@@ -48,7 +48,8 @@ interface ActiveRound {
   startedAt: number;
   /** End of the countdown; no word is accepted before it. */
   startsAt: number;
-  endsAt: number;
+  /** Null for an untimed round, which only the host can close. */
+  endsAt: number | null;
   /** Every word in the grid, for O(1) validation and for listing missed words. */
   solution: Map<string, number[]>;
   solutionPoints: number;
@@ -223,7 +224,7 @@ export class Room {
       seed: generated.seed,
       startedAt: now,
       startsAt,
-      endsAt: startsAt + roundSeconds * 1000,
+      endsAt: roundSeconds === null ? null : startsAt + roundSeconds * 1000,
       solution: solution.words,
       solutionPoints: solution.totalPoints,
       timer: null,
@@ -232,10 +233,13 @@ export class Room {
     this.results = null;
     this.touch();
 
-    this.round.timer = setTimeout(
-      () => this.endRound(),
-      COUNTDOWN_MS + roundSeconds * 1000 + SUBMIT_GRACE_MS,
-    );
+    // An untimed round arms no timer at all: it ends when the host says so.
+    if (roundSeconds !== null) {
+      this.round.timer = setTimeout(
+        () => this.endRound(),
+        COUNTDOWN_MS + roundSeconds * 1000 + SUBMIT_GRACE_MS,
+      );
+    }
     this.broadcaster.roundStarted(this);
   }
 
@@ -244,6 +248,17 @@ export class Room {
       clearTimeout(this.round.timer);
       this.round.timer = null;
     }
+  }
+
+  /**
+   * The host closes the round by hand. It is the only way out of an untimed
+   * round, and stays available in a timed one: the host can already reset the
+   * game, so cutting a round short adds no power they did not have.
+   */
+  endRoundNow(playerId: string): void {
+    if (!this.isHost(playerId)) throw new Error("Seul l'hôte peut terminer la manche");
+    if (this.phase !== 'playing' || !this.round) throw new Error('Aucune manche en cours');
+    this.endRound();
   }
 
   /** End of round: scoring, duplicate cancellation, running totals. */
@@ -344,7 +359,9 @@ export class Room {
     const round = this.round;
     if (this.phase !== 'playing' || !round) return { word, accepted: false, reason: 'round-over' };
     if (Date.now() < round.startsAt) return { word, accepted: false, reason: 'not-started' };
-    if (Date.now() > round.endsAt + SUBMIT_GRACE_MS) return { word, accepted: false, reason: 'round-over' };
+    if (round.endsAt !== null && Date.now() > round.endsAt + SUBMIT_GRACE_MS) {
+      return { word, accepted: false, reason: 'round-over' };
+    }
     if (word.length < this.settings.minWordLength) return { word, accepted: false, reason: 'too-short' };
     if (player.words.has(word)) return { word, accepted: false, reason: 'already-found' };
 

@@ -18,6 +18,7 @@
     "typecheck": "tsc -b packages/shared server client",
     "test:trace": "node scripts/test-trace.mjs",
     "test:feedback": "node scripts/test-feedback.mjs",
+    "test:round": "node scripts/test-round-end.mjs",
     "audit:mobile": "node scripts/audit-mobile.mjs"
   },
   "devDependencies": {

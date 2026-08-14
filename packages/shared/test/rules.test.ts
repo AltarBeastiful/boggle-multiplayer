@@ -226,6 +226,25 @@ test('settings sent by the client are clamped', () => {
   assert.deepEqual(settings.endCondition, { type: 'rounds', rounds: 50 });
 });
 
+test('an untimed round is null, and survives sanitising', () => {
+  assert.equal(sanitizeSettings({ roundSeconds: null }).roundSeconds, null);
+  assert.equal(
+    sanitizeSettings({ roundSeconds: 60 }, sanitizeSettings({ roundSeconds: null })).roundSeconds,
+    60,
+    'a duration takes back over from an untimed round',
+  );
+  assert.equal(
+    sanitizeSettings({}, sanitizeSettings({ roundSeconds: null })).roundSeconds,
+    null,
+    'an untouched setting keeps the untimed round',
+  );
+  assert.equal(
+    sanitizeSettings({ roundSeconds: 'jamais' as never }).roundSeconds,
+    180,
+    'unusable value: the base duration is kept, not an endless round',
+  );
+});
+
 test('the word-count hint is hidden by default', () => {
   assert.equal(sanitizeSettings({}).showSolutionCount, false);
   assert.equal(sanitizeSettings({ showSolutionCount: true }).showSolutionCount, true);

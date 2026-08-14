@@ -51,6 +51,14 @@ grille floutée : le
 serveur donne l'instant du départ, donc tout le monde voit les lettres au même
 moment, même si sa grille est arrivée quelques dizaines de millisecondes plus tôt.
 
+**Le coup de sifflet ne retire pas la grille.** La manche est comptée, mais les
+lettres restent devant vous : à la place du champ de saisie apparaît un bouton
+**« Voir les solutions »**, et chacun le presse quand il veut. Un joueur lit les
+réponses pendant qu'un autre cherche encore ce qu'il a manqué.
+
+En **durée « sans limite »**, il n'y a pas de sifflet : l'hôte arrête la manche
+avec ce même bouton, pour tout le monde à la fois.
+
 À la fin de la manche, la **page des solutions** liste les mots de la grille
 groupés par longueur, en marquant ceux que vous avez trouvés, ceux qu'un autre
 joueur a trouvés et ceux que personne n'a vus. Un clic trace le mot sur la grille
@@ -68,6 +76,7 @@ modifiable au clavier, et part avec le bouton d'envoi.
 
 ```bash
 npm run test:trace     # vraies entrées tactiles et souris, via Playwright
+npm run test:round     # les deux façons de terminer une manche, à deux joueurs
 ```
 
 Quand un mot est accepté, son chemin est tracé une fraction de seconde sur la
@@ -95,7 +104,7 @@ utiles : un dé fait 89 px de côté, la grille et le champ tiennent ensemble da
 | **4 lettres minimum** | Les mots de 3 lettres sont refusés |
 | **Décompte simplifié** | 1 point par lettre au-delà de la 3<sup>e</sup> (8 lettres → 5 points) |
 | **Grille 5x5** | Big Boggle, 25 dés |
-| **Durée** | 1, 2, 3 ou 5 minutes |
+| **Durée** | 1, 2, 3, 5 minutes, ou **sans limite** : l'hôte arrête la manche |
 | **Doublons** | *annulés* (règle classique : un mot trouvé par plusieurs joueurs ne rapporte rien) ou *comptés pour tous* |
 | **Fin de partie** | 1, 3, 5 manches, 100 points, ou sans fin |
 | **Indice** | Affiche « X mots sur N » pendant la manche, **masqué par défaut** |

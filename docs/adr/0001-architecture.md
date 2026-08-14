@@ -155,7 +155,28 @@ at the same instant.
 
 ---
 
-## Decision 10: light and dark themes through semantic tokens
+## Decision 10: the round ends for everyone, the solutions open one player at a time
+
+The buzzer scores the round for the whole room at once, and has to: duplicate
+cancellation compares what every player found, so it cannot be settled player by
+player. But the buzzer no longer takes the grid away. The letters stay, and a
+"Voir les solutions" button replaces the input field.
+
+**Why.** The moment you most want to look at the grid is the moment you stop
+being able to play it. Dropping straight into the answers takes that away.
+
+**Where the state lives.** The room keeps a single `phase`, decided by the
+server. Which screen a player is on is client state, one `useState` in `App`.
+That distinction is the whole design: scoring is shared, reading is private.
+
+**An untimed round** (`roundSeconds: null`) has no buzzer at all, so the host
+closes it with the same button, for everyone. Null rather than a very large
+number, so "there is no clock" cannot be read as "the clock is long", and the
+type checker points at every place that has to handle it.
+
+---
+
+## Decision 11: light and dark themes through semantic tokens
 
 Components name roles (`bg-panel`, `text-fg-muted`), never colours
 (`bg-slate-800`). The tokens are redefined per theme. The theme is set on
@@ -172,7 +193,7 @@ background pair now passes AA.
 
 ---
 
-## Decision 11: published by Traefik, Let's Encrypt certificate, sslip.io domain
+## Decision 12: published by Traefik, Let's Encrypt certificate, sslip.io domain
 
 The stack carries its own Traefik: 80 redirects to 443, certificate obtained by
 the TLS-ALPN challenge on 443. No other port needed opening.
@@ -189,7 +210,7 @@ access goes through Traefik.
 
 ---
 
-## Decision 12: bundled definitions, Wiktionary as fallback (options C then B)
+## Decision 13: bundled definitions, Wiktionary as fallback (options C then B)
 
 `GET /api/definition/:word` first consults a file shipped with the image
 (7 MB compressed, 315,813 words, 99.1% of the dictionary), and only falls back

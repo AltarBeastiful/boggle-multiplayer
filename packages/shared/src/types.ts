@@ -29,8 +29,11 @@ export type EndCondition =
 export interface GameSettings {
   /** 4x4 (classic Boggle) or 5x5 (Big Boggle). */
   boardSize: BoardSize;
-  /** Round length in seconds (3 minutes by default). */
-  roundSeconds: number;
+  /**
+   * Round length in seconds (3 minutes by default), or `null` for a round
+   * with no clock, which the host closes when everyone has had enough.
+   */
+  roundSeconds: number | null;
   /** "Four letters and over only" variant: set to 4. */
   minWordLength: 3 | 4;
   scoringMode: ScoringMode;
@@ -142,8 +145,8 @@ export interface RoundState {
    * one client got the grid a few dozen milliseconds earlier.
    */
   startsAt: number;
-  /** End of the round (epoch ms, server clock). */
-  endsAt: number;
+  /** End of the round (epoch ms, server clock). Null when untimed. */
+  endsAt: number | null;
   /** Server clock at send time, to correct client drift. */
   serverNow: number;
   /** Words in the grid. Set when the hint is enabled, null otherwise. */
@@ -219,6 +222,8 @@ export interface ClientToServerEvents {
   'room:leave': () => void;
   'settings:update': (settings: Partial<GameSettings>, ack: (res: Ack<RoomState>) => void) => void;
   'game:start': (ack: (res: Ack<null>) => void) => void;
+  /** The host closes the round: the only way out of an untimed one. */
+  'round:end': (ack: (res: Ack<null>) => void) => void;
   'round:next': (ack: (res: Ack<null>) => void) => void;
   'game:reset': (ack: (res: Ack<null>) => void) => void;
   'word:submit': (word: string, ack: (res: Ack<SubmitResult>) => void) => void;

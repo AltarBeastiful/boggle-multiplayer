@@ -16,6 +16,10 @@ interface PlayingProps {
   clockOffset: number;
   playerId: string;
   onSubmit(word: string): Promise<SubmitResult>;
+  /** Host only, and the only way out of an untimed round. */
+  onEndRound(): Promise<void>;
+  /** Leaves the grid for the solutions page, one player at a time. */
+  onShowSolutions(): void;
 }
 
 /** An accepted word no longer shows a message; only a refusal does. */
@@ -25,8 +29,17 @@ interface Flash {
   key: number;
 }
 
-export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: PlayingProps) {
+export function Playing({
+  room,
+  myWords,
+  clockOffset,
+  playerId,
+  onSubmit,
+  onEndRound,
+  onShowSolutions,
+}: PlayingProps) {
   const [value, setValue] = useState('');
+  const [ending, setEnding] = useState(false);
   /** Tiles making up the current word, when built on the grid. */
   const [path, setPath] = useState<number[]>([]);
   const [flash, setFlash] = useState<Flash | null>(null);
@@ -52,6 +65,17 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
   useEffect(() => () => window.clearTimeout(traceTimer.current), []);
 
   const round = room.round;
+  /*
+   * The buzzer does not take the grid away. The round is scored and the
+   * results are in, but the player stays in front of the letters until they
+   * ask for the solutions: what you did not find is usually still there to be
+   * seen, and it is the moment you most want to look.
+   */
+  const over = room.phase === 'results' && room.results !== null;
+  const board = round?.board ?? room.results?.board;
+  const untimed = room.settings.roundSeconds === null;
+  const isHost = room.hostId === playerId;
+
   // True until the pre-round countdown has elapsed.
   const [pending, setPending] = useState(() => round !== null && Date.now() + clockOffset < round.startsAt);
 
@@ -75,10 +99,19 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
 
   // On a desktop the keyboard takes over as soon as the countdown ends.
   useEffect(() => {
-    if (!pending && window.matchMedia('(pointer: fine)').matches) inputRef.current?.focus();
-  }, [round?.number, pending]);
+    if (!pending && !over && window.matchMedia('(pointer: fine)').matches) inputRef.current?.focus();
+  }, [round?.number, pending, over]);
 
-  if (!round) return null;
+  if (!board) return null;
+
+  const roundNumber = round?.number ?? room.results?.roundNumber ?? 0;
+  /* The hint keeps the setting it was given: a round played without it does
+     not reveal the count at the buzzer. */
+  const solutionCount = round
+    ? round.solutionCount
+    : room.settings.showSolutionCount
+      ? (room.results?.solutionCount ?? null)
+      : null;
 
   const send = async (raw: string) => {
     const word = raw.trim();
@@ -115,11 +148,22 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
     void send(value);
   };
 
+  /** Untimed round: the host closes it, and lands on the solutions. */
+  const endRound = async () => {
+    setEnding(true);
+    try {
+      await onEndRound();
+      onShowSolutions();
+    } finally {
+      setEnding(false);
+    }
+  };
+
   /** The letters of a traced path. A Q tile counts as QU under the variant. */
   const pathToWord = (path: number[]) =>
     path
       .map((index) => {
-        const letter = round?.board[index] ?? '';
+        const letter = board[index] ?? '';
         return letter === 'Q' && room.settings.qEqualsQu ? 'QU' : letter;
       })
       .join('');
@@ -138,7 +182,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
     <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
       <div className="mb-2 flex items-center justify-between gap-3 text-xs text-fg-faint">
         <span>
-          Manche {round.number}
+          Manche {roundNumber}
           {room.settings.endCondition.type === 'rounds' && ` / ${room.settings.endCondition.rounds}`}
         </span>
         <div className="flex items-center gap-2">
@@ -147,12 +191,18 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
         </div>
       </div>
 
-      <Timer
-        startsAt={round.startsAt}
-        endsAt={round.endsAt}
-        clockOffset={clockOffset}
-        totalSeconds={room.settings.roundSeconds}
-      />
+      {/* The clock and the closing banner take the same room, so the grid does
+          not move when the buzzer goes. */}
+      {round ? (
+        <Timer startsAt={round.startsAt} endsAt={round.endsAt} clockOffset={clockOffset} />
+      ) : (
+        <div className="w-full">
+          {/* One line of the same height as the clock it replaces. The round
+              number is already in the header, so it is not repeated. */}
+          <p className="mb-1 text-2xl font-bold text-accent">Manche terminée</p>
+          <div className="h-2 w-full rounded-full bg-chip" />
+        </div>
+      )}
 
       <div className="relative my-4">
         <div
@@ -163,17 +213,17 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
           aria-hidden={pending}
         >
           <BoardGrid
-            cells={round.board}
+            cells={board}
             size={room.settings.boardSize}
             highlight={highlight}
             qEqualsQu={room.settings.qEqualsQu}
             animateHighlight
-            interactive={!pending}
+            interactive={!pending && !over}
             path={path}
             onPathChange={applyPath}
           />
         </div>
-        {pending && <RoundCountdown startsAt={round.startsAt} clockOffset={clockOffset} />}
+        {pending && round && <RoundCountdown startsAt={round.startsAt} clockOffset={clockOffset} />}
 
         {/* Refusal halo: around the grid, never over the letters. */}
         {flash && (
@@ -185,6 +235,16 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
         )}
       </div>
 
+      {/* The field has nothing left to take, so the way on takes its place. */}
+      {over ? (
+        <button
+          type="button"
+          onClick={onShowSolutions}
+          className="w-full rounded-xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition hover:bg-accent-hover"
+        >
+          Voir les solutions
+        </button>
+      ) : (
       <form onSubmit={handleSubmit} className="relative flex gap-2">
         <input
           ref={inputRef}
@@ -224,6 +284,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
           </svg>
         </button>
       </form>
+      )}
 
       {/*
         Below the field, never over the dice: the message no longer has to hide
@@ -240,9 +301,9 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
 
       <div className="mt-4 flex items-baseline justify-between">
         <h2 className="text-sm font-semibold tracking-wide text-fg-muted uppercase">
-          {round.solutionCount === null
+          {solutionCount === null
             ? `Mes mots (${myWords.length})`
-            : `Mes mots : ${myWords.length} sur ${round.solutionCount}`}
+            : `Mes mots : ${myWords.length} sur ${solutionCount}`}
         </h2>
         <span className="text-sm text-fg-faint">
           {hidesScores ? 'points révélés à la fin' : `${myScore} pts`}
@@ -266,9 +327,30 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
           </button>
         ))}
         {myWords.length === 0 && (
-          <p className="text-sm text-fg-faint">Aucun mot pour l’instant, à vous de jouer !</p>
+          <p className="text-sm text-fg-faint">
+            {over ? 'Aucun mot trouvé cette manche.' : 'Aucun mot pour l’instant, à vous de jouer !'}
+          </p>
         )}
       </div>
+
+      {/*
+        Untimed round: nothing stops it but the host. The button sits at the
+        bottom, out of the way of play, and says what it costs the others,
+        because it ends their round too and there is no undoing that.
+      */}
+      {untimed && !over && !pending && isHost && (
+        <div className="mt-4">
+          <button
+            type="button"
+            disabled={ending}
+            onClick={() => void endRound()}
+            className="w-full rounded-xl border-2 border-border-strong px-4 py-3 font-semibold text-fg-muted transition hover:border-accent hover:text-accent disabled:opacity-40"
+          >
+            Voir les solutions
+          </button>
+          <p className="mt-1 text-center text-xs text-fg-faint">termine la manche pour tout le monde</p>
+        </div>
+      )}
 
       {others.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 border-t border-border pt-3 text-sm">

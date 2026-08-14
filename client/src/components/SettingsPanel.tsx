@@ -78,15 +78,21 @@ export function SettingsPanel({ settings, disabled, onChange }: SettingsPanelPro
         ]}
       />
 
+      {/* Keyed by string so "sans limite" can sit in the same row as the
+          durations; null is a value here, not an absent setting. */}
       <Choice
         label="Durée d'une manche"
-        value={settings.roundSeconds}
+        hint="sans limite : l'hôte arrête la manche"
+        value={settings.roundSeconds === null ? 'libre' : String(settings.roundSeconds)}
         disabled={disabled}
-        onChange={(roundSeconds) => onChange({ roundSeconds })}
-        options={[60, 120, 180, 300].map((seconds) => ({
-          value: seconds,
-          label: formatDuration(seconds),
-        }))}
+        onChange={(key) => onChange({ roundSeconds: key === 'libre' ? null : Number(key) })}
+        options={[
+          ...[60, 120, 180, 300].map((seconds) => ({
+            value: String(seconds),
+            label: formatDuration(seconds),
+          })),
+          { value: 'libre', label: 'sans limite' },
+        ]}
       />
 
       <Choice

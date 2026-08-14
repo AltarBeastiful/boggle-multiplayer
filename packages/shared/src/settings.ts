@@ -14,7 +14,11 @@ export function normalizeRoomCode(code: string): string {
   return code.trim().toUpperCase().replace(/\s+/g, '');
 }
 
-/** Safety floor; the reference round stays 3 minutes, see DEFAULT_SETTINGS. */
+/**
+ * Safety floor for a timed round; the reference round stays 3 minutes, see
+ * DEFAULT_SETTINGS. An untimed round is `null`, not a very large number, so
+ * that "there is no clock" cannot be confused with "the clock is long".
+ */
 export const MIN_ROUND_SECONDS = 30;
 export const MAX_ROUND_SECONDS = 900;
 export const MAX_NICKNAME_LENGTH = 20;
@@ -46,9 +50,14 @@ export function sanitizeSettings(
   base: GameSettings = DEFAULT_SETTINGS,
 ): GameSettings {
   const patch = input ?? {};
-  const roundSeconds = Number.isFinite(patch.roundSeconds)
-    ? Math.round(clamp(Number(patch.roundSeconds), MIN_ROUND_SECONDS, MAX_ROUND_SECONDS))
-    : base.roundSeconds;
+  // Null is a value here, not a missing field: it asks for a round with no
+  // clock. Anything unusable falls back to what the room already had.
+  const roundSeconds =
+    patch.roundSeconds === null
+      ? null
+      : Number.isFinite(patch.roundSeconds)
+        ? Math.round(clamp(Number(patch.roundSeconds), MIN_ROUND_SECONDS, MAX_ROUND_SECONDS))
+        : base.roundSeconds;
 
   return {
     boardSize: patch.boardSize === 4 || patch.boardSize === 5 ? patch.boardSize : base.boardSize,
