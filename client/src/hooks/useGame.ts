@@ -29,6 +29,8 @@ export interface Game {
   joinRoom(code: string, nickname: string): Promise<void>;
   leaveRoom(): void;
   submitWord(word: string): Promise<SubmitResult>;
+  /** A word tried after the buzzer: judged, never scored. */
+  practiceWord(word: string): Promise<SubmitResult>;
   updateSettings(patch: Partial<GameSettings>): Promise<void>;
   startGame(): Promise<void>;
   /** Host only: closes the round now, which an untimed one needs. */
@@ -181,6 +183,8 @@ export function useGame(): Game {
     return result;
   }, []);
 
+  const practiceWord = useCallback((word: string) => api.practiceWord(word), []);
+
   const updateSettings = useCallback(async (patch: Partial<GameSettings>) => {
     const state = await api.updateSettings(patch);
     setRoom(state);
@@ -214,6 +218,7 @@ export function useGame(): Game {
     joinRoom,
     leaveRoom,
     submitWord,
+    practiceWord,
     updateSettings,
     startGame,
     endRound,

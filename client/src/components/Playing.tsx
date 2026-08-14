@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 
-import type { RoomState, SubmitResult } from '@boggle/shared';
+import { normalizeWord, type RoomState, type SubmitResult } from '@boggle/shared';
 
 import type { FoundWord } from '../hooks/useGame';
 import { TRACE_DURATION_MS, TRACE_FOUND_WORD } from '../lib/config';
@@ -16,6 +16,8 @@ interface PlayingProps {
   clockOffset: number;
   playerId: string;
   onSubmit(word: string): Promise<SubmitResult>;
+  /** A word tried after the buzzer, while finishing the grid for practice. */
+  onPractice(word: string): Promise<SubmitResult>;
   /** Host only, and the only way out of an untimed round. */
   onEndRound(): Promise<void>;
   /** Leaves the grid for the solutions page, one player at a time. */
@@ -35,11 +37,19 @@ export function Playing({
   clockOffset,
   playerId,
   onSubmit,
+  onPractice,
   onEndRound,
   onShowSolutions,
 }: PlayingProps) {
   const [value, setValue] = useState('');
   const [ending, setEnding] = useState(false);
+  /**
+   * Kept on the grid after the buzzer, to finish it. The words are checked
+   * like any other and count for nothing, so the standings settled at the
+   * buzzer stay settled while one player carries on.
+   */
+  const [practising, setPractising] = useState(false);
+  const [practiceWords, setPracticeWords] = useState<FoundWord[]>([]);
   /** Tiles making up the current word, when built on the grid. */
   const [path, setPath] = useState<number[]>([]);
   const [flash, setFlash] = useState<Flash | null>(null);
@@ -81,6 +91,8 @@ export function Playing({
   const board = round?.board ?? room.results?.board;
   const untimed = room.settings.roundSeconds === null;
   const isHost = room.hostId === playerId;
+  /** Words can be entered: during the round, or afterwards for practice. */
+  const canPlay = !over || practising;
 
   // True until the pre-round countdown has elapsed.
   const [pending, setPending] = useState(() => round !== null && Date.now() + clockOffset < round.startsAt);
@@ -103,10 +115,19 @@ export function Playing({
     return () => clearTimeout(id);
   }, [flash]);
 
-  // On a desktop the keyboard takes over as soon as the countdown ends.
+  // A new round wipes the practice: it belonged to the grid before.
   useEffect(() => {
-    if (!pending && !over && window.matchMedia('(pointer: fine)').matches) inputRef.current?.focus();
-  }, [round?.number, pending, over]);
+    if (room.phase === 'playing') {
+      setPractising(false);
+      setPracticeWords([]);
+    }
+  }, [room.phase, round?.number]);
+
+  // On a desktop the keyboard takes over as soon as the countdown ends, and
+  // again when the player chooses to carry on with the grid.
+  useEffect(() => {
+    if (!pending && canPlay && window.matchMedia('(pointer: fine)').matches) inputRef.current?.focus();
+  }, [round?.number, pending, canPlay]);
 
   if (!board) return null;
 
@@ -119,6 +140,11 @@ export function Playing({
       ? (room.results?.solutionCount ?? null)
       : null;
 
+  const refuse = (word: string, text: string) => {
+    flashCounter.current += 1;
+    setFlash({ word, text, key: flashCounter.current });
+  };
+
   const send = async (raw: string) => {
     const word = raw.trim();
     if (word.length === 0) return;
@@ -127,8 +153,28 @@ export function Playing({
     setValue('');
     setPath([]);
     try {
-      const result = await onSubmit(word);
+      /*
+       * After the buzzer the word goes down a different road: judged against
+       * the same grid, added to a list of its own, and never scored. The
+       * server does not record it either, practice being nobody's business
+       * but the player's.
+       */
+      if (practising) {
+        const normalized = normalizeWord(word);
+        const known =
+          myWords.some((found) => found.word === normalized) ||
+          practiceWords.some((found) => found.word === normalized);
+        if (known) return refuse(normalized, rejectionMessage('already-found', room.settings.minWordLength));
+      }
+
+      const result = practising ? await onPractice(word) : await onSubmit(word);
       if (result.accepted) {
+        if (practising) {
+          setPracticeWords((words) => [
+            { word: result.word, points: result.points ?? 0, path: result.path ?? [] },
+            ...words,
+          ]);
+        }
         // The word joins the list and its path flashes, which is enough.
         // We retrace the player's own tiles rather than the server's: one word
         // can be read in several places, and seeing dice light up that you
@@ -137,15 +183,9 @@ export function Playing({
         if (TRACE_FOUND_WORD) traceWord(composed.length > 0 ? composed : result.path, TRACE_DURATION_MS, true);
         return;
       }
-      flashCounter.current += 1;
-      setFlash({
-        word: result.word,
-        text: rejectionMessage(result.reason, room.settings.minWordLength),
-        key: flashCounter.current,
-      });
+      refuse(result.word, rejectionMessage(result.reason, room.settings.minWordLength));
     } catch {
-      flashCounter.current += 1;
-      setFlash({ word, text: 'connexion perdue', key: flashCounter.current });
+      refuse(word, 'connexion perdue');
     }
   };
 
@@ -203,9 +243,16 @@ export function Playing({
         <Timer startsAt={round.startsAt} endsAt={round.endsAt} clockOffset={clockOffset} />
       ) : (
         <div className="w-full">
-          {/* One line of the same height as the clock it replaces. The round
-              number is already in the header, so it is not repeated. */}
-          <p className="mb-1 text-2xl font-bold text-accent">Manche terminée</p>
+          {/* The same height as the clock it replaces, so the grid does not
+              move. The round number is already in the header above. */}
+          <div className="mb-1 flex items-baseline justify-between">
+            <span className="text-2xl font-bold text-accent">
+              {practising ? 'Hors chrono' : 'Manche terminée'}
+            </span>
+            {/* The clock is kept, and kept at zero: there is no time left, and
+                that is the point of what follows. */}
+            {practising && <span className="font-mono text-2xl font-bold text-fg-faint tabular-nums">0:00</span>}
+          </div>
           <div className="h-2 w-full rounded-full bg-chip" />
         </div>
       )}
@@ -225,7 +272,7 @@ export function Playing({
             qEqualsQu={room.settings.qEqualsQu}
             animateHighlight
             faintHighlight={faintTrace}
-            interactive={!pending && !over}
+            interactive={!pending && canPlay}
             path={path}
             onPathChange={applyPath}
           />
@@ -242,15 +289,29 @@ export function Playing({
         )}
       </div>
 
-      {/* The field has nothing left to take, so the way on takes its place. */}
-      {over ? (
-        <button
-          type="button"
-          onClick={onShowSolutions}
-          className="w-full rounded-xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition hover:bg-accent-hover"
-        >
-          Voir les solutions
-        </button>
+      {/*
+        At the buzzer the field gives way to a choice. Reading the answers ends
+        the grid; carrying on keeps it, off the clock, which is how you finish
+        a grid that beat you. Neither is the obvious default, so neither is
+        made to look like one.
+      */}
+      {over && !practising ? (
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={onShowSolutions}
+            className="flex-1 rounded-xl bg-accent px-4 py-4 text-lg font-bold text-accent-fg transition hover:bg-accent-hover"
+          >
+            Voir les solutions
+          </button>
+          <button
+            type="button"
+            onClick={() => setPractising(true)}
+            className="flex-1 rounded-xl border-2 border-border-strong px-4 py-4 text-lg font-semibold text-fg-muted transition hover:border-accent hover:text-accent"
+          >
+            Continuer à chercher
+          </button>
+        </div>
       ) : (
       <form onSubmit={handleSubmit} className="relative flex gap-2">
         <input
@@ -262,7 +323,13 @@ export function Playing({
             if (path.length > 0) setPath([]);
           }}
           disabled={pending}
-          placeholder={pending ? 'La manche va commencer…' : 'Tapez un mot puis Entrée'}
+          placeholder={
+            pending
+              ? 'La manche va commencer…'
+              : practising
+                ? 'Hors chrono, pour le plaisir'
+                : 'Tapez un mot puis Entrée'
+          }
           autoCapitalize="characters"
           autoCorrect="off"
           autoComplete="off"
@@ -317,7 +384,17 @@ export function Playing({
         </span>
       </div>
 
-      <div className="mt-2 flex flex-1 flex-wrap content-start gap-1.5 overflow-y-auto">
+      {/*
+        While practising, the words of the round shrink to their heading. They
+        are settled and the screen belongs to what is being found now; keeping
+        both lists open pushed the way out of practice off the bottom of a
+        phone. Nothing is lost: a word already found is refused by name.
+      */}
+      <div
+        className={`mt-2 flex min-h-0 flex-wrap content-start gap-1.5 overflow-y-auto ${
+          practising ? 'hidden' : 'flex-1'
+        }`}
+      >
         {myWords.map((found) => (
           <button
             key={found.word}
@@ -341,6 +418,43 @@ export function Playing({
       </div>
 
       {/*
+        Practice words are kept apart rather than mixed in. They are found the
+        same way and worth the same on paper, but they arrived after the
+        buzzer: putting them in the same list would quietly inflate a score
+        that is already settled.
+      */}
+      {practising && (
+        <div className="mt-4 flex min-h-0 flex-1 flex-col border-t border-border pt-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold tracking-wide text-fg-muted uppercase">
+              Hors chrono ({practiceWords.length})
+            </h2>
+            <span className="text-sm text-fg-faint">ne comptent pas</span>
+          </div>
+          <div className="mt-2 flex min-h-0 flex-1 flex-wrap content-start gap-1.5 overflow-y-auto">
+            {practiceWords.map((found) => (
+              <button
+                key={found.word}
+                type="button"
+                onMouseEnter={() => traceWord(found.path, 4000)}
+                onMouseLeave={() => traceWord(undefined)}
+                onFocus={() => traceWord(found.path, 4000)}
+                onBlur={() => traceWord(undefined)}
+                onClick={() => traceWord(found.path, 2000)}
+                className="rounded-lg border border-border bg-transparent px-2.5 py-1 text-sm text-fg-muted transition hover:border-border-strong"
+              >
+                {found.word}
+                <span className="ml-1.5 text-xs text-fg-faint">{found.points}</span>
+              </button>
+            ))}
+            {practiceWords.length === 0 && (
+              <p className="text-sm text-fg-faint">La grille est encore pleine de mots.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/*
         Untimed round: nothing stops it but the host. The button sits at the
         bottom, out of the way of play, and says what it costs the others,
         because it ends their round too and there is no undoing that.
@@ -356,6 +470,27 @@ export function Playing({
             Voir les solutions
           </button>
           <p className="mt-1 text-center text-xs text-fg-faint">termine la manche pour tout le monde</p>
+        </div>
+      )}
+
+      {/*
+        The way out of practice, at the bottom where it is not in the way of
+        the searching, and stuck there: the word lists grow as you find things,
+        and a button that leaves the screen is a room with no door. It concerns
+        this player alone.
+
+        The gradient lets whatever passes underneath fade out rather than be
+        sliced in half at the edge of the bar.
+      */}
+      {practising && (
+        <div className="sticky bottom-0 -mx-4 mt-4 bg-gradient-to-t from-bg via-bg to-bg/0 px-4 pt-6 pb-[env(safe-area-inset-bottom)]">
+          <button
+            type="button"
+            onClick={onShowSolutions}
+            className="w-full rounded-xl border-2 border-border-strong bg-bg px-4 py-3 font-semibold text-fg-muted transition hover:border-accent hover:text-accent"
+          >
+            Voir les solutions
+          </button>
         </div>
       )}
 

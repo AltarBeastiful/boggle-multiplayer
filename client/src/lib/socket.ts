@@ -47,5 +47,6 @@ export const api = {
   nextRound: () => request<null>('round:next'),
   resetGame: () => request<null>('game:reset'),
   submitWord: (word: string) => request<SubmitResult>('word:submit', word),
+  practiceWord: (word: string) => request<SubmitResult>('word:practice', word),
   leaveRoom: () => socket.emit('room:leave'),
 };

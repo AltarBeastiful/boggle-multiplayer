@@ -227,6 +227,11 @@ export interface ClientToServerEvents {
   'round:next': (ack: (res: Ack<null>) => void) => void;
   'game:reset': (ack: (res: Ack<null>) => void) => void;
   'word:submit': (word: string, ack: (res: Ack<SubmitResult>) => void) => void;
+  /**
+   * A word tried after the buzzer, to finish the grid for practice. Judged
+   * exactly as a real one, counts for nothing.
+   */
+  'word:practice': (word: string, ack: (res: Ack<SubmitResult>) => void) => void;
 }
 
 export interface ServerToClientEvents {

@@ -181,9 +181,20 @@ player. But the buzzer no longer takes the grid away. The letters stay, and a
 **Why.** The moment you most want to look at the grid is the moment you stop
 being able to play it. Dropping straight into the answers takes that away.
 
+**Two ways on, neither of them the default.** Reading the answers ends the
+grid; "continuer à chercher" keeps it, off the clock, which is how a grid that
+beat you gets finished. Words tried then are judged against the same grid, with
+the same distinction between one that is not in the dictionary and one that is
+not traceable, and they **count for nothing**: the round is scored and the
+standings are settled, so re-opening either afterwards would make them a moving
+target. They are listed apart for the same reason. The server records none of
+it, practice being nobody's business but the player's.
+
 **Where the state lives.** The room keeps a single `phase`, decided by the
-server. Which screen a player is on is client state, one `useState` in `App`.
-That distinction is the whole design: scoring is shared, reading is private.
+server. Which screen a player is on, and whether they are still searching, is
+client state. That distinction is the whole design: scoring is shared, reading
+and practising are private, and the game carries on around them — the host can
+start the next round while somebody is still on the old grid.
 
 **An untimed round** (`roundSeconds: null`) has no buzzer at all, so the host
 closes it with the same button, for everyone. Null rather than a very large

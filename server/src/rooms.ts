@@ -517,6 +517,31 @@ export class Room {
     return { word, accepted: true, path: [...path], points };
   }
 
+  /**
+   * A word tried after the buzzer, by a player finishing the grid for practice.
+   * It is judged against the same grid, with the same distinction between a
+   * word that is not in the dictionary and one that is not traceable, and it
+   * counts for nothing: the round is scored and the standings are settled, so
+   * re-opening either afterwards would make them a moving target.
+   *
+   * Nothing is recorded. Practice is the player's own business, and the server
+   * has no reason to remember it.
+   */
+  practiceWord(playerId: string, raw: string): SubmitResult {
+    const word = normalizeWord(raw);
+    if (!this.players.has(playerId)) return { word, accepted: false, reason: 'not-playing' };
+
+    const results = this.results;
+    if (this.phase !== 'results' || !results) return { word, accepted: false, reason: 'not-playing' };
+    if (word.length < this.settings.minWordLength) return { word, accepted: false, reason: 'too-short' };
+
+    const found = results.solution.find((entry) => entry.word === word);
+    if (!found) {
+      return { word, accepted: false, reason: this.dictionary.has(word) ? 'not-on-board' : 'not-a-word' };
+    }
+    return { word, accepted: true, path: [...found.path], points: found.points };
+  }
+
   // -- serialisation ---------------------------------------------------------
 
   toState(): RoomState {

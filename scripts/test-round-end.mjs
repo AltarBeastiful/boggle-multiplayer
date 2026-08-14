@@ -12,7 +12,17 @@
  * than assumed from the host's own screen.
  */
 
+import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { chromium } from 'playwright';
+
+import { buildDictionary, solveBoard } from '@boggle/shared';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const require = createRequire(resolve(root, 'server/package.json'));
+const dictionary = buildDictionary(require('an-array-of-french-words'));
 
 const URL = process.argv[2] ?? 'http://localhost:5173/';
 const problems = [];
@@ -134,6 +144,87 @@ console.log('\n── An untimed round: only the host closes it ──');
 
   await hostContext.close();
   await guestContext.close();
+}
+
+// ---------------------------------------------------------------------------
+console.log('\n── Carrying on with the grid, off the clock ──');
+{
+  const context = await browser.newContext({ viewport: { width: 900, height: 1100 } });
+  const { page } = await host(context, '1:00');
+  await page.getByRole('button', { name: 'Lancer la partie' }).click();
+  await page.waitForTimeout(3200);
+
+  const cells = (await page.locator('[data-cell]').allTextContents()).map((cell) => cell.trim());
+  const solved = solveBoard({ size: Math.sqrt(cells.length), cells }, dictionary, {
+    minWordLength: 3,
+    qEqualsQu: false,
+  });
+  const words = [...solved.words.keys()].sort((a, b) => b.length - a.length);
+  const input = page.locator('input[aria-label="Mot trouvé"]');
+
+  // Two words during the round, so there is a score to protect.
+  for (const word of words.slice(0, 2)) {
+    await input.fill(word);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(120);
+  }
+
+  await page.getByRole('button', { name: 'Continuer à chercher' }).waitFor({ timeout: 70_000 });
+  const scoredBefore = await page.locator('h2:text-matches("Mes mots")').textContent();
+
+  await page.getByRole('button', { name: 'Continuer à chercher' }).click();
+  await page.waitForTimeout(400);
+
+  const backToPlaying = await page.locator('input[aria-label="Mot trouvé"]').count();
+  const clock = await page.locator('text=Hors chrono').first().count();
+  console.log(`  the field is back: ${backToPlaying > 0}, the clock reads "hors chrono": ${clock > 0}`);
+  check(backToPlaying > 0, 'practice did not give the field back');
+  check(clock > 0, 'the clock does not say the round is over');
+
+  // A real word of the grid, one already found, and a word that is not one.
+  await input.fill(words[2]);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+  await input.fill(words[0]);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+  const repeated = (await page.locator('[role="status"]').textContent()).trim();
+  await input.fill('ZZZZW');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+  const rubbish = (await page.locator('[role="status"]').textContent()).trim();
+
+  const scoredAfter = await page.locator('h2:text-matches("Mes mots")').textContent();
+  const practiceHeading = await page.locator('h2:text-matches("Hors chrono")').textContent();
+  console.log(`  a word already scored is refused: ${JSON.stringify(repeated)}`);
+  console.log(`  a non-word is still told apart: ${JSON.stringify(rubbish)}`);
+  console.log(`  scored words: ${JSON.stringify(scoredBefore.trim())} -> ${JSON.stringify(scoredAfter.trim())}`);
+  console.log(`  practice list: ${JSON.stringify(practiceHeading.trim())}`);
+  check(repeated.includes('déjà trouvé'), 'a word already scored was accepted again for practice');
+  check(rubbish.includes('dictionnaire'), 'a non-word was not told apart from an untraceable one');
+  check(scoredBefore === scoredAfter, 'a practice word changed the scored count');
+  check(practiceHeading.includes('(1)'), `the practice list reads ${practiceHeading} instead of holding one word`);
+
+  // And the way out is still there.
+  await page.getByRole('button', { name: 'Voir les solutions' }).click();
+  await page.waitForTimeout(500);
+  const solutions = await page.getByRole('heading', { name: /^Solutions/ }).count();
+  console.log(`  the solutions still open from practice: ${solutions > 0}`);
+  check(solutions > 0, 'practice could not be left for the solutions');
+
+  // The next round starts clean: practice belonged to the grid before.
+  await page.getByRole('button', { name: 'Manche suivante' }).click();
+  await page.waitForTimeout(3400);
+  const leftovers = await page.locator('h2:text-matches("Hors chrono")').count();
+  const playingAgain = await page.locator('input[aria-label="Mot trouvé"]').count();
+  const freshCount = await page.locator('h2:text-matches("Mes mots")').textContent();
+  console.log(`  next round: practice cleared: ${leftovers === 0}, playing: ${playingAgain > 0}, ${
+    freshCount.trim()}`);
+  check(leftovers === 0, 'the practice list survived into the next round');
+  check(playingAgain > 0, 'the next round did not give the field back');
+  check(freshCount.includes('(0)'), `the next round started with ${freshCount} instead of no words`);
+
+  await context.close();
 }
 
 await browser.close();

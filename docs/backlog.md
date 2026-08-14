@@ -24,13 +24,18 @@ any case.
 
 ## ~~Choose, at the buzzer, between the solutions and playing on~~ (done)
 
-The buzzer no longer takes the grid away: it is replaced by a "Voir les
-solutions" button, and each player leaves when they choose.
+The buzzer keeps the grid and offers two ways on: read the answers, or carry on
+searching off the clock. Each player chooses for themselves.
 
 The fear that the room phase would have to stop being a single value proved
 unfounded. The server still ends the round for everyone at once, which is right,
 since scoring must be simultaneous. Only the *view* is private, and a view is
-client state. One `useState` in `App` did it.
+client state.
+
+Practice words are judged by the server against the finished round and recorded
+nowhere. Keeping them out of the score was the easy part; keeping them out of
+the *same list* mattered as much, since a shared list would have quietly
+inflated a total that was already settled.
 
 ## ~~An untimed mode, ended by the host~~ (done)
 

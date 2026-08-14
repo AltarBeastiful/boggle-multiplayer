@@ -316,6 +316,14 @@ io.on('connection', (socket: GameSocket) => {
     });
   });
 
+  socket.on('word:practice', (word, ack) => {
+    guard(ack, () => {
+      const { room, playerId } = context(socket);
+      if (typeof word !== 'string' || word.length > 40) throw new Error('Mot invalide');
+      return room.practiceWord(playerId, word);
+    });
+  });
+
   socket.on('disconnect', () => {
     const { code, playerId } = socket.data;
     if (!code || !playerId) return;

@@ -63,10 +63,20 @@ grille floutée : le
 serveur donne l'instant du départ, donc tout le monde voit les lettres au même
 moment, même si sa grille est arrivée quelques dizaines de millisecondes plus tôt.
 
-**Le coup de sifflet ne retire pas la grille.** La manche est comptée, mais les
-lettres restent devant vous : à la place du champ de saisie apparaît un bouton
-**« Voir les solutions »**, et chacun le presse quand il veut. Un joueur lit les
-réponses pendant qu'un autre cherche encore ce qu'il a manqué.
+**Le coup de sifflet ne retire pas la grille.** La manche est comptée et le
+classement est fixé, mais les lettres restent devant vous, et le champ de saisie
+laisse place à un choix :
+
+- **« Voir les solutions »**, pour lire les réponses ;
+- **« Continuer à chercher »**, pour finir la grille **hors chrono**.
+
+Chacun choisit pour lui seul : un joueur lit les réponses pendant qu'un autre
+s'acharne encore. En mode hors chrono, le chronomètre reste affiché à `0:00`,
+les mots sont jugés exactement comme pendant la manche (« absent du
+dictionnaire » ou « pas traçable sur la grille ») mais **ne comptent pas** et
+s'affichent à part : le classement est déjà arrêté, il ne bougera plus. Un
+bouton en bas ramène aux solutions quand vous avez fini. La partie, elle,
+continue : l'hôte peut lancer la manche suivante à tout moment.
 
 En **durée « sans limite »**, il n'y a pas de sifflet : l'hôte arrête la manche
 avec ce même bouton, pour tout le monde à la fois.

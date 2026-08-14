@@ -104,6 +104,7 @@ export function App() {
           clockOffset={game.clockOffset}
           playerId={game.playerId}
           onSubmit={game.submitWord}
+          onPractice={game.practiceWord}
           onEndRound={game.endRound}
           onShowSolutions={() => setShowSolutions(true)}
         />
