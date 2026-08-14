@@ -1,5 +1,6 @@
 export * from './types.js';
 export * from './normalize.js';
+export * from './nicknames.js';
 export * from './scoring.js';
 export * from './board.js';
 export * from './dictionary.js';

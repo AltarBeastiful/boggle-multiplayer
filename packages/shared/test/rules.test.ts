@@ -5,6 +5,7 @@ import {
   FRENCH_FACE_BAG,
   buildDictionary,
   countVowels,
+  disambiguateNicknames,
   expandBag,
   findPath,
   generateBoard,
@@ -261,6 +262,19 @@ test('valid settings are kept', () => {
   assert.equal(settings.roundSeconds, 120);
   assert.equal(settings.qEqualsQu, true);
   assert.equal(settings.minWordLength, 4);
+});
+
+test('players sharing a nickname are numbered, in join order', () => {
+  const names = disambiguateNicknames([
+    { id: 'a', nickname: 'Batman' },
+    { id: 'b', nickname: 'Robin' },
+    { id: 'c', nickname: 'batman' },
+    { id: 'd', nickname: 'BÂTMAN' },
+  ]);
+  assert.equal(names.get('a'), 'Batman', 'the first keeps the plain name');
+  assert.equal(names.get('b'), 'Robin', 'a name held once is left alone');
+  assert.equal(names.get('c'), 'batman (2)', 'case is not a distinction on a scoreboard');
+  assert.equal(names.get('d'), 'BÂTMAN (3)', 'nor are accents');
 });
 
 test('nicknames are cleaned up', () => {

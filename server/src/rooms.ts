@@ -4,6 +4,7 @@ import {
   DEFAULT_SETTINGS,
   ROOM_CODE_ALPHABET,
   ROOM_CODE_LENGTH,
+  disambiguateNicknames,
   generateBoard,
   normalizeWord,
   sanitizeNickname,
@@ -144,6 +145,12 @@ export class Room {
     return this.hostId === playerId;
   }
 
+  /** Public names, numbered when two players chose the same one. The join
+   *  order is what `players` iterates in. */
+  private displayNames(): Map<string, string> {
+    return disambiguateNicknames([...this.players.values()]);
+  }
+
   get connectedCount(): number {
     let count = 0;
     for (const player of this.players.values()) if (player.connected) count++;
@@ -280,6 +287,7 @@ export class Room {
     for (const [word, list] of finders) foundBy.set(word, list.length);
 
     const cancelDuplicates = this.settings.duplicateMode === 'cancel';
+    const names = this.displayNames();
     const playerResults: PlayerRoundResult[] = [];
 
     for (const player of this.players.values()) {
@@ -298,7 +306,7 @@ export class Room {
       player.totalScore += roundScore;
       playerResults.push({
         playerId: player.id,
-        nickname: player.nickname,
+        nickname: names.get(player.id) ?? player.nickname,
         words,
         roundScore,
         totalScore: player.totalScore,
@@ -384,6 +392,7 @@ export class Room {
   // -- serialisation ---------------------------------------------------------
 
   toState(): RoomState {
+    const names = this.displayNames();
     return {
       code: this.code,
       hostId: this.hostId,
@@ -391,7 +400,7 @@ export class Room {
       settings: this.settings,
       players: [...this.players.values()].map((player) => ({
         id: player.id,
-        nickname: player.nickname,
+        nickname: names.get(player.id) ?? player.nickname,
         connected: player.connected,
         isHost: player.id === this.hostId,
         totalScore: player.totalScore,
