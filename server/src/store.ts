@@ -12,7 +12,7 @@
  * hundred words submitted in a minute do not mean a hundred writes.
  */
 
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -44,6 +44,15 @@ function fileFor(name: string): string {
   return join(STATE_DIR, `${name}.json`);
 }
 
+/**
+ * Can anything be kept at all? Reported by the health endpoint, because a
+ * directory the container cannot write to fails silently otherwise, and the
+ * first sign would be a leaderboard that empties itself on every deploy.
+ */
+export function stateWritable(): boolean {
+  return ensureDir();
+}
+
 export function readRecord<T>(name: string): T | null {
   try {
     const path = fileFor(name);
@@ -53,6 +62,28 @@ export function readRecord<T>(name: string): T | null {
     // A corrupt file must not stop the server: the day starts again empty.
     console.log(`[store] ${name} unreadable, ignored: ${String(cause)}`);
     return null;
+  }
+}
+
+/** Names of the records stored under a prefix, without their extension. */
+export function listRecords(prefix: string): string[] {
+  try {
+    if (!existsSync(STATE_DIR)) return [];
+    return readdirSync(STATE_DIR)
+      .filter((file) => file.startsWith(prefix) && file.endsWith('.json'))
+      .map((file) => file.slice(0, -'.json'.length));
+  } catch {
+    return [];
+  }
+}
+
+export function deleteRecord(name: string): void {
+  clearTimeout(pending.get(name)?.timer);
+  pending.delete(name);
+  try {
+    rmSync(fileFor(name), { force: true });
+  } catch (cause) {
+    console.log(`[store] ${name} could not be removed: ${String(cause)}`);
   }
 }
 

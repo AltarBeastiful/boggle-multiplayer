@@ -24,6 +24,8 @@ import {
   type SubmitResult,
 } from '@boggle/shared';
 
+import { deleteRecord, listRecords, readRecord, scheduleWrite } from './store.js';
+
 /** Latency tolerance: a word sent just before the buzzer still counts. */
 const SUBMIT_GRACE_MS = 700;
 /** Pre-round countdown, two beats, during which the grid shows but stays blurred. */
@@ -62,6 +64,28 @@ export interface RoomBroadcaster {
   roundStarted(room: Room): void;
   roundEnded(room: Room, results: RoundResults): void;
 }
+
+/**
+ * A room on disk. Only what cannot be recomputed is kept: the grid's solution
+ * is solved again on the way back in, taking a millisecond or two, and each
+ * player's words are stored as words, their points and paths coming from that
+ * fresh solution. A saved room therefore cannot carry a score its own grid no
+ * longer supports.
+ */
+interface StoredRoom {
+  code: string;
+  hostId: string;
+  settings: GameSettings;
+  phase: RoomPhase;
+  roundsPlayed: number;
+  gameOver: boolean;
+  lastActivity: number;
+  players: Array<{ id: string; nickname: string; totalScore: number; words: string[] }>;
+  round: { number: number; cells: string[]; startedAt: number; startsAt: number; endsAt: number | null } | null;
+  results: RoundResults | null;
+}
+
+const recordName = (code: string) => `room-${code}`;
 
 export class Room {
   readonly code: string;
@@ -163,8 +187,112 @@ export class Room {
     return Date.now() - this.lastActivity > ROOM_TTL_MS;
   }
 
+  /** Every mutation passes through here, so this is where the room is saved. */
   private touch(): void {
     this.lastActivity = Date.now();
+    scheduleWrite(recordName(this.code), () => this.toStored());
+  }
+
+  // -- persistence -----------------------------------------------------------
+
+  private toStored(): StoredRoom {
+    return {
+      code: this.code,
+      hostId: this.hostId,
+      settings: this.settings,
+      phase: this.phase,
+      roundsPlayed: this.roundsPlayed,
+      gameOver: this.gameOver,
+      lastActivity: this.lastActivity,
+      players: [...this.players.values()].map((player) => ({
+        id: player.id,
+        nickname: player.nickname,
+        totalScore: player.totalScore,
+        words: [...player.words.keys()],
+      })),
+      round: this.round
+        ? {
+            number: this.round.number,
+            cells: [...this.round.board.cells],
+            startedAt: this.round.startedAt,
+            startsAt: this.round.startsAt,
+            endsAt: this.round.endsAt,
+          }
+        : null,
+      results: this.results,
+    };
+  }
+
+  /**
+   * Rebuilds a room a restart interrupted. The clock is the delicate part: a
+   * round saved with three seconds left and restored a minute later has to end
+   * at once, not resume as though nothing had happened.
+   */
+  static fromStored(stored: StoredRoom, dictionary: Dictionary, broadcaster: RoomBroadcaster): Room | null {
+    if (!stored.code || !Array.isArray(stored.players)) return null;
+
+    const room = new Room(stored.code, sanitizeSettings(stored.settings), dictionary, broadcaster);
+    room.hostId = stored.hostId;
+    room.phase = stored.phase;
+    room.roundsPlayed = stored.roundsPlayed ?? 0;
+    room.gameOver = Boolean(stored.gameOver);
+    room.results = stored.results ?? null;
+    room.lastActivity = stored.lastActivity ?? Date.now();
+
+    for (const entry of stored.players) {
+      room.players.set(entry.id, {
+        id: entry.id,
+        nickname: entry.nickname,
+        // Everyone is away: the sockets died with the process. They come back
+        // through the usual reconnection, with their words and their score.
+        connected: false,
+        socketId: null,
+        totalScore: entry.totalScore ?? 0,
+        words: new Map(),
+        lastSeen: room.lastActivity,
+      });
+    }
+
+    if (stored.phase !== 'playing' || !stored.round) {
+      if (stored.phase === 'playing') room.phase = room.results ? 'results' : 'lobby';
+      return room;
+    }
+
+    const { minWordLength, qEqualsQu, scoringMode } = room.settings;
+    const board: Board = { size: room.settings.boardSize, cells: stored.round.cells };
+    const solved = solveBoard(board, dictionary, { minWordLength, qEqualsQu }, scoringMode);
+
+    room.round = {
+      number: stored.round.number,
+      board,
+      seed: 0,
+      startedAt: stored.round.startedAt,
+      startsAt: stored.round.startsAt,
+      endsAt: stored.round.endsAt,
+      solution: solved.words,
+      solutionPoints: solved.totalPoints,
+      timer: null,
+    };
+
+    // Points and paths come from the grid, never from the file.
+    for (const entry of stored.players) {
+      const player = room.players.get(entry.id);
+      if (!player) continue;
+      for (const word of entry.words) {
+        const path = solved.words.get(word);
+        if (path) player.words.set(word, { points: wordScore(word.length, scoringMode), path });
+      }
+    }
+
+    const remaining = stored.round.endsAt === null ? null : stored.round.endsAt + SUBMIT_GRACE_MS - Date.now();
+    if (remaining === null) {
+      // An untimed round has nothing to catch up on: it waits for its host.
+    } else if (remaining <= 0) {
+      room.endRound();
+    } else {
+      room.round.timer = setTimeout(() => room.endRound(), remaining);
+    }
+    return room;
   }
 
   // -- settings --------------------------------------------------------------
@@ -483,6 +611,7 @@ export class RoomManager {
     if (!room) return;
     room.dispose();
     this.rooms.delete(code);
+    deleteRecord(recordName(code));
   }
 
   /** Drops empty or abandoned rooms. */
@@ -492,9 +621,29 @@ export class RoomManager {
       if (room.isExpired) {
         room.dispose();
         this.rooms.delete(code);
+        deleteRecord(recordName(code));
         removed++;
       }
     }
     return removed;
+  }
+
+  /**
+   * Picks up the rooms a restart interrupted. A deploy takes seconds and a
+   * round lasts minutes, so without this every deploy cuts short whatever was
+   * being played.
+   */
+  restore(): number {
+    for (const name of listRecords('room-')) {
+      const stored = readRecord<StoredRoom>(name);
+      const room = stored ? Room.fromStored(stored, this.dictionary, this.broadcaster) : null;
+      if (room) this.rooms.set(room.code, room);
+      else deleteRecord(name);
+    }
+    // Rooms nobody came back to are dropped straight away rather than lingering
+    // for another half hour: their thirty minutes were served while we were down.
+    const restored = this.rooms.size;
+    this.sweep();
+    return restored;
   }
 }

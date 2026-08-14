@@ -218,7 +218,15 @@ retirée. En pratique une grille 4x4 contient une centaine de mots.
 
 ## Déploiement
 
-Un seul processus Node, aucune base de données, l'état vit en mémoire.
+Un seul processus Node, aucune base de données. L'état vit en mémoire et se
+recopie dans des fichiers JSON : **un redémarrage ne coupe plus une manche en
+cours**. Les salles sont reprises au démarrage, avec les mots et les scores de
+chacun ; une manche dont le sifflet est passé pendant l'arrêt se termine
+aussitôt, elle ne reprend pas.
+
+```bash
+npm run build && npm run test:restart   # tue le serveur en pleine manche et vérifie
+```
 
 ```bash
 cp .env.example .env      # choisir le port

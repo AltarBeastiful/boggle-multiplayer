@@ -58,17 +58,33 @@ tolerance after the buzzer, so a word sent in time still counts.
 
 ---
 
-## Decision 3: state lives in memory, with no database
+## Decision 3: state lives in memory, saved to plain files, with no database
 
 A `Map` of rooms inside the process. Empty rooms are swept after 30 minutes.
 
-**Why.** A game is ephemeral and does not survive a restart, so there is nothing
-to keep. Adding a database would have meant one more container, migrations and
-backups, for data worth nothing an hour later.
+**Why no database.** It would have meant one more container, migrations and
+backups, for a few kilobytes that stop mattering an hour later. JSON files
+written atomically cover what is actually needed.
 
-**Consequences.** A restart interrupts games in progress. Accepted: deploying
-takes seconds and games last minutes. Running several instances would need the
-Redis adapter for Socket.IO and shared room storage, see "Known limits".
+**Amended.** "A restart interrupts games in progress" was accepted here on the
+grounds that deploying takes seconds and games last minutes. That reasoning held
+until somebody was actually playing during a deploy, at which point it was
+plainly wrong. Rooms are now written to disk on every change, through the same
+store as the grille du jour (decision 11), and picked up again at startup.
+
+The room stays in memory and stays the authority; the file is a copy, holding
+only what cannot be recomputed. Each player's words are saved as words: the
+grid's solution is solved again on the way back in, and points and paths come
+from that, so a restored room cannot carry a score its own grid no longer
+supports.
+
+The clock was the delicate part. A round saved with three seconds left and
+restored a minute later ends at once rather than resuming, so the restore
+compares `endsAt` with the present before arming anything. A room nobody comes
+back to still expires, and its half hour counts the time the server was down.
+
+Running several instances would still need the Redis adapter for Socket.IO and
+shared room storage, see "Known limits".
 
 **Player identity.** A random identifier kept in `localStorage`. A network drop,
 a locked screen or a page refresh give the player back their words and their
@@ -297,9 +313,12 @@ d'adjectif" where only "Forme de" was expected.
 
 - **A single instance.** Rooms live in the process. Running several would need
   the Socket.IO Redis adapter and shared storage.
-- **A restart interrupts games in progress.**
+- **A restart costs the seconds it takes.** Rooms come back, but the clock kept
+  running while the server was down, so a round loses that much of itself.
 - **Bundled definitions are frozen** at the extraction date; missing words go
   through Wiktionary, which becomes a runtime dependency again for those cases.
 - **Grids are not the official dice**, for lack of a published source.
 - **No moderation**: nicknames are not filtered. Acceptable for a server among
   friends, not for an open service.
+- **The daily leaderboard trusts the player identifier**, which comes from
+  `localStorage`. Words are verified, names are not.

@@ -70,6 +70,16 @@ else
   done < .env.example
 fi
 
+# The container runs as the "node" user, uid 1000. Docker creates a missing
+# bind-mount directory as root, and the day's scores would then fail to save,
+# quietly. Creating it here, owned by 1000, is the whole fix.
+mkdir -p server/state
+owner=$(stat -c '%u' server/state)
+if [ "$owner" != "1000" ]; then
+  sudo chown 1000:1000 server/state
+  echo "-> server/state handed to uid 1000, so the container can write to it"
+fi
+
 echo "-> Building and starting"
 $DOCKER compose up -d --build
 

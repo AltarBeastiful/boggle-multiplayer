@@ -22,7 +22,7 @@ import { hasLocalDefinitions, localDefinitionCount } from './definitions-local.j
 import { definitionCacheSize, getDefinition } from './definitions.js';
 import { getDictionary } from './dictionary.js';
 import { RoomManager, type Room, type RoomBroadcaster } from './rooms.js';
-import { flushWrites } from './store.js';
+import { flushWrites, stateWritable } from './store.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 3001);
@@ -67,6 +67,8 @@ const broadcaster: RoomBroadcaster = {
 };
 
 const rooms = new RoomManager(dictionary, broadcaster);
+const restored = rooms.restore();
+if (restored > 0) console.log(`[server] ${restored} room(s) picked up after the restart`);
 
 // ---------------------------------------------------------------------------
 // HTTP
@@ -78,6 +80,8 @@ app.get('/api/health', async () => ({
   rooms: rooms.size,
   definitionsEmbedded: hasLocalDefinitions() ? localDefinitionCount() : false,
   definitionsCached: definitionCacheSize(),
+  // False means the daily scores are being lost: check the volume's owner.
+  stateWritable: stateWritable(),
   uptime: Math.round(process.uptime()),
 }));
 

@@ -5,30 +5,7 @@ to do and the awkward part, so the work can be picked up without rediscovering
 it. What is done stays here, struck through, when what it turned out to need is
 worth remembering.
 
-## 1. Save the room in progress, so a deploy does not end it
-
-Rooms live in the process ([ADR 0001](adr/0001-architecture.md), decision 3), so
-every deploy cuts short whatever is being played. A round lasts three minutes
-and a deploy takes seconds, which was the reasoning; it stops being true the
-moment somebody is actually playing.
-
-What has to survive is small: the room code, the settings, the players with
-their scores and their words, and the current round with its board and its
-`endsAt`. The solution map does not, since solving a grid again takes one or two
-milliseconds.
-
-The awkward part is the clock. A round saved with three seconds left and
-restored forty seconds later has to end at once rather than resume, so the
-restore has to compare `endsAt` with the present and close the round when it has
-passed. Same for the pre-round countdown. An untimed round has no such question,
-having no `endsAt` at all.
-
-`server/src/store.ts` already does the writing, atomically and coalesced, for
-the grille du jour. This needs the same treatment applied to a much larger
-object, and a decision on when to write: on every accepted word is the honest
-answer, since that is what a player would hate to lose.
-
-## 2. Shorten the trace shown when a word is accepted
+## 1. Shorten the trace shown when a word is accepted
 
 The trace still holds the eye too long. Today it is `TRACE_DURATION_MS = 380` in
 `client/src/lib/config.ts`, with a 260 ms `boggle-trace` pulse in `index.css`,
@@ -85,6 +62,18 @@ Only finished attempts are ranked. Ranking a grid still being played would let
 anyone sit at the top of the day with a score they had not stopped improving.
 Ties on score are broken by time, which is what gives the informative clock a
 purpose.
+
+## ~~Save the room in progress, so a deploy does not end it~~ (done)
+
+Written through `touch()`, which every mutation already called, so "something
+changed" and "save it" became the same thing. Only what cannot be recomputed is
+kept: each player's words are stored as words, and the grid is solved again on
+the way back in to give them points and paths.
+
+The clock was the delicate part, as expected. A round whose buzzer went while
+the server was down closes on restore instead of resuming, and
+`scripts/test-restart.mjs` proves it by moving the saved `endsAt` into the past
+and starting the server again.
 
 ## ~~Identical nicknames in an ordinary game~~ (done)
 
