@@ -154,6 +154,25 @@ button,
   animation: boggle-countdown 900ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Refus : un halo rouge autour de la grille, qui s'efface de lui-même. Il
+   entoure les dés sans rien masquer : un fond posé par-dessus rendrait les
+   lettres illisibles au moment précis où on veut les relire. */
+@keyframes boggle-reject {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-reject {
+  animation: boggle-reject 700ms ease-out forwards;
+}
+
 /* Message de refus : une arrivée discrète, sans clignotement. */
 @keyframes boggle-flash {
   from {

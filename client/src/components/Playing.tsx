@@ -83,13 +83,19 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
   const send = async (raw: string) => {
     const word = raw.trim();
     if (word.length === 0) return;
+    // Le chemin que le joueur a formé lui-même, avant de le remettre à zéro.
+    const composed = path;
     setValue('');
     setPath([]);
     try {
       const result = await onSubmit(word);
       if (result.accepted) {
         // Le mot rejoint la liste et son chemin clignote : cela suffit.
-        if (TRACE_FOUND_WORD) traceWord(result.path);
+        // On retrace les cases du joueur, pas celles du serveur : un même mot
+        // peut se lire à plusieurs endroits de la grille, et voir s'allumer des
+        // dés auxquels on n'a pas touché est déroutant. Le serveur ne renvoie
+        // qu'un chemin valide, pas forcément celui qu'on avait sous les yeux.
+        if (TRACE_FOUND_WORD) traceWord(composed.length > 0 ? composed : result.path);
         return;
       }
       flashCounter.current += 1;
@@ -168,6 +174,15 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
           />
         </div>
         {pending && <RoundCountdown startsAt={round.startsAt} clockOffset={clockOffset} />}
+
+        {/* Halo de refus : autour de la grille, jamais par-dessus les lettres. */}
+        {flash && (
+          <div
+            key={flash.key}
+            aria-hidden="true"
+            className="animate-reject pointer-events-none absolute -inset-1.5 rounded-2xl ring-2 ring-bad"
+          />
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="relative flex gap-2">
@@ -209,6 +224,19 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
           </svg>
         </button>
       </form>
+
+      {/*
+        Sous le champ, jamais par-dessus les dés : le message n'a plus à masquer
+        quoi que ce soit, et une hauteur fixe évite que la grille sautille quand
+        il apparaît. Seule la couleur du texte signale le refus.
+      */}
+      <p role="status" aria-live="polite" className="mt-2 h-5 text-center text-sm text-bad">
+        {flash && (
+          <span key={flash.key} className="animate-flash">
+            {flash.word} : {flash.text}
+          </span>
+        )}
+      </p>
 
       <div className="mt-4 flex items-baseline justify-between">
         <h2 className="text-sm font-semibold tracking-wide text-fg-muted uppercase">
