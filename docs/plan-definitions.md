@@ -108,6 +108,9 @@ un lien vers le Wiktionnaire. Le clic conserve son effet actuel (tracé sur la g
 peut d'ailleurs être livrée en premier, puisque le client aurait de toute façon
 besoin du lien de secours prévu en B.
 
+L'option C a depuis fait l'objet d'un plan détaillé et chiffré :
+[`plan-option-c-definitions-embarquees.md`](plan-option-c-definitions-embarquees.md).
+
 L'option C mérite un mot : le dump du Wiktionnaire français pèse plusieurs Go, et
 en extraire un fichier de définitions exploitable est un travail de traitement de
 données à part entière. Elle n'a d'intérêt que si l'on tient à un jeu totalement

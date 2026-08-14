@@ -80,6 +80,14 @@ Les pages de boggle.fr ne disent rien du sort des mots trouvés par plusieurs
 joueurs : le mode par défaut applique la règle classique du Boggle (annulation),
 et l'autre mode reste disponible.
 
+## Décisions d'architecture
+
+- [ADR 0001 : architecture](docs/adr/0001-architecture.md) : moteur partagé,
+  serveur faisant autorité, état en mémoire, tirage des grilles, thème,
+  publication HTTPS, définitions en direct.
+- [Option C : définitions embarquées](docs/plan-option-c-definitions-embarquees.md) :
+  plan détaillé, chiffré, pour supprimer l'appel au Wiktionnaire à l'exécution.
+
 ## Comment ça marche
 
 ```
