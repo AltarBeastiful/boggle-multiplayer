@@ -18,9 +18,9 @@ interface PlayingProps {
   onSubmit(word: string): Promise<SubmitResult>;
 }
 
+/** Un mot accepté ne déclenche plus de message : seul un refus s'affiche. */
 interface Flash {
   word: string;
-  ok: boolean;
   text: string;
   key: number;
 }
@@ -69,7 +69,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
 
   useEffect(() => {
     if (!flash) return;
-    const id = setTimeout(() => setFlash(null), 1800);
+    const id = setTimeout(() => setFlash(null), 1500);
     return () => clearTimeout(id);
   }, [flash]);
 
@@ -87,21 +87,20 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
     setValue('');
     try {
       const result = await onSubmit(word);
-      flashCounter.current += 1;
       if (result.accepted) {
-        setFlash({ word: result.word, ok: true, text: `+${result.points}`, key: flashCounter.current });
+        // Le mot rejoint la liste et son chemin clignote : cela suffit.
         if (TRACE_FOUND_WORD) traceWord(result.path);
-      } else {
-        setFlash({
-          word: result.word,
-          ok: false,
-          text: rejectionMessage(result.reason, room.settings.minWordLength),
-          key: flashCounter.current,
-        });
+        return;
       }
+      flashCounter.current += 1;
+      setFlash({
+        word: result.word,
+        text: rejectionMessage(result.reason, room.settings.minWordLength),
+        key: flashCounter.current,
+      });
     } catch {
       flashCounter.current += 1;
-      setFlash({ word, ok: false, text: 'connexion perdue', key: flashCounter.current });
+      setFlash({ word, text: 'connexion perdue', key: flashCounter.current });
     }
   };
 
@@ -167,12 +166,10 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
           <div
             key={flash.key}
             role="status"
+            // Fond opaque, un fond translucide était illisible sur les dés ivoire, // mais discret : la couleur ne porte que sur le texte.
             className={[
-              // Fond opaque et ombre portée : par-dessus les dés ivoire, un fond
-              // translucide était illisible.
-              'pointer-events-none absolute inset-x-0 -top-11 mx-auto w-fit max-w-full truncate',
-              'rounded-full px-4 py-2 text-sm font-semibold shadow-lg',
-              flash.ok ? 'bg-flash-ok text-flash-fg' : 'bg-flash-bad text-flash-fg',
+              'animate-flash pointer-events-none absolute inset-x-0 -top-10 mx-auto w-fit max-w-full truncate',
+              'rounded-lg border border-border bg-panel px-3 py-1.5 text-sm font-medium text-bad shadow-sm',
             ].join(' ')}
           >
             {flash.word} : {flash.text}

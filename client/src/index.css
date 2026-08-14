@@ -33,10 +33,6 @@
   --tile-active-fg: #1e293b;
   --tile-shadow: rgb(15 23 42 / 0.12);
 
-  --flash-ok: #166534;
-  --flash-bad: #b91c1c;
-  --flash-fg: #ffffff;
-
   --ok: #166534;
   --ok-bg: rgb(21 128 61 / 0.12);
   --bad: #b91c1c;
@@ -69,10 +65,6 @@
   --tile-active-fg: #0f172a;
   --tile-shadow: rgb(0 0 0 / 0.35);
 
-  --flash-ok: #15803d;
-  --flash-bad: #dc2626;
-  --flash-fg: #ffffff;
-
   --ok: #6ee7b7;
   --ok-bg: rgb(16 185 129 / 0.18);
   --bad: #fca5a5;
@@ -102,9 +94,6 @@
   --color-tile-fg: var(--tile-fg);
   --color-tile-active: var(--tile-active);
   --color-tile-active-fg: var(--tile-active-fg);
-  --color-flash-ok: var(--flash-ok);
-  --color-flash-bad: var(--flash-bad);
-  --color-flash-fg: var(--flash-fg);
   --color-ok: var(--ok);
   --color-ok-bg: var(--ok-bg);
   --color-bad: var(--bad);
@@ -163,6 +152,22 @@ button,
 
 .animate-countdown {
   animation: boggle-countdown 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Message de refus : une arrivée discrète, sans clignotement. */
+@keyframes boggle-flash {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-flash {
+  animation: boggle-flash 180ms ease-out;
 }
 
 /* Tracé d'un mot trouvé : une pulsation brève, puis la case revient au repos. */
