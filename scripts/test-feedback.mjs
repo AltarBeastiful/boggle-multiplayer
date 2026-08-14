@@ -112,8 +112,13 @@ try {
     }
     console.log(`  field built: ${JSON.stringify(await input.inputValue())}`);
     await page.getByRole('button', { name: 'Envoyer le mot' }).click();
-    await page.waitForTimeout(150);
-    const trace = await litTiles();
+    // Poll rather than sleep: the trace only appears once the server answers,
+    // which takes milliseconds locally but a full round trip in production.
+    let trace = [];
+    for (let i = 0; i < 40 && trace.length === 0; i++) {
+      trace = await litTiles();
+      if (trace.length === 0) await page.waitForTimeout(25);
+    }
     console.log(`  tiles retraced : ${trace.join(',')}`);
     console.log(`  player's tiles : ${chosen.join(',')}`);
     console.log(`  solver's first path: ${target.paths[0].join(',')}`);
