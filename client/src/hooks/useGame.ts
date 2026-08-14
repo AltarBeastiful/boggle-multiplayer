@@ -16,6 +16,13 @@ export interface Game {
   room: RoomState | null;
   myWords: FoundWord[];
   connected: boolean;
+  /**
+   * Vrai seulement après une connexion établie puis perdue. À distinguer de
+   * `connected`, faux dès le premier rendu tant que la poignée de main n'a pas
+   * abouti : afficher une alerte à ce moment-là ferait clignoter du rouge à
+   * chaque ouverture de la page.
+   */
+  connectionLost: boolean;
   /** Décalage horloge serveur - horloge client (ms), pour un chrono juste. */
   clockOffset: number;
   isHost: boolean;
@@ -34,6 +41,10 @@ export function useGame(): Game {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [myWords, setMyWords] = useState<FoundWord[]>([]);
   const [connected, setConnected] = useState(socket.connected);
+  const [connectionLost, setConnectionLost] = useState(false);
+  /** Une première connexion a-t-elle abouti ? */
+  const everConnected = useRef(socket.connected);
+  const lostTimer = useRef<number | undefined>(undefined);
   const [clockOffset, setClockOffset] = useState(0);
   /** Dernière salle rejointe : sert à revenir automatiquement après une coupure. */
   const lastJoin = useRef<{ code: string; nickname: string } | null>(null);
@@ -51,6 +62,9 @@ export function useGame(): Game {
 
     const onConnect = () => {
       setConnected(true);
+      everConnected.current = true;
+      window.clearTimeout(lostTimer.current);
+      setConnectionLost(false);
       const previous = lastJoin.current;
       if (previous) {
         api
@@ -67,7 +81,14 @@ export function useGame(): Game {
       }
     };
 
-    const onDisconnect = () => setConnected(false);
+    const onDisconnect = () => {
+      setConnected(false);
+      // Une micro-coupure se rattrape toute seule : on laisse à Socket.IO le
+      // temps de se reconnecter avant d'inquiéter le joueur.
+      if (!everConnected.current) return;
+      window.clearTimeout(lostTimer.current);
+      lostTimer.current = window.setTimeout(() => setConnectionLost(true), 800);
+    };
 
     socket.on('room:state', onState);
     socket.on('round:started', onRoundStarted);
@@ -75,6 +96,7 @@ export function useGame(): Game {
     socket.on('disconnect', onDisconnect);
 
     return () => {
+      window.clearTimeout(lostTimer.current);
       socket.off('room:state', onState);
       socket.off('round:started', onRoundStarted);
       socket.off('connect', onConnect);
@@ -145,6 +167,7 @@ export function useGame(): Game {
     room,
     myWords,
     connected,
+    connectionLost,
     clockOffset,
     isHost: room?.hostId === playerId,
     createRoom,

@@ -31,7 +31,7 @@ export function App() {
     history.replaceState(null, '', '/');
   };
 
-  const banner = !game.connected && (
+  const banner = game.connectionLost && (
     <div className="sticky top-0 z-10 bg-danger-banner px-4 py-1.5 text-center text-sm text-danger-banner-fg backdrop-blur">
       Connexion perdue, reconnexion en cours…
     </div>
