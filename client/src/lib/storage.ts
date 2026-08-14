@@ -18,3 +18,15 @@ export function getNickname(): string {
 export function setNickname(nickname: string): void {
   localStorage.setItem(NICKNAME_KEY, nickname);
 }
+
+const TRACE_MODE_KEY = 'boggle.traceMode';
+
+/** Saisie au doigt sur la grille, en complément du clavier. Désactivée par défaut. */
+export function getTraceMode(): boolean {
+  return localStorage.getItem(TRACE_MODE_KEY) === 'on';
+}
+
+export function setTraceMode(enabled: boolean): void {
+  if (enabled) localStorage.setItem(TRACE_MODE_KEY, 'on');
+  else localStorage.removeItem(TRACE_MODE_KEY);
+}

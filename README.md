@@ -55,6 +55,11 @@ groupés par longueur, en marquant ceux que vous avez trouvés, ceux qu'un autre
 joueur a trouvés et ceux que personne n'a vus. Un clic trace le mot sur la grille
 **et affiche sa définition**, tirée du Wiktionnaire francophone.
 
+La saisie se fait au clavier. Un bouton à droite du champ active le **tracé au
+doigt** sur la grille, en complément : on relie les lettres adjacentes, revenir
+en arrière efface la dernière, et le mot part au relâchement. Le choix est
+mémorisé d'une partie à l'autre.
+
 Quand un mot est accepté, son chemin est tracé une fraction de seconde sur la
 grille puis s'efface : rien ne reste affiché entre deux mots. Pour supprimer
 complètement ce tracé, compilez avec `VITE_WORD_TRACE=off` (variable reprise par

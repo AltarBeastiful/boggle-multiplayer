@@ -5,6 +5,7 @@ import type { RoomState, SubmitResult } from '@boggle/shared';
 import type { FoundWord } from '../hooks/useGame';
 import { TRACE_DURATION_MS, TRACE_FOUND_WORD } from '../lib/config';
 import { rejectionMessage } from '../lib/labels';
+import { getTraceMode, setTraceMode } from '../lib/storage';
 import { BoardGrid } from './BoardGrid';
 import { RoundCountdown } from './RoundCountdown';
 import { ThemeToggle } from './ThemeToggle';
@@ -27,6 +28,8 @@ interface Flash {
 
 export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: PlayingProps) {
   const [value, setValue] = useState('');
+  /** Tracé du mot au doigt sur la grille, en plus du clavier. */
+  const [traceMode, setTraceModeState] = useState(getTraceMode);
   const [flash, setFlash] = useState<Flash | null>(null);
   const [highlight, setHighlight] = useState<number[] | undefined>();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,9 +54,7 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
 
   const round = room.round;
   // Vrai tant que le décompte d'avant-manche n'est pas écoulé.
-  const [pending, setPending] = useState(
-    () => round !== null && Date.now() + clockOffset < round.startsAt,
-  );
+  const [pending, setPending] = useState(() => round !== null && Date.now() + clockOffset < round.startsAt);
 
   useEffect(() => {
     if (!round) return;
@@ -80,9 +81,8 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
 
   if (!round) return null;
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    const word = value.trim();
+  const send = async (raw: string) => {
+    const word = raw.trim();
     if (word.length === 0) return;
     setValue('');
     try {
@@ -102,6 +102,27 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
       flashCounter.current += 1;
       setFlash({ word, text: 'connexion perdue', key: flashCounter.current });
     }
+  };
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    void send(value);
+  };
+
+  /** Les lettres d'un chemin tracé. Une case Q vaut QU sous la variante. */
+  const pathToWord = (path: number[]) =>
+    path
+      .map((index) => {
+        const letter = round?.board[index] ?? '';
+        return letter === 'Q' && room.settings.qEqualsQu ? 'QU' : letter;
+      })
+      .join('');
+
+  const toggleTraceMode = () => {
+    setTraceModeState((current) => {
+      setTraceMode(!current);
+      return !current;
+    });
   };
 
   const others = room.players.filter((player) => player.id !== playerId);
@@ -142,12 +163,15 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
             highlight={highlight}
             qEqualsQu={room.settings.qEqualsQu}
             animateHighlight
+            traceable={traceMode && !pending}
+            onTraceChange={(path) => setValue(pathToWord(path))}
+            onTraceEnd={(path) => void send(pathToWord(path))}
           />
         </div>
         {pending && <RoundCountdown startsAt={round.startsAt} clockOffset={clockOffset} />}
       </div>
 
-      <form onSubmit={(event) => void handleSubmit(event)} className="relative">
+      <form onSubmit={handleSubmit} className="relative flex gap-2">
         <input
           ref={inputRef}
           value={value}
@@ -162,6 +186,37 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
           aria-label="Mot trouvé"
           className="w-full rounded-xl border-2 border-border-strong bg-panel-soft px-4 py-4 text-center text-2xl tracking-wider text-fg uppercase outline-none placeholder:text-base placeholder:tracking-normal placeholder:normal-case placeholder:text-fg-faint focus:border-accent"
         />
+
+        {/* Saisie au doigt : secondaire, mais à portée de pouce. */}
+        <button
+          type="button"
+          onClick={toggleTraceMode}
+          aria-pressed={traceMode}
+          title={traceMode ? 'Tracé sur la grille activé' : 'Tracer les mots sur la grille'}
+          aria-label={traceMode ? 'Désactiver le tracé sur la grille' : 'Tracer les mots sur la grille'}
+          className={[
+            'flex w-16 shrink-0 items-center justify-center rounded-xl border-2 transition',
+            traceMode
+              ? 'border-accent bg-accent text-accent-fg'
+              : 'border-border-strong bg-panel-soft text-fg-faint hover:text-fg-muted',
+          ].join(' ')}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+            className="h-6 w-6"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 5.5h.01M12 5.5h.01M20 5.5h.01M4 12h.01M20 12h.01M4 18.5h.01M20 18.5h.01"
+            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 5.5 8.5 12l6 1.5L11 18.5" />
+          </svg>
+        </button>
         {flash && (
           <div
             key={flash.key}
@@ -212,9 +267,11 @@ export function Playing({ room, myWords, clockOffset, playerId, onSubmit }: Play
       {others.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 border-t border-border pt-3 text-sm">
           {others.map((player) => (
-            <span key={player.id} className={player.connected ? 'text-fg-muted' : 'text-fg-faint line-through'}>
-              {player.nickname}{' '}
-              <span className="font-semibold text-fg">{player.wordCount}</span> mot
+            <span
+              key={player.id}
+              className={player.connected ? 'text-fg-muted' : 'text-fg-faint line-through'}
+            >
+              {player.nickname} <span className="font-semibold text-fg">{player.wordCount}</span> mot
               {player.wordCount > 1 ? 's' : ''}
             </span>
           ))}
