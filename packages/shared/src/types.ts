@@ -176,6 +176,8 @@ export interface DefinitionEntry {
 export interface DefinitionResult {
   word: string;
   entries: DefinitionEntry[];
+  /** D'où vient la réponse : fichier embarqué ou appel au Wiktionnaire. */
+  source?: 'local' | 'wiktionary';
 }
 
 /** Vue privée : les mots que *moi* j'ai trouvés dans la manche en cours. */

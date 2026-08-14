@@ -1,5 +1,6 @@
 import type { DefinitionEntry, DefinitionResult } from '@boggle/shared';
 
+import { lookupLocal } from './definitions-local.js';
 import { getSpellingIndex } from './dictionary.js';
 
 /**
@@ -210,10 +211,16 @@ function writeCache(word: string, value: DefinitionResult): void {
 
 /**
  * Définitions d'un mot normalisé (majuscules, sans accents).
+ *
+ * Le fichier embarqué est consulté en premier ; le Wiktionnaire ne sert que de
+ * secours, pour les mots qu'il ne couvre pas ou quand aucun fichier n'est livré.
  * Ne rejette jamais : une absence de définition est un résultat vide.
  */
 export async function getDefinition(normalized: string): Promise<DefinitionResult> {
   const word = normalized.toUpperCase();
+
+  const local = lookupLocal(word);
+  if (local && local.length > 0) return { word, entries: local, source: 'local' };
 
   const cached = readCache(word);
   if (cached) return cached;
@@ -228,7 +235,7 @@ export async function getDefinition(normalized: string): Promise<DefinitionResul
     const spellings = [...new Set([word.toLowerCase(), ...(getSpellingIndex().get(word) ?? [])])];
     const found = await Promise.all(spellings.slice(0, 4).map((spelling) => lookupSpelling(spelling)));
     const entries = found.filter((entry): entry is DefinitionEntry => entry !== null);
-    const result: DefinitionResult = { word, entries };
+    const result: DefinitionResult = { word, entries, source: 'wiktionary' };
     writeCache(word, result);
     return result;
   })().finally(() => pending.delete(word));

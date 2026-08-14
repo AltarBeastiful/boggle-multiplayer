@@ -17,6 +17,7 @@ import {
   type ServerToClientEvents,
 } from '@boggle/shared';
 
+import { hasLocalDefinitions, localDefinitionCount } from './definitions-local.js';
 import { definitionCacheSize, getDefinition } from './definitions.js';
 import { getDictionary } from './dictionary.js';
 import { RoomManager, type Room, type RoomBroadcaster } from './rooms.js';
@@ -73,6 +74,7 @@ app.get('/api/health', async () => ({
   status: 'ok',
   words: dictionary.size,
   rooms: rooms.size,
+  definitionsEmbedded: hasLocalDefinitions() ? localDefinitionCount() : false,
   definitionsCached: definitionCacheSize(),
   uptime: Math.round(process.uptime()),
 }));
