@@ -26,7 +26,6 @@ export function BoardGrid({
     >
       {cells.map((letter, index) => {
         const active = highlighted.has(index);
-        const order = highlight?.indexOf(index) ?? -1;
         return (
           <div
             key={index}
@@ -48,11 +47,6 @@ export function BoardGrid({
               </span>
             ) : (
               letter
-            )}
-            {active && order >= 0 && (
-              <span className="absolute top-0.5 left-1 text-[0.5em] font-semibold text-tile-active-fg/60">
-                {order + 1}
-              </span>
             )}
           </div>
         );
