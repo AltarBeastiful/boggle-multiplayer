@@ -191,9 +191,26 @@ public passe par Traefik.
 
 ---
 
-## Décision 12 : les définitions sont cherchées en direct (option B)
+## Décision 12 : définitions embarquées, Wiktionnaire en secours (options C puis B)
 
-`GET /api/definition/:mot` interroge le Wiktionnaire francophone à la demande.
+`GET /api/definition/:mot` consulte d'abord un fichier livré avec l'image
+(4,2 Mo compressés, 315 813 mots, 99,1 % du dictionnaire), et ne retombe sur
+l'appel en direct que pour les mots absents, ou si le fichier n'est pas fourni,
+auquel cas le jeu fonctionne exactement comme avant.
+
+Le fichier est construit par `scripts/build-definitions.mjs` depuis l'extraction
+wiktextract du Wiktionnaire ; voir
+[le plan de l'option C](../plan-option-c-definitions-embarquees.md).
+**Le contenu embarqué est sous CC BY-SA 4.0** : le publier est une
+redistribution, là où la simple consultation n'engageait rien. Voir
+`server/data/LICENCE-DEFINITIONS.md`.
+
+Le chemin de secours reste celui décrit ci-dessous, et garde tout son intérêt :
+il couvre les mots absents de l'artefact sans attendre une reconstruction.
+
+### Le secours : la recherche en direct (option B)
+
+Il interroge le Wiktionnaire francophone à la demande.
 Trois obstacles, tous mesurés avant d'être traités :
 
 1. **Pas d'API de définition.** L'endpoint REST répond `501` sur fr.wiktionary. On
@@ -215,6 +232,8 @@ absence de définition n'est jamais une erreur : l'interface propose un lien.
 
 **Performance mesurée.** 0,5 à 0,9 s à froid, 0,3 s en cache (soit l'aller-retour
 réseau seul). Le préchargement au survol rend le clic généralement instantané.
+Depuis l'embarquement du fichier, ce chemin ne sert plus qu'aux 0,9 % de mots
+manquants : les autres répondent en 0,01 s.
 
 **Ce que ça coûte.** Le jeu dépend d'un service tiers pour cette fonction, et
 l'analyse porte sur du texte destiné à des humains : une refonte de mise en forme
@@ -229,7 +248,9 @@ renvois écrits « Forme d'adjectif » là où on n'attendait que « Forme de »
 - **Une seule instance.** Les salles vivent dans le processus. Passer à plusieurs
   demanderait l'adaptateur Redis de Socket.IO et un stockage partagé.
 - **Un redémarrage interrompt les parties en cours.**
-- **Les définitions dépendent du Wiktionnaire** à l'exécution (voir option C).
+- **Les définitions embarquées sont figées** à la date de l'extraction ; les mots
+  absents passent par le Wiktionnaire, qui redevient une dépendance à l'exécution
+  pour ces cas-là.
 - **Les grilles ne sont pas les dés officiels**, faute de source publiée.
 - **Pas de modération** : les pseudos ne sont pas filtrés. Acceptable pour un
   serveur entre amis, pas pour un service ouvert.

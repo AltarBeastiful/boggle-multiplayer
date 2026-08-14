@@ -1,8 +1,42 @@
 # Plan détaillé de l'option C : définitions embarquées
 
-- **Statut** : à valider, non implémenté
+- **Statut** : **implémenté** le 14 août 2026, le Wiktionnaire restant en secours
 - **Remplace** : l'appel au Wiktionnaire à l'exécution ([ADR 0001](adr/0001-architecture.md), décision 12)
 - **Contexte chiffré** : toutes les tailles ci-dessous ont été mesurées, pas estimées
+
+## Résultat réel
+
+| | prévu | mesuré |
+| --- | --- | --- |
+| Artefact compressé | ~10 Mo | **4,2 Mo** |
+| Artefact brut | ~38 Mo | 33,3 Mo |
+| Couverture du dictionnaire | non chiffré | **99,1 %** (315 813 / 318 800) |
+| Échantillon de référence | ≥ 19/20 | **20/20** |
+| Latence | ~0 | **0,00 à 0,01 s** (contre 0,5 à 0,9 s à froid) |
+| Chargement au démarrage | ~1 s | 1,05 s |
+| Mémoire résidente du serveur | non chiffré | 338 Mo |
+
+7 452 108 entrées parcourues, 519 323 définitions de lemmes retenues,
+350 169 graphies conservées.
+
+### Deux pièges que le plan n'avait pas vus
+
+Tous deux viennent du même fait : le Wiktionnaire ne décrit pas que des mots
+courants, et plusieurs de ses entrées se normalisent sur la même clé.
+
+1. **Les affixes et les locutions.** `-eté` se normalise en `ETE`, `-ane` en
+   `ANE`, `de-ci` en `DECI`, et ils écrasaient *été*, *âne* et *déci*. Corrigé en
+   n'acceptant que les entrées purement alphabétiques, la règle qu'applique déjà
+   le dictionnaire du jeu.
+2. **Les sigles et les noms propres.** Une fois les affixes écartés, `ETE`
+   renvoyait « Excédent de trésorerie d'exploitation » et `ANE` un hameau
+   néerlandais, tous deux avant le mot courant. Les graphies sont désormais
+   classées : une majuscule initiale, une nature « nom propre » ou une définition
+   commençant par « Abréviation » passent derrière.
+
+Sans ces deux correctifs la couverture était identique, 20/20, mais trois mots
+sur vingt affichaient la mauvaise définition. **Le nombre de réponses ne dit rien
+de leur justesse** : c'est le contrôle mot à mot qui l'a montré.
 
 ## Ce que ça change
 

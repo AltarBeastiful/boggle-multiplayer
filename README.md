@@ -127,8 +127,20 @@ Pour l'ajuster sans reconstruire : voir [`server/data/README.md`](server/data/RE
 
 ### Les définitions
 
-`GET /api/definition/:mot` interroge le Wiktionnaire francophone. Trois obstacles
-sont traités dans `server/src/definitions.ts` :
+`GET /api/definition/:mot` répond depuis un fichier embarqué de
+**315 813 mots, 99,1 % du dictionnaire, 4,2 Mo compressés**, servi en 0,01 s.
+Il est construit par :
+
+```bash
+node scripts/build-definitions.mjs      # ~10 min, 715 Mo téléchargés en flux
+```
+
+Le fichier est **facultatif** : sans lui, le serveur interroge le Wiktionnaire en
+direct, comme avant. C'est aussi ce qui arrive pour les mots qu'il ne couvre pas.
+Le contenu embarqué est sous CC BY-SA 4.0 :
+voir [`server/data/LICENCE-DEFINITIONS.md`](server/data/LICENCE-DEFINITIONS.md).
+
+Le chemin de secours doit traiter trois obstacles, dans `server/src/definitions.ts` :
 
 - il n'existe pas d'API de définition exploitable (l'endpoint REST répond 501 sur
   fr.wiktionary), donc la page est récupérée en texte brut puis analysée ;
