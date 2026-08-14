@@ -39,7 +39,15 @@ export function prefetchDefinition(word: string): void {
 
 type Status = 'loading' | 'done' | 'error';
 
-export function DefinitionCard({ word, onClose }: { word: string; onClose(): void }) {
+export function DefinitionCard({
+  word,
+  onClose,
+  className = '',
+}: {
+  word: string;
+  onClose(): void;
+  className?: string;
+}) {
   const [status, setStatus] = useState<Status>(() => (cache.has(word) ? 'done' : 'loading'));
   const [entries, setEntries] = useState<DefinitionEntry[]>(() => cache.get(word) ?? []);
 
@@ -71,7 +79,7 @@ export function DefinitionCard({ word, onClose }: { word: string; onClose(): voi
   }, [word]);
 
   return (
-    <div className="mt-3 rounded-xl border border-border bg-panel-soft p-3" aria-live="polite">
+    <div className={`rounded-xl border border-border bg-panel-soft p-3 ${className}`} aria-live="polite">
       <div className="mb-1.5 flex items-start justify-between gap-3">
         <h3 className="font-semibold text-fg">{word}</h3>
         <button
@@ -86,9 +94,7 @@ export function DefinitionCard({ word, onClose }: { word: string; onClose(): voi
 
       {status === 'loading' && <p className="text-sm text-fg-faint">Recherche de la définition…</p>}
 
-      {status === 'error' && (
-        <p className="text-sm text-fg-faint">Définition indisponible pour le moment.</p>
-      )}
+      {status === 'error' && <p className="text-sm text-fg-faint">Définition indisponible pour le moment.</p>}
 
       {status === 'done' && entries.length === 0 && (
         <p className="text-sm text-fg-faint">

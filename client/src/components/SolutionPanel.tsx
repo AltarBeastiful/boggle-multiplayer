@@ -17,15 +17,24 @@ interface SolutionPanelProps {
   playerId: string;
   players: PublicPlayer[];
   onHighlight(path: number[]): void;
+  /** Mot dont la définition est ouverte (géré par le parent). */
+  selected: string | null;
+  onSelect(word: string | null): void;
 }
 
 /**
  * Toutes les solutions de la grille en fin de manche, marquées selon qui les a
  * trouvées. Un clic met le mot en évidence sur la grille.
  */
-export function SolutionPanel({ solution, playerId, players, onHighlight }: SolutionPanelProps) {
+export function SolutionPanel({
+  solution,
+  playerId,
+  players,
+  onHighlight,
+  selected,
+  onSelect,
+}: SolutionPanelProps) {
   const [filter, setFilter] = useState<Filter>('all');
-  const [selected, setSelected] = useState<string | null>(null);
   const hoverTimer = useRef<number | undefined>(undefined);
 
   /**
@@ -39,10 +48,7 @@ export function SolutionPanel({ solution, playerId, players, onHighlight }: Solu
 
   useEffect(() => () => window.clearTimeout(hoverTimer.current), []);
 
-  const names = useMemo(
-    () => new Map(players.map((player) => [player.id, player.nickname])),
-    [players],
-  );
+  const names = useMemo(() => new Map(players.map((player) => [player.id, player.nickname])), [players]);
 
   const counts = useMemo(
     () => ({
@@ -112,7 +118,7 @@ export function SolutionPanel({ solution, playerId, players, onHighlight }: Solu
 
       {groups.length === 0 && <p className="text-sm text-fg-faint">Aucun mot dans cette catégorie.</p>}
 
-      <div className="max-h-96 space-y-3 overflow-y-auto">
+      <div className="max-h-96 space-y-3 overflow-y-auto lg:max-h-none lg:overflow-visible">
         {groups.map(([length, words]) => (
           <div key={length}>
             <h3 className="mb-1.5 text-xs font-semibold tracking-wide text-fg-faint uppercase">
@@ -139,10 +145,14 @@ export function SolutionPanel({ solution, playerId, players, onHighlight }: Solu
                     }}
                     onClick={() => {
                       onHighlight(word.path);
-                      setSelected((current) => (current === word.word ? null : word.word));
+                      onSelect(selected === word.word ? null : word.word);
                     }}
                     aria-expanded={selected === word.word}
-                    title={who ? `Trouvé par ${who}. Cliquer pour la définition` : 'Personne ne l’a trouvé. Cliquer pour la définition'}
+                    title={
+                      who
+                        ? `Trouvé par ${who}. Cliquer pour la définition`
+                        : 'Personne ne l’a trouvé. Cliquer pour la définition'
+                    }
                     className={[
                       'rounded-lg px-2.5 py-1 text-sm transition',
                       mine
@@ -162,7 +172,10 @@ export function SolutionPanel({ solution, playerId, players, onHighlight }: Solu
         ))}
       </div>
 
-      {selected && <DefinitionCard word={selected} onClose={() => setSelected(null)} />}
+      {/* Sur grand écran, la définition s'affiche à côté de la grille. */}
+      {selected && (
+        <DefinitionCard className="mt-3 lg:hidden" word={selected} onClose={() => onSelect(null)} />
+      )}
 
       <p className="mt-3 text-xs text-fg-faint">
         Cliquez un mot pour le tracer sur la grille et lire sa définition.

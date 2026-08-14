@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { PlayerRoundResult, RoomState, RoundResults, ScoredWord } from '@boggle/shared';
 
 import { BoardGrid } from './BoardGrid';
+import { DefinitionCard } from './DefinitionCard';
 import { SolutionPanel } from './SolutionPanel';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -48,6 +49,8 @@ function PlayerWords({ player, highlight }: { player: PlayerRoundResult; highlig
 
 export function Results({ room, results, isHost, playerId, onNext, onReset, onLeave }: ResultsProps) {
   const [highlight, setHighlight] = useState<number[] | undefined>();
+  /** Mot dont on lit la définition. Remonté ici pour l'afficher à côté de la grille. */
+  const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,7 +78,7 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-5 px-5 py-8">
+    <div className="mx-auto w-full max-w-2xl space-y-5 px-5 py-8 lg:max-w-6xl">
       <header className="relative text-center">
         <div className="absolute top-0 right-0">
           <ThemeToggle />
@@ -85,7 +88,8 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
             <h1 className="text-3xl font-black text-accent">Partie terminée</h1>
             {winner && (
               <p className="mt-1 text-fg-muted">
-                🏆 <span className="font-semibold">{winner.nickname}</span> l’emporte avec {winner.totalScore} points
+                🏆 <span className="font-semibold">{winner.nickname}</span> l’emporte avec {winner.totalScore}{' '}
+                points
               </p>
             )}
           </>
@@ -99,75 +103,95 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
         )}
       </header>
 
-      <div className="mx-auto max-w-xs">
-        <BoardGrid
-          cells={results.board}
-          size={room.settings.boardSize}
-          highlight={highlight}
-          qEqualsQu={room.settings.qEqualsQu}
-          compact
-        />
-      </div>
-
-      <section className="overflow-hidden rounded-2xl border border-border">
-        <table className="w-full text-sm">
-          <thead className="bg-panel-soft text-xs tracking-wide text-fg-faint uppercase">
-            <tr>
-              <th className="px-3 py-2 text-left font-medium">Joueur</th>
-              <th className="px-3 py-2 text-right font-medium">Manche</th>
-              <th className="px-3 py-2 text-right font-medium">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {standings.map((player, index) => (
-              <tr
-                key={player.playerId}
-                className={`border-t border-border ${player.playerId === playerId ? 'bg-accent-soft' : ''}`}
-              >
-                <td className="px-3 py-2 text-fg">
-                  <span className="mr-2 text-fg-faint">{index + 1}</span>
-                  {player.nickname}
-                  {player.playerId === playerId && <span className="ml-1.5 text-xs text-fg-faint">(vous)</span>}
-                </td>
-                <td className="px-3 py-2 text-right text-fg-muted">+{player.roundScore}</td>
-                <td className="px-3 py-2 text-right font-semibold text-fg">{player.totalScore}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      {me && (
-        <section className="rounded-2xl border border-border bg-panel p-4">
-          <h2 className="mb-2 text-sm font-semibold tracking-wide text-fg-muted uppercase">
-            Vos mots : {me.roundScore} pts
-            {room.settings.duplicateMode === 'cancel' && (
-              <span className="ml-2 font-normal text-fg-faint normal-case">
-                (barrés = trouvés par un autre joueur)
-              </span>
-            )}
-          </h2>
-          <PlayerWords player={me} highlight={highlightWord} />
-        </section>
-      )}
-
-      {others.map((player) => (
-        <details key={player.playerId} className="rounded-2xl border border-border bg-panel p-4">
-          <summary className="cursor-pointer text-sm font-semibold tracking-wide text-fg-muted uppercase">
-            {player.nickname} : {player.roundScore} pts ({player.words.length} mots)
-          </summary>
-          <div className="mt-3">
-            <PlayerWords player={player} highlight={highlightWord} />
+      {/*
+        Sur grand écran, deux colonnes : la grille, le classement et la
+        définition restent sous les yeux pendant qu'on parcourt les solutions.
+        Sans cela il fallait remonter à chaque mot survolé pour voir son tracé.
+      */}
+      <div className="lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+        <div className="space-y-5 lg:sticky lg:top-6">
+          <div className="mx-auto max-w-xs lg:mx-0 lg:max-w-none">
+            <BoardGrid
+              cells={results.board}
+              size={room.settings.boardSize}
+              highlight={highlight}
+              qEqualsQu={room.settings.qEqualsQu}
+              compact
+            />
           </div>
-        </details>
-      ))}
 
-      <SolutionPanel
-        solution={results.solution}
-        playerId={playerId}
-        players={room.players}
-        onHighlight={setHighlight}
-      />
+          <section className="overflow-hidden rounded-2xl border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-panel-soft text-xs tracking-wide text-fg-faint uppercase">
+                <tr>
+                  <th className="px-3 py-2 text-left font-medium">Joueur</th>
+                  <th className="px-3 py-2 text-right font-medium">Manche</th>
+                  <th className="px-3 py-2 text-right font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {standings.map((player, index) => (
+                  <tr
+                    key={player.playerId}
+                    className={`border-t border-border ${player.playerId === playerId ? 'bg-accent-soft' : ''}`}
+                  >
+                    <td className="px-3 py-2 text-fg">
+                      <span className="mr-2 text-fg-faint">{index + 1}</span>
+                      {player.nickname}
+                      {player.playerId === playerId && (
+                        <span className="ml-1.5 text-xs text-fg-faint">(vous)</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right text-fg-muted">+{player.roundScore}</td>
+                    <td className="px-3 py-2 text-right font-semibold text-fg">{player.totalScore}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
+          {/* La définition suit la grille : les deux se lisent ensemble. */}
+          {selected && (
+            <DefinitionCard className="hidden lg:block" word={selected} onClose={() => setSelected(null)} />
+          )}
+        </div>
+
+        <div className="mt-5 space-y-5 lg:mt-0">
+          {me && (
+            <section className="rounded-2xl border border-border bg-panel p-4">
+              <h2 className="mb-2 text-sm font-semibold tracking-wide text-fg-muted uppercase">
+                Vos mots : {me.roundScore} pts
+                {room.settings.duplicateMode === 'cancel' && (
+                  <span className="ml-2 font-normal text-fg-faint normal-case">
+                    (barrés = trouvés par un autre joueur)
+                  </span>
+                )}
+              </h2>
+              <PlayerWords player={me} highlight={highlightWord} />
+            </section>
+          )}
+
+          {others.map((player) => (
+            <details key={player.playerId} className="rounded-2xl border border-border bg-panel p-4">
+              <summary className="cursor-pointer text-sm font-semibold tracking-wide text-fg-muted uppercase">
+                {player.nickname} : {player.roundScore} pts ({player.words.length} mots)
+              </summary>
+              <div className="mt-3">
+                <PlayerWords player={player} highlight={highlightWord} />
+              </div>
+            </details>
+          ))}
+
+          <SolutionPanel
+            solution={results.solution}
+            playerId={playerId}
+            players={room.players}
+            onHighlight={setHighlight}
+            selected={selected}
+            onSelect={setSelected}
+          />
+        </div>
+      </div>
 
       {error && (
         <p role="alert" className="rounded-lg bg-bad-bg px-4 py-2 text-center text-sm text-bad">
@@ -201,9 +225,7 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
           </button>
         </div>
       ) : (
-        <p className="rounded-xl bg-panel-soft px-4 py-4 text-center text-fg-muted">
-          En attente de l’hôte…
-        </p>
+        <p className="rounded-xl bg-panel-soft px-4 py-4 text-center text-fg-muted">En attente de l’hôte…</p>
       )}
 
       <button
