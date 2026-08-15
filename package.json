@@ -21,7 +21,8 @@
     "test:round": "node scripts/test-round-end.mjs",
     "test:daily": "node scripts/test-daily.mjs",
     "test:restart": "node scripts/test-restart.mjs",
-    "audit:mobile": "node scripts/audit-mobile.mjs"
+    "audit:mobile": "node scripts/audit-mobile.mjs",
+    "audit:dict": "node scripts/audit-dictionary.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

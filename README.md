@@ -177,13 +177,36 @@ passe automatiquement à un autre joueur. Les salles vides sont nettoyées.
 
 ## Le dictionnaire
 
-Environ **318 800 mots** issus du lexique Dicollecte/Grammalecte (paquet npm
-`an-array-of-french-words`, MIT) : formes fléchies, conjugaisons et pluriels
-compris. Volontairement permissif : `déci`, `zut`, `eus`, `ait` et
-`mangeassions` sont acceptés. Les entrées à trait d'union ou apostrophe sont
-écartées : elles ne sont pas traçables sur une grille.
+Environ **318 800 mots**, du paquet npm `an-array-of-french-words` (MIT),
+lui-même tiré des [listes de Letterpress](https://github.com/lorenbrichter/Words)
+(CC0) : formes fléchies, conjugaisons et pluriels compris. Volontairement
+permissif : `déci`, `zut`, `eus`, `ait` et `mangeassions` sont acceptés. Les
+entrées à trait d'union ou apostrophe sont écartées : elles ne sont pas
+traçables sur une grille.
 
-Pour l'ajuster sans reconstruire : voir [`server/data/README.md`](server/data/README.md).
+**C'est une liste de jeu, pas un lexique**, et son dépôt d'origine est archivé
+depuis mai 2019. Ce que ça coûte, mesuré plutôt que supposé :
+
+```bash
+node scripts/audit-dictionary.mjs   # compare à Lexique 3.83 et au Wiktionnaire
+```
+
+| Fréquence d'usage (Lexique 3.83) | Formes manquantes |
+| --- | --- |
+| très courant (≥ 100 par million) | **0 sur 655** |
+| courant (10 à 100) | 16 sur 3 649 (0,4 %) |
+| ordinaire (1 à 10) | 331 sur 14 547 (2,3 %) |
+| rare (< 0,1) | 8 398 sur 61 871 (13,6 %) |
+
+Le français de tous les jours est donc intact. Ce qui manque est ailleurs : les
+**abréviations** (`labo`, `appart`, `psy`, `resto`, `fac`), les **anglicismes**
+(`deal`, `fans`, `baseball`), quelques **interjections** (`ouah`, `aïe`) et
+`courriel`. À l'inverse `tufa` est bien refusé : c'est de l'anglais, le mot
+français est `tuf`.
+
+Pour combler un trou sans rien reconstruire : voir
+[`server/data/README.md`](server/data/README.md), un mot par ligne dans
+`extra-words.txt`, relecture au démarrage du serveur.
 
 ### Les définitions
 

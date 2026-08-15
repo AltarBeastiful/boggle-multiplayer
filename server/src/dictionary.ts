@@ -9,10 +9,15 @@ const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
 
 /**
- * The dictionary comes from `an-array-of-french-words` (MIT), derived from the
- * Dicollecte/Grammalecte lexicon: around 336,000 inflected forms, conjugations
- * and plurals included. Deliberately permissive: it accepts "déci", "zut",
- * "eus" and the like.
+ * The dictionary comes from `an-array-of-french-words` (MIT), itself derived
+ * from the Letterpress word lists (github.com/lorenbrichter/Words, CC0),
+ * archived in 2019: around 336,000 inflected forms, conjugations and plurals
+ * included. Deliberately permissive: it accepts "déci", "zut", "eus".
+ *
+ * It is a word list for a game rather than a lexicon, and it has the gaps to
+ * match: `scripts/audit-dictionary.mjs` measures them against Lexique 3.83 and
+ * the French Wiktionary. Everyday French comes out intact; abbreviations
+ * ("labo", "appart") and anglicisms ("deal", "fans") are what is missing.
  *
  * Two optional files adjust it without rebuilding anything:
  *   data/extra-words.txt    words to add, one per line

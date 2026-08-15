@@ -132,6 +132,16 @@ export function useGame(): Game {
     socket.on('disconnect', onDisconnect);
     document.addEventListener('visibilitychange', onVisibility);
 
+    /*
+     * The handshake can finish between the first render, which read
+     * `socket.connected` as false, and this effect attaching the listener. The
+     * 'connect' event is then missed and never comes again: the home screen
+     * sits on "Connexion au serveur…" with its buttons disabled, connected all
+     * the while. Rare, and permanent when it happens, so it is checked rather
+     * than trusted.
+     */
+    if (socket.connected) onConnect();
+
     return () => {
       window.clearTimeout(lostTimer.current);
       socket.off('room:state', onState);

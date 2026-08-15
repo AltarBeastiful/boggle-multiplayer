@@ -182,7 +182,16 @@ export function Daily({ onLeave }: { onLeave(): void }) {
   };
 
   return (
-    <div className="mx-auto w-full max-w-xl px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] lg:max-w-6xl">
+    <div
+      /*
+       * The wide two-column layout is for reading the solutions. While playing,
+       * the grid keeps the width it has in a room: stretched across a 1150 px
+       * container it is a different game to look at.
+       */
+      className={`mx-auto w-full max-w-xl px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] ${
+        state.finished ? 'lg:max-w-6xl' : ''
+      }`}
+    >
       <div className="mb-2 flex items-center justify-between gap-3 text-xs text-fg-faint">
         <span>Grille du jour, {formatDay(state.day)}</span>
         <div className="flex items-center gap-2">

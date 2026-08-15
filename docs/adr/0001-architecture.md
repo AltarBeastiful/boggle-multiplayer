@@ -105,16 +105,35 @@ rewritten, which is most of what Socket.IO brings.
 
 ## Decision 5: a permissive dictionary, adjustable without rebuilding
 
-`an-array-of-french-words` (MIT, the Dicollecte/Grammalecte lexicon): 336,000
-raw forms, 318,800 after normalisation. Hyphenated and apostrophised entries are
-dropped, as they cannot be traced anyway.
+`an-array-of-french-words` (MIT): 336,000 raw forms, 318,800 after
+normalisation. Hyphenated and apostrophised entries are dropped, as they cannot
+be traced anyway.
+
+**Where it really comes from.** This ADR said "the Dicollecte/Grammalecte
+lexicon" until the claim was checked and found to be wrong. The package's own
+README says it is derived from the [Letterpress word
+lists](https://github.com/lorenbrichter/Words) (CC0), whose author describes
+them as "loosely based on a collection of other word lists with refinements from
+real-world feedback". That repository was archived in May 2019.
+
+So this is **a word list for a game, not a lexicon**, and there is no editorial
+authority behind it to appeal to. The distinction matters when a player asks why
+a word was refused.
+
+**What it costs, measured.** `scripts/audit-dictionary.mjs` compares it with
+Lexique 3.83, weighted by real usage, and with the French Wiktionary. Of the 655
+most frequent French forms, **none** is missing; of the next band, 0.4%. The
+gaps are abbreviations (`labo`, `appart`, `psy`), anglicisms (`deal`, `fans`),
+a few interjections, and the long tail of rare words (13.6%). Everyday play is
+unaffected, which is why the list stays.
 
 **Why permissive.** An explicit request: `déci`, `zut`, `eus`, `ait` and
 `mangeassions` are all accepted. A Scrabble lexicon (ODS) would be stricter and
 more "correct" in tournament play, but it is under copyright.
 
 **Adjustment.** `server/data/extra-words.txt` and `excluded-words.txt` are read
-at startup. Fixing an omission needs neither a rebuild nor a release.
+at startup. Fixing an omission needs neither a rebuild nor a release, which is
+the answer to the gaps above: fill them as they are met.
 
 ---
 
