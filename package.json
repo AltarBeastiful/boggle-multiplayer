@@ -20,6 +20,7 @@
     "test:feedback": "node scripts/test-feedback.mjs",
     "test:round": "node scripts/test-round-end.mjs",
     "test:daily": "node scripts/test-daily.mjs",
+    "test:awards": "node scripts/test-awards.mjs",
     "test:restart": "node scripts/test-restart.mjs",
     "audit:mobile": "node scripts/audit-mobile.mjs",
     "audit:dict": "node scripts/audit-dictionary.mjs"

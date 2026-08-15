@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import type { PlayerRoundResult, RoomState, RoundResults, ScoredWord } from '@boggle/shared';
+import type { PlayerAwards, PlayerRoundResult, RoomState, RoundResults, ScoredWord } from '@boggle/shared';
 
 import { BoardGrid } from './BoardGrid';
 import { DefinitionCard } from './DefinitionCard';
@@ -44,6 +44,51 @@ function PlayerWords({ player, highlight }: { player: PlayerRoundResult; highlig
         <WordChip key={word.word} word={word} onHover={() => highlight(word.word)} />
       ))}
     </div>
+  );
+}
+
+/**
+ * The awards handed out once the last round is in. The scoreboard says who
+ * won; this says how everyone played, which is the half of the evening worth
+ * arguing about. Every player has a card, and nobody's is empty.
+ */
+function AwardsBoard({ awards, playerId }: { awards: PlayerAwards[]; playerId: string }) {
+  return (
+    <section className="rounded-2xl border border-border bg-panel p-4">
+      <h2 className="mb-3 text-sm font-semibold tracking-wide text-fg-muted uppercase">
+        Palmarès
+        <span className="ml-2 font-normal text-fg-faint normal-case">manière de jouer</span>
+      </h2>
+      {/* As many cards to a row as fit without squeezing: two players get half
+          the width each, five get a row of narrow ones. */}
+      <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(15rem,1fr))]">
+        {awards.map((entry) => (
+          <div
+            key={entry.playerId}
+            className={`rounded-xl p-3 ${entry.playerId === playerId ? 'bg-accent-soft' : 'bg-chip'}`}
+          >
+            <p className="mb-2.5 text-sm font-semibold text-fg">
+              {entry.nickname}
+              {entry.playerId === playerId && <span className="ml-1.5 text-xs text-fg-faint">(vous)</span>}
+            </p>
+            <ul className="space-y-2.5">
+              {entry.awards.map((award) => (
+                <li key={award.id} className="flex items-start gap-2.5">
+                  <span aria-hidden="true" className="text-2xl leading-none">
+                    {award.icon}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-fg">{award.name}</span>
+                    <span className="block text-xs text-fg-muted">{award.blurb}</span>
+                    <span className="block text-xs text-fg-faint">{award.detail}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -106,6 +151,12 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
         )}
       </header>
 
+      {/* Right under the result, and across the full width: at the end of a
+          game it is the first thing anyone wants to read. */}
+      {results.awards && results.awards.length > 0 && (
+        <AwardsBoard awards={results.awards} playerId={playerId} />
+      )}
+
       {/*
         On a wide screen, two columns: the grid, the standings and the
         definition stay in view while the solutions are read. Without that you
@@ -119,6 +170,8 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
               size={room.settings.boardSize}
               highlight={highlight}
               qEqualsQu={room.settings.qEqualsQu}
+              rotated={room.settings.rotatedDice}
+              throwKey={results.roundNumber}
               compact
             />
           </div>

@@ -15,3 +15,17 @@ export function mulberry32(seed: number): Rng {
 export function randomSeed(): number {
   return Math.floor(Math.random() * 0x100000000) >>> 0;
 }
+
+/**
+ * FNV-1a over UTF-16 code units. Turns a string into a seed, which is how a
+ * date or a grid of letters gets to stand in for a throw of the dice: the same
+ * text always gives the same seed, on any machine and after any restart.
+ */
+export function fnv1a(text: string): number {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index++) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash >>> 0;
+}

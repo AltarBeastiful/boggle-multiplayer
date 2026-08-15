@@ -100,7 +100,43 @@ modifiable au clavier, et part avec le bouton d'envoi.
 npm run test:trace     # vraies entrées tactiles et souris, via Playwright
 npm run test:round     # les deux façons de terminer une manche, à deux joueurs
 npm run test:daily     # la grille du jour, de l'accueil au classement
+npm run test:awards    # le jet des dés et les récompenses de fin de partie
 ```
+
+### Les dés tombent comme ils tombent
+
+Un dé secoué ne retombe pas toujours dans le bon sens, et un cube dans une case
+carrée n'a que quatre façons de se poser. La grille est donc affichée telle
+qu'elle est tombée : chaque dé tourné d'un quart, d'un demi ou de trois quarts
+de tour. Cela ne change rien au jeu — une case tournée épelle la même lettre et
+vaut le même nombre de points — seulement à la lecture, et c'est bien l'idée.
+Réglage `Orientation des dés`, pour qui préfère les lettres au garde-à-vous.
+
+Deux lettres deviennent une autre en tournant : le `M` renversé est un `W`, le
+`N` couché est un `Z`. Elles sont donc **soulignées**, le trait indiquant où est
+le bas. C'est la lecture qui est ambiguë, jamais le décompte : la grille tient
+un `M`, quoi qu'on y lise.
+
+Le jet n'est ni transmis ni enregistré : il est **déduit des lettres**
+elles-mêmes (`dieOrientations`), donc identique sur tous les écrans, retrouvé à
+l'identique après une reconnexion, et absent du protocole comme des fichiers de
+sauvegarde.
+
+### Les récompenses de fin de partie
+
+Quand la dernière manche est jouée, le classement dit qui a gagné et le
+**palmarès** dit comment chacun a joué : `🧠 Gros Cerveau` pour le plus long mot
+de la partie, `🐜 Grignoteur` pour qui empile les mots de trois lettres,
+`🐇 Lièvre`, `🔨 Force Brute` pour qui tente tout, `👻 Fantôme` pour les mots que
+personne d'autre n'a vus, et une douzaine d'autres.
+
+Plusieurs joueurs peuvent recevoir la même récompense, un joueur peut en cumuler
+jusqu'à trois, et **personne ne repart les mains vides** : une carte sans rien
+dessous se lirait comme un verdict. Chaque récompense affiche le chiffre qui l'a
+value, pour qu'elle ne soit jamais une simple affirmation.
+
+Le coût est une vingtaine de compteurs par joueur, incrémentés à la volée : rien
+n'est conservé mot par mot ni horodaté.
 
 Quand un mot est accepté, son chemin s'éclaire **deux dixièmes de seconde** puis
 s'efface : rien ne reste affiché entre deux mots. La marque est volontairement
@@ -135,6 +171,7 @@ utiles : un dé fait 89 px de côté, la grille et le champ tiennent ensemble da
 | **Doublons** | *annulés* (règle classique : un mot trouvé par plusieurs joueurs ne rapporte rien) ou *comptés pour tous* |
 | **Fin de partie** | 1, 3, 5 manches, 100 points, ou sans fin |
 | **Indice** | Affiche « X mots sur N » pendant la manche, **masqué par défaut** |
+| **Orientation des dés** | *dans tous les sens* (par défaut) ou *toutes droites* |
 
 Les pages de boggle.fr ne disent rien du sort des mots trouvés par plusieurs
 joueurs : le mode par défaut applique la règle classique du Boggle (annulation),
@@ -153,7 +190,8 @@ et l'autre mode reste disponible.
 ```
 packages/shared/   Moteur de règles pur TypeScript, partagé client/serveur
   board.ts           adjacence, recherche de chemin (avec la variante Q=QU)
-  dice.ts            sachet de 96 faces, tirage d'une grille jouable
+  dice.ts            sachet de 96 faces, tirage d'une grille jouable, jet des dés
+  awards.ts          compteurs par joueur, récompenses de fin de partie
   scoring.ts         les deux barèmes
   solver.ts          énumère tous les mots d'une grille
   dictionary.ts      recherche exacte + par préfixe

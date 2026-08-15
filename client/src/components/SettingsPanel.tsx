@@ -142,6 +142,20 @@ export function SettingsPanel({ settings, disabled, onChange }: SettingsPanelPro
         ]}
       />
 
+      {/* Purely a matter of reading: a die turned on its side spells the same
+          letter and is worth the same. */}
+      <Choice
+        label="Orientation des dés"
+        hint="comme au sortir du gobelet"
+        value={settings.rotatedDice ? 'thrown' : 'upright'}
+        disabled={disabled}
+        onChange={(mode) => onChange({ rotatedDice: mode === 'thrown' })}
+        options={[
+          { value: 'thrown', label: 'dans tous les sens' },
+          { value: 'upright', label: 'toutes droites' },
+        ]}
+      />
+
       <Choice
         label="Indice pendant la manche"
         hint="nombre de mots présents dans la grille"

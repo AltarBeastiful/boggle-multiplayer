@@ -3,10 +3,12 @@ import { test } from 'node:test';
 
 import {
   FRENCH_FACE_BAG,
+  REVERSIBLE_LETTERS,
   buildDictionary,
   countVowels,
   dailyKey,
   dailySeed,
+  dieOrientations,
   disambiguateNicknames,
   expandBag,
   findPath,
@@ -211,6 +213,48 @@ test('drawing is without replacement, never more faces than exist', () => {
 });
 
 // ---------------------------------------------------------------------------
+// How the dice landed
+// ---------------------------------------------------------------------------
+
+const THROWN = 'ABCDEFGHIJKLMNOP'.split('');
+
+test('every die gets one of four orientations', () => {
+  const turns = dieOrientations(THROWN, 1);
+  assert.equal(turns.length, THROWN.length);
+  for (const turn of turns) {
+    assert.ok(Number.isInteger(turn) && turn >= 0 && turn <= 3, `${turn} is not a quarter-turn`);
+  }
+});
+
+// The throw is never sent between players: it holds together only because the
+// same letters always give the same numbers, wherever they are worked out.
+test('the same grid falls the same way on every screen', () => {
+  assert.deepEqual(dieOrientations(THROWN, 1), dieOrientations([...THROWN], 1));
+  assert.deepEqual(dieOrientations(THROWN, 'lundi'), dieOrientations([...THROWN], 'lundi'));
+});
+
+test('two throws of the same letters are still two throws', () => {
+  assert.notDeepEqual(dieOrientations(THROWN, 1), dieOrientations(THROWN, 2));
+});
+
+test('a different grid falls differently', () => {
+  const other = [...THROWN];
+  other[0] = 'Z';
+  assert.notDeepEqual(dieOrientations(THROWN, 1), dieOrientations(other, 1));
+});
+
+test('all four orientations turn up over a few grids', () => {
+  const seen = new Set<number>();
+  for (let round = 0; round < 8; round++) for (const turn of dieOrientations(THROWN, round)) seen.add(turn);
+  assert.deepEqual([...seen].sort(), [0, 1, 2, 3]);
+});
+
+test('the letters that read as another letter upside down are marked', () => {
+  // M/W and N/Z, and nothing else: a turned A is still unmistakably an A.
+  assert.deepEqual([...REVERSIBLE_LETTERS].sort(), ['M', 'N', 'W', 'Z']);
+});
+
+// ---------------------------------------------------------------------------
 // Settings
 // ---------------------------------------------------------------------------
 
@@ -288,6 +332,12 @@ test('a day always yields the same grid, and two days do not', () => {
     generateBoard({ size: 4, seed: dailySeed(day), minWords: 0 }).board.cells.join('');
   assert.equal(grid('2026-08-14'), grid('2026-08-14'), 'the grid is rebuilt, never stored');
   assert.notEqual(grid('2026-08-14'), grid('2026-08-15'));
+});
+
+// The seed is the day's grid. Changing how it is derived would silently deal a
+// different grid for a day already played, so the value itself is nailed down.
+test('the daily seed is unchanged by sharing its hash with the dice', () => {
+  assert.equal(dailySeed('2026-08-14'), 989809312);
 });
 
 test('players sharing a nickname are numbered, in join order', () => {

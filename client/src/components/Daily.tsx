@@ -224,6 +224,8 @@ export function Daily({ onLeave }: { onLeave(): void }) {
               highlight={highlight}
               animateHighlight
               faintHighlight={faintTrace}
+              rotated
+              throwKey={state.day}
               interactive={!state.finished}
               compact={state.finished}
               path={path}

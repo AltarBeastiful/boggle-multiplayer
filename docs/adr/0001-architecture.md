@@ -339,6 +339,74 @@ d'adjectif" where only "Forme de" was expected.
 
 ---
 
+## Decision 15: the dice are shown as they fell, and the throw is derived rather than sent
+
+A shaken die does not land upright, and a cube in a square cell can settle four
+ways, so grids are drawn with each die turned a quarter, a half or three
+quarters. It changes nothing about the game — a turned tile spells the same
+letter, the solver never sees the angle — only about reading it, which is the
+point. `rotatedDice` turns it off for whoever wants the letters standing to
+attention.
+
+**Derived from the letters, not sent over the wire.** `dieOrientations(cells,
+salt)` seeds a generator with a hash of the grid, so every screen showing that
+grid shows the same throw. The alternative was an `orientations: number[]`
+threaded through `RoundState`, `RoundResults`, the stored room and the daily
+record: five places to keep in step, for something no rule depends on. Deriving
+it also means a reconnecting player finds the dice exactly as they left them,
+without that being a feature anyone had to write. The `salt` is the round
+number, or the day, so two rounds that happen to draw the same letters are still
+two throws.
+
+**Two letters are underlined.** A turned `M` is a `W`, and a turned `N` is a
+`Z`. The underline says which way is down, and it is shown on *every* M, N, W
+and Z rather than only the ones lying down: otherwise an unmarked M would itself
+mean "this one is upright", and reading the grid would become a chain of
+deductions instead of a glance. The mark is placed by hand in `em` just below
+the baseline rather than as a CSS border on the letter's box, which lands
+wherever the font's descender happens to be and, on a turned die, reads as a
+stray tick beside the letter instead of the ground under it.
+
+---
+
+## Decision 16: end-of-game awards, from counters rather than from a log
+
+Once the last round is in, the standings say who won and the awards say how
+everyone played: the longest word of the game, a heap of three-letter words,
+eight inventions the dictionary had never heard of.
+
+**Counters, not events.** About twenty numbers per player, bumped on submission
+and folded in at the end of each round, where a list of timestamped attempts
+would have been the obvious way to be able to answer any future question. Two
+numbers, `waitMs` and `waits`, say "a word every eleven seconds" as well as
+three hundred timestamps would, and they survive being written to disk with the
+room without thought. Nothing is kept that a rule does not already ask for.
+
+**Awards describe, they do not rank.** Several players can earn the same one,
+the player who came last can walk away with three, and nobody leaves
+empty-handed: an empty line under a name reads as a verdict, which is the
+opposite of the intent. A cap of three keeps a dominant player from collecting a
+wall of trophies that says nothing.
+
+**Thresholds have to be hard enough to mean something.** The first draft gave
+"found what nobody else did" at four words in ten and "thought like everybody
+else" at six in ten, which between them covered every player who had found
+anything: two rules carrying no information. A unit test written around an
+ordinary player caught it — they came out a Fantôme — and the bands were pulled
+apart to leave ordinary play ordinary.
+
+**Ordered by a fixed list, not by a score.** Which of a player's awards comes
+first is a judgement about the game, not something a formula should be deriving:
+"found the longest word of the evening" outranks "was accurate" because it does.
+
+**Where it lives.** `packages/shared/src/awards.ts`, pure and unit-tested, like
+the rest of the rules engine. The server keeps the counters and calls
+`computeAwards` when `gameOver` turns true; the result rides along in
+`RoundResults`, so it survives a restart with the room and needs no event of
+its own.
+
+---
+
 ## Known limits
 
 - **A single instance.** Rooms live in the process. Running several would need
@@ -352,3 +420,8 @@ d'adjectif" where only "Forme de" was expected.
   friends, not for an open service.
 - **The daily leaderboard trusts the player identifier**, which comes from
   `localStorage`. Words are verified, names are not.
+- **A player who joins mid-game is judged on a partial game.** Their counters
+  start where they came in, and an award earned over one round sits beside one
+  earned over three.
+- **Awards need a game that ends.** In "sans fin" the last round never comes, so
+  they are never handed out.

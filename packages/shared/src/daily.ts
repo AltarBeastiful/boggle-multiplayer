@@ -3,6 +3,7 @@
  * and without a room.
  */
 
+import { fnv1a } from './rng.js';
 import type { BoardSize } from './types.js';
 
 /**
@@ -32,12 +33,7 @@ export function dailyKey(at: Date = new Date()): string {
  * which is what lets the puzzle survive a restart without persistence.
  */
 export function dailySeed(day: string): number {
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < day.length; index++) {
-    hash ^= day.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash >>> 0;
+  return fnv1a(day);
 }
 
 /**

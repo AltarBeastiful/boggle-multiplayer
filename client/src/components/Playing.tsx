@@ -272,6 +272,8 @@ export function Playing({
             qEqualsQu={room.settings.qEqualsQu}
             animateHighlight
             faintHighlight={faintTrace}
+            rotated={room.settings.rotatedDice}
+            throwKey={roundNumber}
             interactive={!pending && canPlay}
             path={path}
             onPathChange={applyPath}

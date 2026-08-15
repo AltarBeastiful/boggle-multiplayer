@@ -9,6 +9,43 @@ Nothing is outstanding. What follows is what was asked for and built.
 
 ---
 
+## ~~Dice that do not all land the right way up~~ (done)
+
+Four orientations, because a cube in a square cell has four, and a setting for
+whoever wants the letters upright.
+
+The throw is derived from the letters rather than sent: `dieOrientations(cells,
+salt)` hashes the grid into a seed. Sending it would have meant threading an
+array through `RoundState`, `RoundResults`, the stored room and the daily
+record, four places to keep in step for something no rule depends on. Deriving
+it also handed us reconnection for free.
+
+The awkward part was not the rotation but `M`/`W` and `N`/`Z`, which become each
+other when turned. They are underlined, and underlined *always*, since an
+unmarked M would otherwise mean "this one is upright" and reading the grid would
+turn into a chain of deductions. The mark had to be positioned by hand: a CSS
+border sits at the font's descender, which on a turned die reads as a stray tick
+beside the letter rather than the floor under it.
+
+## ~~Awards at the end of a game, in the manner of TowerFall~~ (done)
+
+Twelve of them, plus two so that nobody leaves empty-handed. A player keeps at
+most three, ordered by what says most about them.
+
+Counters rather than a log: twenty numbers per player, bumped on submission and
+folded in at the end of each round. `waitMs` and `waits` say "a word every
+eleven seconds" as well as three hundred timestamps would, and they go to disk
+with the room without any thought.
+
+What nearly went wrong was the thresholds. "Found what nobody else did" at four
+words in ten, and "thought like everybody else" at six in ten, between them
+covered every player who had found anything — two rules that carried no
+information at all. A unit test built around a deliberately unremarkable player
+caught it: they came out a Fantôme. The bands were pulled apart to leave
+ordinary play ordinary, which is what makes the rest mean something.
+
+---
+
 ## ~~Shorten the trace shown when a word is accepted~~ (done)
 
 380 ms down to 200, with the pulse from 260 ms to 170 and its scale from 1.035

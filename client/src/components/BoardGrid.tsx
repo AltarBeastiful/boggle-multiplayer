@@ -1,6 +1,6 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
 
-import { getNeighbours } from '@boggle/shared';
+import { REVERSIBLE_LETTERS, dieOrientations, getNeighbours } from '@boggle/shared';
 
 interface BoardGridProps {
   cells: string[];
@@ -18,6 +18,13 @@ interface BoardGridProps {
    * built, or one held under the cursor, keeps the full mark.
    */
   faintHighlight?: boolean;
+  /** Shows the dice as they fell, each turned any of four ways. */
+  rotated?: boolean;
+  /**
+   * What this throw was: the round number, the day. Two rounds that drew the
+   * same letters are still two throws, and this is what tells them apart.
+   */
+  throwKey?: string | number;
   /** Makes the grid clickable, so a word can be built by finger or mouse. */
   interactive?: boolean;
   /** Path being built, owned by the parent. */
@@ -33,6 +40,8 @@ export function BoardGrid({
   compact = false,
   animateHighlight = false,
   faintHighlight = false,
+  rotated = false,
+  throwKey = '',
   interactive = false,
   path = [],
   onPathChange,
@@ -43,6 +52,12 @@ export function BoardGrid({
 
   const shown = path.length > 0 ? path : (highlight ?? []);
   const highlighted = new Set(shown);
+  /**
+   * How the dice came to rest. Derived from the letters themselves, so every
+   * screen showing this grid shows the same throw without a word being said
+   * about it over the network.
+   */
+  const turns = rotated ? dieOrientations(cells, throwKey) : null;
   // A word being built always gets the full mark, whatever the caller asked for.
   const faint = faintHighlight && path.length === 0;
 
@@ -129,6 +144,16 @@ export function BoardGrid({
     >
       {cells.map((letter, index) => {
         const active = highlighted.has(index);
+        const turn = turns?.[index] ?? 0;
+        /*
+         * A turned M is a W, and a turned N is a Z. The underline gives the
+         * letter a floor and settles the question, which is why it is shown on
+         * every reversible letter and not only the ones that happen to be
+         * lying down: an M with no underline would then mean "this one is the
+         * right way up", and reading the grid would become a chain of
+         * deductions instead of a glance.
+         */
+        const reversible = turns !== null && REVERSIBLE_LETTERS.has(letter);
         return (
           <div
             key={index}
@@ -148,13 +173,30 @@ export function BoardGrid({
               active && animateHighlight ? 'animate-trace' : '',
             ].join(' ')}
           >
-            {letter === 'Q' && qEqualsQu ? (
-              <span>
-                Q<span className="text-[0.55em] lowercase opacity-70">u</span>
-              </span>
-            ) : (
-              letter
-            )}
+            <span
+              className="relative inline-block leading-none"
+              style={turn === 0 ? undefined : { transform: `rotate(${turn * 90}deg)` }}
+            >
+              {letter === 'Q' && qEqualsQu ? (
+                <span>
+                  Q<span className="text-[0.55em] lowercase opacity-70">u</span>
+                </span>
+              ) : (
+                letter
+              )}
+              {/* Sized in em so it holds at any tile size, and placed by hand
+                  just under the baseline: a border on the letter's own box
+                  lands wherever the font's descender happens to be, which on a
+                  turned die reads as a stray tick beside the letter rather
+                  than as the ground under it. */}
+              {reversible && (
+                <span
+                  aria-hidden="true"
+                  data-floor
+                  className="absolute inset-x-[-0.1em] bottom-[0.09em] h-[0.06em] rounded-full bg-current opacity-45"
+                />
+              )}
+            </span>
           </div>
         );
       })}

@@ -2,16 +2,23 @@ import { randomInt } from 'node:crypto';
 
 import {
   DEFAULT_SETTINGS,
+  LONG_WORD_LENGTH,
   ROOM_CODE_ALPHABET,
   ROOM_CODE_LENGTH,
+  SHORT_WORD_LENGTH,
+  computeAwards,
   disambiguateNicknames,
+  emptyMetrics,
   generateBoard,
   normalizeWord,
+  restoreMetrics,
   sanitizeNickname,
   sanitizeSettings,
   solveBoard,
   wordScore,
   type Board,
+  type PlayerAwards,
+  type PlayerMetrics,
   type Dictionary,
   type GameSettings,
   type MyRoundState,
@@ -42,6 +49,14 @@ interface ServerPlayer {
   /** Words found in the current round. */
   words: Map<string, { points: number; path: number[] }>;
   lastSeen: number;
+  /** How they have been playing, for the awards at the end of the game. */
+  metrics: PlayerMetrics;
+  /**
+   * When their last word was accepted, to measure the gap before the next one.
+   * Belongs to the round rather than the game, and is not saved: a restart
+   * simply measures the next gap from the round's own start.
+   */
+  lastWordAt: number | null;
 }
 
 interface ActiveRound {
@@ -57,6 +72,8 @@ interface ActiveRound {
   solution: Map<string, number[]>;
   solutionPoints: number;
   timer: NodeJS.Timeout | null;
+  /** First player to get a word accepted this round, for "Premier Sang". */
+  opener: string | null;
 }
 
 export interface RoomBroadcaster {
@@ -80,8 +97,21 @@ interface StoredRoom {
   roundsPlayed: number;
   gameOver: boolean;
   lastActivity: number;
-  players: Array<{ id: string; nickname: string; totalScore: number; words: string[] }>;
-  round: { number: number; cells: string[]; startedAt: number; startsAt: number; endsAt: number | null } | null;
+  players: Array<{
+    id: string;
+    nickname: string;
+    totalScore: number;
+    words: string[];
+    metrics?: PlayerMetrics;
+  }>;
+  round: {
+    number: number;
+    cells: string[];
+    startedAt: number;
+    startsAt: number;
+    endsAt: number | null;
+    opener?: string | null;
+  } | null;
   results: RoundResults | null;
 }
 
@@ -131,6 +161,8 @@ export class Room {
       totalScore: 0,
       words: new Map(),
       lastSeen: Date.now(),
+      metrics: emptyMetrics(),
+      lastWordAt: null,
     };
     this.players.set(playerId, player);
     if (!this.hostId || !this.players.has(this.hostId)) this.hostId = playerId;
@@ -209,6 +241,7 @@ export class Room {
         nickname: player.nickname,
         totalScore: player.totalScore,
         words: [...player.words.keys()],
+        metrics: player.metrics,
       })),
       round: this.round
         ? {
@@ -217,6 +250,7 @@ export class Room {
             startedAt: this.round.startedAt,
             startsAt: this.round.startsAt,
             endsAt: this.round.endsAt,
+            opener: this.round.opener,
           }
         : null,
       results: this.results,
@@ -250,6 +284,8 @@ export class Room {
         totalScore: entry.totalScore ?? 0,
         words: new Map(),
         lastSeen: room.lastActivity,
+        metrics: restoreMetrics(entry.metrics),
+        lastWordAt: null,
       });
     }
 
@@ -272,6 +308,7 @@ export class Room {
       solution: solved.words,
       solutionPoints: solved.totalPoints,
       timer: null,
+      opener: stored.round.opener ?? null,
     };
 
     // Points and paths come from the grid, never from the file.
@@ -313,6 +350,8 @@ export class Room {
     for (const player of this.players.values()) {
       player.totalScore = 0;
       player.words.clear();
+      // Awards describe a game, so their evidence starts again with it.
+      player.metrics = emptyMetrics();
     }
     this.roundsPlayed = 0;
     this.gameOver = false;
@@ -338,6 +377,7 @@ export class Room {
     for (const player of this.players.values()) {
       player.totalScore = 0;
       player.words.clear();
+      player.metrics = emptyMetrics();
     }
     this.touch();
     this.broadcaster.state(this);
@@ -349,7 +389,12 @@ export class Room {
     const generated = generateBoard({ size: boardSize, dictionary: this.dictionary, minWordLength, qEqualsQu });
     const solution = solveBoard(generated.board, this.dictionary, { minWordLength, qEqualsQu }, scoringMode);
 
-    for (const player of this.players.values()) player.words.clear();
+    for (const player of this.players.values()) {
+      player.words.clear();
+      // The first word of a round is timed from the round, not from the last
+      // word of the previous one, which was minutes and a grid ago.
+      player.lastWordAt = null;
+    }
 
     const now = Date.now();
     const startsAt = now + COUNTDOWN_MS;
@@ -363,6 +408,7 @@ export class Room {
       solution: solution.words,
       solutionPoints: solution.totalPoints,
       timer: null,
+      opener: null,
     };
     this.phase = 'playing';
     this.results = null;
@@ -430,6 +476,27 @@ export class Room {
         words.push({ word, points, status: duplicate ? 'duplicate' : 'ok', foundBy: count });
       }
 
+      /*
+       * The round is scored, so everything the awards need about it is known
+       * at last: which words survived the duplicate rule, and which of them
+       * nobody else had. Folded into the running counters here and then
+       * forgotten, since the round's own words are cleared at the next start.
+       */
+      const metrics = player.metrics;
+      metrics.rounds += 1;
+      for (const scored of words) {
+        metrics.points += scored.points;
+        if (scored.word.length >= LONG_WORD_LENGTH) {
+          metrics.longWords += 1;
+          metrics.longPoints += scored.points;
+        }
+        if (scored.word.length <= SHORT_WORD_LENGTH) metrics.shortWords += 1;
+        if (scored.foundBy > 1) metrics.sharedWords += 1;
+        else metrics.soloWords += 1;
+        if (scored.word.length > metrics.longestWord.length) metrics.longestWord = scored.word;
+      }
+      if (round.opener === player.id) metrics.openings += 1;
+
       words.sort((a, b) => b.points - a.points || a.word.localeCompare(b.word, 'fr'));
       player.totalScore += roundScore;
       playerResults.push({
@@ -467,12 +534,29 @@ export class Room {
       solutionCount: round.solution.size,
       solutionPoints: round.solutionPoints,
       gameOver: this.gameOver,
+      awards: this.gameOver ? this.awards(names) : null,
     };
 
     this.results = results;
     this.round = null;
     this.touch();
     this.broadcaster.roundEnded(this, results);
+  }
+
+  /**
+   * The awards, once the last round is in: how each player played, rather than
+   * where they finished. Handed out in standings order so the list reads
+   * alongside the scoreboard instead of against it.
+   */
+  private awards(names: Map<string, string>): PlayerAwards[] {
+    const field = [...this.players.values()]
+      .sort((a, b) => b.totalScore - a.totalScore)
+      .map((player) => ({
+        playerId: player.id,
+        nickname: names.get(player.id) ?? player.nickname,
+        metrics: player.metrics,
+      }));
+    return computeAwards(field);
   }
 
   private checkGameOver(): boolean {
@@ -498,19 +582,40 @@ export class Room {
     if (round.endsAt !== null && Date.now() > round.endsAt + SUBMIT_GRACE_MS) {
       return { word, accepted: false, reason: 'round-over' };
     }
+    /*
+     * From here on the word was really tried: it reached the grid and the
+     * dictionary. What came before was the round refusing to listen at all,
+     * which says nothing about the player and is not counted against them.
+     */
+    const metrics = player.metrics;
+    metrics.attempts += 1;
+
     if (word.length < this.settings.minWordLength) return { word, accepted: false, reason: 'too-short' };
     if (player.words.has(word)) return { word, accepted: false, reason: 'already-found' };
 
     const path = round.solution.get(word);
     if (!path) {
       // Telling "not a word" from "not on the grid" is what helps a player improve.
-      const reason = this.dictionary.has(word) ? 'not-on-board' : 'not-a-word';
-      return { word, accepted: false, reason };
+      const known = this.dictionary.has(word);
+      if (known) metrics.offBoard += 1;
+      else metrics.invented += 1;
+      return { word, accepted: false, reason: known ? 'not-on-board' : 'not-a-word' };
     }
 
     const points = wordScore(word.length, this.settings.scoringMode);
     player.words.set(word, { points, path });
-    player.lastSeen = Date.now();
+
+    const now = Date.now();
+    metrics.accepted += 1;
+    // The gap before this word, timed from the previous one or from the start
+    // of the round. Words sent during the countdown are already refused above,
+    // so the gap cannot come out negative.
+    metrics.waitMs += Math.max(0, now - (player.lastWordAt ?? round.startsAt));
+    metrics.waits += 1;
+    player.lastWordAt = now;
+    if (round.opener === null) round.opener = player.id;
+
+    player.lastSeen = now;
     this.touch();
     this.broadcaster.state(this);
 

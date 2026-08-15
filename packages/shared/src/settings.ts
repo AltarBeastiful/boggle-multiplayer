@@ -68,6 +68,7 @@ export function sanitizeSettings(
     duplicateMode:
       patch.duplicateMode === 'cancel' || patch.duplicateMode === 'all' ? patch.duplicateMode : base.duplicateMode,
     qEqualsQu: typeof patch.qEqualsQu === 'boolean' ? patch.qEqualsQu : base.qEqualsQu,
+    rotatedDice: typeof patch.rotatedDice === 'boolean' ? patch.rotatedDice : base.rotatedDice,
     showSolutionCount:
       typeof patch.showSolutionCount === 'boolean' ? patch.showSolutionCount : base.showSolutionCount,
     endCondition: sanitizeEndCondition(patch.endCondition, base.endCondition),

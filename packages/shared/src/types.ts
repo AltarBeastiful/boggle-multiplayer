@@ -4,6 +4,8 @@
  * and variants from https://www.boggle.fr/variantes.php
  */
 
+import type { PlayerAwards } from './awards.js';
+
 export type BoardSize = 4 | 5;
 
 /** Scoring table. */
@@ -41,6 +43,13 @@ export interface GameSettings {
   /** "QU instead of Q" variant: a Q tile counts as either Q or QU. */
   qEqualsQu: boolean;
   /**
+   * Dice shown as they fell, each turned any of four ways, the way they come
+   * out of a real shaker. Purely a matter of reading: a turned die spells the
+   * same letter and is worth the same. On by default, because a grid whose
+   * letters all stand to attention is the unrealistic one.
+   */
+  rotatedDice: boolean;
+  /**
    * Hint showing how many words the grid holds during the round
    * ("3 words found out of 121"). Hidden by default.
    */
@@ -55,6 +64,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   scoringMode: 'classic',
   duplicateMode: 'cancel',
   qEqualsQu: false,
+  rotatedDice: true,
   showSolutionCount: false,
   endCondition: { type: 'rounds', rounds: 3 },
 };
@@ -134,6 +144,12 @@ export interface RoundResults {
   solutionPoints: number;
   /** Is the game over after this round? */
   gameOver: boolean;
+  /**
+   * How each player played, told through awards, in final standings order.
+   * Only filled in on the last round: a play style needs a whole game behind
+   * it, and handing out the same medals every round would wear them out.
+   */
+  awards: PlayerAwards[] | null;
 }
 
 export interface RoundState {

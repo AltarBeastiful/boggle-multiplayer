@@ -1,7 +1,7 @@
 import type { Board } from './board.js';
 import type { Dictionary } from './dictionary.js';
 import { countVowels } from './normalize.js';
-import { mulberry32, randomSeed, type Rng } from './rng.js';
+import { fnv1a, mulberry32, randomSeed, type Rng } from './rng.js';
 import { solveBoard } from './solver.js';
 import type { BoardSize } from './types.js';
 
@@ -45,6 +45,34 @@ function draw(count: number, rng: Rng): string[] {
   }
   return drawn;
 }
+
+/**
+ * How each die came to rest, in quarter-turns clockwise (0 to 3).
+ *
+ * Shaken dice do not all land the right way up, and a cubic die in a square
+ * cell can only settle four ways, so four is the whole story. Nothing about
+ * the round depends on it: a tile spells the same letter whichever way it
+ * faces, and the solver never sees this.
+ *
+ * Derived from the letters rather than sent by the server, which keeps it out
+ * of the protocol, out of the saved room and out of the daily record: the same
+ * grid gives the same throw on every screen, and a player who reconnects finds
+ * the dice exactly as they left them. `salt` separates two rounds that happened
+ * to draw the same letters.
+ */
+export function dieOrientations(cells: string[], salt: string | number = ''): number[] {
+  const rng = mulberry32(fnv1a(`${cells.join('')}#${salt}`));
+  return cells.map(() => Math.floor(rng() * 4));
+}
+
+/**
+ * Letters that become another letter once the die is turned: M and W are each
+ * other upside down, N and Z at a quarter-turn. Shown underlined when the dice
+ * are thrown, since the underline gives the letter a floor and takes the guess
+ * away. It is the reading that would otherwise be ambiguous, not the scoring:
+ * the grid holds an M whatever the player reads.
+ */
+export const REVERSIBLE_LETTERS: ReadonlySet<string> = new Set(['M', 'W', 'N', 'Z']);
 
 export interface GenerateBoardOptions {
   size: BoardSize;
