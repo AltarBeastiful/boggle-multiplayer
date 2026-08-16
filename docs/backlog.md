@@ -32,6 +32,13 @@ beside the letter rather than the floor under it.
 Twelve of them, plus two so that nobody leaves empty-handed. A player keeps at
 most three, ordered by what says most about them.
 
+Each one goes to a single player. The first draft handed every threshold to
+everyone who cleared it, which meant a fast room produced nothing but Lièvres —
+a word that then told nobody apart. Every rule became "whoever did this most,
+among those who did it enough at all", and the cap had to learn to pass an
+award down to the next qualifier rather than drop it, or a dominant player would
+win eight, keep three, and silently take five off everybody else.
+
 Counters rather than a log: twenty numbers per player, bumped on submission and
 folded in at the end of each round. `waitMs` and `waits` say "a word every
 eleven seconds" as well as three hundred timestamps would, and they go to disk

@@ -30,8 +30,8 @@ const check = (condition, failure) => {
 const browser = await chromium.launch();
 
 /** Opens the daily grid as a brand new player, and plays `wordCount` words. */
-async function play(nickname, wordCount) {
-  const context = await browser.newContext({ ...devices['Pixel 7'] });
+async function play(nickname, wordCount, options = devices['Pixel 7']) {
+  const context = await browser.newContext({ ...options });
   const page = await context.newPage();
   page.on('pageerror', (error) => problems.push(`${nickname}: page error ${error.message}`));
 
@@ -131,6 +131,39 @@ check(canPlayOn === 0, 'the grid could be played again after finishing');
 
 await first.context.close();
 await second.context.close();
+
+/*
+ * The definition is the one thing on this page that lives in two places at
+ * once: the solutions panel carries it for a narrow screen and hides it on a
+ * wide one, where it belongs beside the grid and only the page around it can
+ * put it there. Forgetting that half is silent — the word lights up, the card
+ * opens where nothing is looking — so both widths are checked, and the
+ * invariant is exactly one visible card, never none and never two.
+ */
+console.log('\n── The definition opens, whatever the width ──');
+for (const [label, options] of [
+  ['téléphone', devices['Pixel 7']],
+  ['bureau', { viewport: { width: 1280, height: 900 } }],
+]) {
+  const player = await play(`Lecteur-${run}-${label}`, 2, options);
+  await player.page.getByRole('button', { name: 'Voir les solutions' }).click();
+  await player.page.waitForTimeout(700);
+
+  // Solution chips are the only things on the page that expand.
+  await player.page.locator('button[aria-expanded]').first().click();
+  const card = player.page.locator('button[aria-label="Fermer la définition"]');
+  await card.first().waitFor({ state: 'visible', timeout: 10_000 }).catch(() => undefined);
+
+  const rendered = await card.count();
+  const visible = await player.page.locator('button[aria-label="Fermer la définition"]:visible').count();
+  const word = await player.page.locator('[aria-live="polite"] h3:visible').first().textContent().catch(() => null);
+  console.log(`  ${label}: cards rendered ${rendered}, visible ${visible}, showing ${JSON.stringify(word)}`);
+  check(visible === 1, `${label}: ${visible} definition cards visible instead of exactly one`);
+  check(Boolean(word), `${label}: the visible definition names no word`);
+
+  await player.context.close();
+}
+
 await browser.close();
 
 console.log('');

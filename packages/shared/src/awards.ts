@@ -4,10 +4,13 @@
  * played. Being fastest, or stubbornest, or the one who kept inventing words
  * is worth something even when it is not worth points.
  *
- * Three principles hold the whole thing up:
+ * Four principles hold the whole thing up:
  *
- *   - Awards describe, they do not rank. Several players can earn the same
- *     one, and the player who came last can walk away with three.
+ *   - An award goes to the one player who did that thing most, provided they
+ *     did it enough for it to mean anything. If everyone in the room is the
+ *     hare then nobody is, and the word has stopped telling anyone apart:
+ *     being fast is only interesting next to someone slower. Exact ties share,
+ *     which is the one case where sharing says something true.
  *   - A threshold has to be hard enough to mean something. Two rules that
  *     between them cover every possible player hand out no information at all,
  *     which is why "found what nobody else did" and "thought like everybody
@@ -17,6 +20,9 @@
  *   - Nothing is measured that costs anything to measure. What a round already
  *     knows is reused; the rest is a handful of counters bumped on submission,
  *     never a list of events kept for later.
+ *
+ * They are not a second scoreboard: the player who came last can walk away
+ * with three, and the winner with one.
  */
 
 /** Six letters or more is a long word: 3 points in the classic table. */
@@ -155,7 +161,11 @@ export interface AwardEntry {
   metrics: PlayerMetrics;
 }
 
-/** Nobody carries more than this: a wall of trophies says nothing at all. */
+/**
+ * Nobody carries more than this: a wall of trophies says nothing at all. An
+ * award whose leader is already full passes down the ranking rather than being
+ * dropped, so the cap spreads the ceremony instead of shrinking it.
+ */
 export const MAX_AWARDS_PER_PLAYER = 3;
 
 interface Scored {
@@ -168,32 +178,39 @@ interface Rule {
   name: string;
   icon: string;
   blurb: string;
-  /** Comparative awards mean nothing in a room of one. */
+  /**
+   * Awards whose whole meaning is "unlike the others" are skipped in a room of
+   * one, where every word found is one nobody else found. The rest still work
+   * alone: their thresholds are absolute, so a lone player earns them by doing
+   * the thing rather than by being the only candidate.
+   */
   needsRivals?: boolean;
   /** Whoever earns it, and the figure to show them. */
   earn(field: AwardEntry[]): Array<{ playerId: string; detail: string }>;
 }
 
 /**
- * Everyone the measure returns a number for. Returning null is how a rule says
- * "not this player": the threshold lives in the measure, not out here.
+ * The players at the top of a measure, and only them.
+ *
+ * Returning null is how a rule says "not this player": the threshold lives in
+ * the measure, so a rule reads as "whoever did this most, among those who did
+ * it enough at all". Both halves matter — without the threshold the fastest of
+ * three slow players becomes a hare, and without the comparison every fast
+ * player does.
+ *
+ * Exact ties all win. Splitting them would need a tie-break that means
+ * something, and there is none here that would.
  */
-function qualifiers(field: AwardEntry[], measure: (metrics: PlayerMetrics) => number | null): Scored[] {
-  const scored: Scored[] = [];
-  for (const entry of field) {
-    const value = measure(entry.metrics);
-    if (value !== null && Number.isFinite(value)) scored.push({ entry, value });
-  }
-  return scored;
-}
-
-/** Of those who qualify, the ones at the top. Ties all win, as they should. */
 function leaders(
   field: AwardEntry[],
   measure: (metrics: PlayerMetrics) => number | null,
   lowestWins = false,
 ): Scored[] {
-  const scored = qualifiers(field, measure);
+  const scored: Scored[] = [];
+  for (const entry of field) {
+    const value = measure(entry.metrics);
+    if (value !== null && Number.isFinite(value)) scored.push({ entry, value });
+  }
   if (scored.length === 0) return [];
   const values = scored.map((row) => row.value);
   const best = lowestWins ? Math.min(...values) : Math.max(...values);
@@ -236,12 +253,15 @@ const RULES: Rule[] = [
     name: 'Longue Portée',
     icon: '🏹',
     blurb: 'vise les gros mots, et tant pis pour les miettes',
+    // Ranked on the points actually taken in long words rather than on the
+    // share, so two long words and nothing else does not outrank a game built
+    // on ten of them.
     earn: (field) =>
-      qualifiers(field, (m) =>
-        m.longWords >= 2 && m.points > 0 && m.longPoints / m.points >= 0.5 ? m.longPoints / m.points : null,
-      ).map(({ entry, value }) => ({
+      leaders(field, (m) =>
+        m.longWords >= 2 && m.points > 0 && m.longPoints / m.points >= 0.5 ? m.longPoints : null,
+      ).map(({ entry }) => ({
         playerId: entry.playerId,
-        detail: `${Math.round(value * 100)} % de ses points en ${LONG_WORD_LENGTH} lettres ou plus`,
+        detail: `${Math.round((entry.metrics.longPoints / entry.metrics.points) * 100)} % de ses points en ${LONG_WORD_LENGTH} lettres ou plus`,
       })),
   },
   {
@@ -250,8 +270,8 @@ const RULES: Rule[] = [
     icon: '🐜',
     blurb: 'des petits mots, et beaucoup',
     earn: (field) =>
-      qualifiers(field, (m) =>
-        m.accepted >= 8 && m.shortWords / m.accepted >= 0.7 ? m.shortWords / m.accepted : null,
+      leaders(field, (m) =>
+        m.accepted >= 8 && m.shortWords / m.accepted >= 0.7 ? m.shortWords : null,
       ).map(({ entry }) => ({
         playerId: entry.playerId,
         detail: `${entry.metrics.shortWords} mots courts sur ${entry.metrics.accepted}`,
@@ -262,11 +282,17 @@ const RULES: Rule[] = [
     name: 'Lièvre',
     icon: '🐇',
     blurb: 'tape plus vite que son ombre',
+    // The quickest of the room, not everyone who happened to be quick: a room
+    // of four hares names nobody. Hence `lowestWins`.
     earn: (field) =>
-      qualifiers(field, (m) => {
-        const gap = pace(m);
-        return m.accepted >= 6 && gap !== null && gap <= 15 ? gap : null;
-      }).map(({ entry, value }) => ({
+      leaders(
+        field,
+        (m) => {
+          const gap = pace(m);
+          return m.accepted >= 6 && gap !== null && gap <= 15 ? gap : null;
+        },
+        true,
+      ).map(({ entry, value }) => ({
         playerId: entry.playerId,
         detail: `un mot toutes les ${seconds(value)}`,
       })),
@@ -277,7 +303,7 @@ const RULES: Rule[] = [
     icon: '🔨',
     blurb: 'tente tout, le dictionnaire suivra',
     earn: (field) =>
-      qualifiers(field, (m) =>
+      leaders(field, (m) =>
         m.invented >= 6 && m.attempts > 0 && m.invented / m.attempts >= 0.25 ? m.invented : null,
       ).map(({ entry }) => ({
         playerId: entry.playerId,
@@ -290,7 +316,7 @@ const RULES: Rule[] = [
     icon: '🌀',
     blurb: 'voit des mots qui ne sont pas dans la grille',
     earn: (field) =>
-      qualifiers(field, (m) =>
+      leaders(field, (m) =>
         m.offBoard >= 5 && m.attempts > 0 && m.offBoard / m.attempts >= 0.2 ? m.offBoard : null,
       ).map(({ entry }) => ({
         playerId: entry.playerId,
@@ -318,11 +344,13 @@ const RULES: Rule[] = [
     blurb: 'pense exactement comme les autres',
     needsRivals: true,
     earn: (field) =>
-      qualifiers(field, (m) =>
-        m.accepted >= 6 && m.sharedWords / m.accepted >= 0.7 ? m.sharedWords / m.accepted : null,
-      ).map(({ entry, value }) => ({
+      leaders(field, (m) =>
+        m.accepted >= 6 && m.sharedWords / m.accepted >= 0.7 ? m.sharedWords : null,
+      ).map(({ entry }) => ({
         playerId: entry.playerId,
-        detail: `${Math.round(value * 100)} % de ses mots trouvés par un autre`,
+        detail: `${Math.round(
+          (entry.metrics.sharedWords / entry.metrics.accepted) * 100,
+        )} % de ses mots trouvés par un autre`,
       })),
   },
   {
@@ -331,7 +359,7 @@ const RULES: Rule[] = [
     icon: '🎯',
     blurb: 'n’envoie que ce qui va passer',
     earn: (field) =>
-      qualifiers(field, (m) =>
+      leaders(field, (m) =>
         m.attempts >= 12 && m.accepted / m.attempts >= 0.9 ? m.accepted / m.attempts : null,
       ).map(({ entry }) => ({
         playerId: entry.playerId,
@@ -369,7 +397,7 @@ const RULES: Rule[] = [
     blurb: 'prend son temps, et le prend bien',
     needsRivals: true,
     earn: (field) =>
-      qualifiers(field, (m) => {
+      leaders(field, (m) => {
         const gap = pace(m);
         return m.accepted >= 3 && gap !== null && gap >= 40 ? gap : null;
       }).map(({ entry, value }) => ({
@@ -409,10 +437,21 @@ export function computeAwards(field: AwardEntry[]): PlayerAwards[] {
   const hasRivals = field.length > 1;
   for (const rule of RULES) {
     if (rule.needsRivals && !hasRivals) continue;
-    for (const { playerId, detail } of rule.earn(field)) {
-      const list = earned.get(playerId);
-      if (!list || list.length >= MAX_AWARDS_PER_PLAYER) continue;
-      list.push({ id: rule.id, name: rule.name, icon: rule.icon, blurb: rule.blurb, detail });
+    /*
+     * Judged among the players still collecting. Dropping the award when its
+     * leader is already full would let one strong player swallow half the
+     * ceremony: they win eight, keep three, and the six awards the rest of the
+     * room had earned are simply never said out loud. Passing it down the
+     * ranking spreads the ceremony without ever handing anyone a figure that
+     * is not theirs, since the threshold is checked against the player who
+     * ends up with it.
+     */
+    const available = field.filter((entry) => (earned.get(entry.playerId)?.length ?? 0) < MAX_AWARDS_PER_PLAYER);
+    if (available.length === 0) break;
+    for (const { playerId, detail } of rule.earn(available)) {
+      earned
+        .get(playerId)
+        ?.push({ id: rule.id, name: rule.name, icon: rule.icon, blurb: rule.blurb, detail });
     }
   }
 

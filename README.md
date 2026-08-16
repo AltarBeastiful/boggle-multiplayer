@@ -130,10 +130,19 @@ de la partie, `🐜 Grignoteur` pour qui empile les mots de trois lettres,
 `🐇 Lièvre`, `🔨 Force Brute` pour qui tente tout, `👻 Fantôme` pour les mots que
 personne d'autre n'a vus, et une douzaine d'autres.
 
-Plusieurs joueurs peuvent recevoir la même récompense, un joueur peut en cumuler
-jusqu'à trois, et **personne ne repart les mains vides** : une carte sans rien
-dessous se lirait comme un verdict. Chaque récompense affiche le chiffre qui l'a
-value, pour qu'elle ne soit jamais une simple affirmation.
+**Chaque récompense revient à un seul joueur** : celui qui a fait la chose le
+plus, à condition de l'avoir assez faite pour que ça veuille dire quelque chose.
+Si tout le monde est Lièvre, personne ne l'est — être rapide ne se remarque
+qu'à côté de quelqu'un de plus lent. Seule une égalité parfaite se partage.
+
+Un joueur en cumule au plus trois, et une récompense dont le premier est déjà
+plein **descend au suivant** plutôt que de disparaître : sans cela un joueur
+dominant en gagnerait huit, en garderait trois, et les cinq que le reste de la
+table avait méritées ne seraient jamais prononcées.
+
+**Personne ne repart les mains vides** : une carte sans rien dessous se lirait
+comme un verdict. Chaque récompense affiche le chiffre qui l'a value, pour
+qu'elle ne soit jamais une simple affirmation.
 
 Le coût est une vingtaine de compteurs par joueur, incrémentés à la volée : rien
 n'est conservé mot par mot ni horodaté.

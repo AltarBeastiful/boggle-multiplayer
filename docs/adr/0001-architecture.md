@@ -382,11 +382,25 @@ numbers, `waitMs` and `waits`, say "a word every eleven seconds" as well as
 three hundred timestamps would, and they survive being written to disk with the
 room without thought. Nothing is kept that a rule does not already ask for.
 
-**Awards describe, they do not rank.** Several players can earn the same one,
-the player who came last can walk away with three, and nobody leaves
-empty-handed: an empty line under a name reads as a verdict, which is the
-opposite of the intent. A cap of three keeps a dominant player from collecting a
-wall of trophies that says nothing.
+**Each award goes to one player.** The first draft handed every threshold to
+everyone who cleared it, so a room of four fast players produced four Lièvres —
+a word that then told nobody apart, since being fast is only interesting next to
+someone slower. Every rule is now "whoever did this most, among those who did it
+enough at all": the threshold keeps the fastest of three slow players from
+becoming a hare, and the comparison keeps a fast room from being all hares. Only
+an exact tie shares, there being no tie-break here that would mean anything.
+
+**The cap passes awards down rather than dropping them.** Three each, and an
+award whose leader is already full goes to the next qualifier. Otherwise the two
+rules pull against each other: a dominant player wins eight, keeps three, and
+the five the rest of the room had earned are never said out loud — which is the
+"everyone is a hare" problem again, wearing the opposite coat. Nobody is ever
+shown a figure that is not theirs, since the threshold is checked against
+whoever ends up holding it.
+
+**They are not a second scoreboard.** The player who came last can walk away
+with three and the winner with one, and nobody leaves empty-handed: an empty
+line under a name reads as a verdict, which is the opposite of the intent.
 
 **Thresholds have to be hard enough to mean something.** The first draft gave
 "found what nobody else did" at four words in ten and "thought like everybody

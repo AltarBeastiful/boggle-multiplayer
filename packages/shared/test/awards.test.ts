@@ -70,6 +70,104 @@ test('words that come quickly earn a Lièvre, slow ones a Tortue', () => {
   assert.ok(idsFor(awards, 'slow').includes('tortoise'));
 });
 
+// The point of the change: in a fast room, being fast is not the story. Only
+// the fastest is the hare, otherwise the word tells nobody apart.
+test('only the quickest of a fast room is the Lièvre', () => {
+  const awards = computeAwards([
+    player('fastest', { accepted: 10, points: 12, waits: 10, waitMs: 10 * 4_000 }),
+    player('fast', { accepted: 10, points: 12, waits: 10, waitMs: 10 * 7_000 }),
+    player('brisk', { accepted: 10, points: 12, waits: 10, waitMs: 10 * 11_000 }),
+  ]);
+  assert.deepEqual(
+    awards.filter((entry) => entry.awards.some((award) => award.id === 'hare')).map((e) => e.playerId),
+    ['fastest'],
+  );
+});
+
+test('a dead heat shares the award, having nothing to break the tie with', () => {
+  const awards = computeAwards([
+    player('a', { accepted: 10, points: 12, waits: 10, waitMs: 10 * 5_000 }),
+    player('b', { accepted: 10, points: 12, waits: 10, waitMs: 10 * 5_000 }),
+  ]);
+  assert.ok(idsFor(awards, 'a').includes('hare'));
+  assert.ok(idsFor(awards, 'b').includes('hare'));
+});
+
+test('being quickest is not enough: a slow room has no hare at all', () => {
+  const awards = computeAwards([
+    player('least-slow', { accepted: 8, points: 10, waits: 8, waitMs: 8 * 22_000 }),
+    player('slow', { accepted: 8, points: 10, waits: 8, waitMs: 8 * 30_000 }),
+  ]);
+  assert.ok(!idsFor(awards, 'least-slow').includes('hare'));
+});
+
+// Every rule is comparative now, so no award may land on the whole room at
+// once. This is the guard: whatever the field, nothing is handed to everybody.
+test('no award goes to every player of a room at the same time', () => {
+  // Three players who differ in kind rather than in degree, which is what the
+  // awards are for. Three who differ only in degree would leave the third one
+  // second at everything, and rightly holding nothing.
+  const field = [
+    player('long-words', {
+      attempts: 28, accepted: 26, points: 44, longWords: 9, longPoints: 36, shortWords: 1,
+      longestWord: 'PLANCHER', soloWords: 12, sharedWords: 14, openings: 2, waits: 26, waitMs: 26 * 5_000,
+      rounds: 3,
+    }),
+    player('small-fry', {
+      attempts: 24, accepted: 22, points: 24, shortWords: 18, longestWord: 'PLANS',
+      soloWords: 8, sharedWords: 14, openings: 1, waits: 22, waitMs: 22 * 9_000, rounds: 3,
+    }),
+    player('inventor', {
+      attempts: 30, accepted: 12, points: 14, invented: 15, offBoard: 3, longWords: 2, longPoints: 6,
+      shortWords: 6, longestWord: 'PLANTE', soloWords: 4, sharedWords: 8, waits: 12, waitMs: 12 * 14_000,
+      rounds: 3,
+    }),
+  ];
+  const awards = computeAwards(field);
+  const fallbacks = new Set(['all-rounder', 'bystander']);
+  const holders = new Map<string, number>();
+  for (const entry of awards) {
+    assert.ok(
+      entry.awards.some((award) => !fallbacks.has(award.id)),
+      `${entry.playerId} earned nothing but a fallback: the thresholds have grown too strict`,
+    );
+    for (const award of entry.awards) {
+      if (!fallbacks.has(award.id)) holders.set(award.id, (holders.get(award.id) ?? 0) + 1);
+    }
+  }
+  for (const [id, count] of holders) {
+    assert.ok(count < field.length, `${id} was handed to all ${field.length} players`);
+  }
+});
+
+/*
+ * The cap and the leader rule pull against each other: a strong player wins
+ * eight awards, keeps three, and without this the five the rest of the room
+ * had earned are never said out loud.
+ */
+test('a full player does not swallow the awards behind them', () => {
+  const awards = computeAwards([
+    player('sweeper', {
+      attempts: 40, accepted: 38, points: 70, longWords: 12, longPoints: 55, shortWords: 2,
+      longestWord: 'PLANCHER', soloWords: 30, sharedWords: 8, openings: 3, waits: 38, waitMs: 38 * 4_000,
+      rounds: 3,
+    }),
+    // Accurate and prolific, but second to the sweeper at both.
+    player('runner-up', {
+      attempts: 20, accepted: 19, points: 30, longWords: 3, longPoints: 9, shortWords: 4,
+      longestWord: 'PLANCHE', soloWords: 5, sharedWords: 14, openings: 0, waits: 19, waitMs: 19 * 8_000,
+      rounds: 3,
+    }),
+  ]);
+  assert.equal(idsFor(awards, 'sweeper').length, MAX_AWARDS_PER_PLAYER);
+  const second = idsFor(awards, 'runner-up');
+  assert.ok(second.length >= 1);
+  assert.ok(
+    !second.includes('all-rounder'),
+    `the runner-up fell back to Touche-à-tout with ${JSON.stringify(second)}`,
+  );
+});
+
 test('inventing words is told apart from misreading the grid', () => {
   const awards = computeAwards([
     player('inventor', { attempts: 30, accepted: 10, invented: 18, points: 10 }),

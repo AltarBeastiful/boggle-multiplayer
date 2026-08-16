@@ -29,7 +29,15 @@ interface SolutionPanelProps {
   playerId: string;
   players: PublicPlayer[];
   onHighlight(path: number[]): void;
-  /** Word whose definition is open, owned by the parent. */
+  /**
+   * Word whose definition is open, owned by the parent.
+   *
+   * The panel shows the definition itself on a narrow screen only. On a wide
+   * one it must appear beside the grid, in a column this component cannot
+   * reach, so **the parent has to render its own `DefinitionCard` there**,
+   * marked `hidden lg:block`. Forgetting it is silent: the word lights up, the
+   * card opens where nothing is looking, and the definition never appears.
+   */
   selected: string | null;
   onSelect(word: string | null): void;
   /** Played alone, as the grille du jour is: nobody else found anything. */

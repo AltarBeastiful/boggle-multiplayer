@@ -207,6 +207,19 @@ console.log('\n── Awards: two ways of playing, told apart ──');
     console.log(`  awards per player: ${perCard.join(', ')}`);
     check(perCard.every((count) => count >= 1), 'a player left the game with no award at all');
     check(perCard.every((count) => count <= 3), 'a player walked off with more than three awards');
+
+    /*
+     * The awards have to tell the two players apart. An award held by everyone
+     * in the room describes nobody: if both players are the hare, "hare" has
+     * stopped meaning anything.
+     */
+    const names = await palmares.first().locator('li > span:nth-child(2) > span:first-child').allTextContents();
+    const held = new Map();
+    for (const name of names) held.set(name.trim(), (held.get(name.trim()) ?? 0) + 1);
+    const shared = [...held.entries()].filter(([, count]) => count === 2).map(([name]) => name);
+    console.log(`  awards handed out: ${[...held.keys()].join(', ')}`);
+    console.log(`  held by both players: ${shared.length === 0 ? 'none' : shared.join(', ')}`);
+    check(shared.length === 0, `both players received: ${shared.join(', ')}`);
   }
 
   // The guest sees the same awards, from their own side.

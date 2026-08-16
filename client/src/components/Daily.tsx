@@ -7,6 +7,7 @@ import { TRACE_DURATION_MS, TRACE_FOUND_WORD } from '../lib/config';
 import { formatDuration, rejectionMessage } from '../lib/labels';
 import { getNickname, setNickname } from '../lib/storage';
 import { BoardGrid } from './BoardGrid';
+import { DefinitionCard } from './DefinitionCard';
 import { Leaderboard } from './Leaderboard';
 import { SolutionPanel } from './SolutionPanel';
 import { ThemeToggle } from './ThemeToggle';
@@ -247,6 +248,14 @@ export function Daily({ onLeave }: { onLeave(): void }) {
                 mots sur {state.solutionCount}, en {formatDuration(elapsed)}.
               </p>
             </section>
+          )}
+
+          {/* The definition follows the grid, the two being read together. The
+              panel below keeps its own copy for narrow screens and hides it
+              here; without this one, a definition asked for on a wide screen
+              opened nowhere at all. */}
+          {selected && (
+            <DefinitionCard className="hidden lg:block" word={selected} onClose={() => setSelected(null)} />
           )}
         </div>
 
