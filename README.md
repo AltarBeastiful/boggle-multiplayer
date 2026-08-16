@@ -101,6 +101,7 @@ npm run test:trace     # vraies entrées tactiles et souris, via Playwright
 npm run test:round     # les deux façons de terminer une manche, à deux joueurs
 npm run test:daily     # la grille du jour, de l'accueil au classement
 npm run test:awards    # le jet des dés et les récompenses de fin de partie
+npm run test:dict      # conjugations acceptées, orthographes fantômes refusées
 ```
 
 ### Les dés tombent comme ils tombent
@@ -224,9 +225,9 @@ passe automatiquement à un autre joueur. Les salles vides sont nettoyées.
 
 ## Le dictionnaire
 
-Environ **318 800 mots**, du paquet npm `an-array-of-french-words` (MIT),
+Environ **325 700 mots** : le paquet npm `an-array-of-french-words` (MIT),
 lui-même tiré des [listes de Letterpress](https://github.com/lorenbrichter/Words)
-(CC0) : formes fléchies, conjugaisons et pluriels compris. Volontairement
+(CC0), complété des conjugaisons manquantes (voir plus bas). Volontairement
 permissif : `déci`, `zut`, `eus`, `ait` et `mangeassions` sont acceptés. Les
 entrées à trait d'union ou apostrophe sont écartées : elles ne sont pas
 traçables sur une grille.
@@ -255,10 +256,38 @@ Pour combler un trou sans rien reconstruire : voir
 [`server/data/README.md`](server/data/README.md), un mot par ligne dans
 `extra-words.txt`, relecture au démarrage du serveur.
 
+### Les conjugaisons
+
+C'est là que « liste de jeu, pas lexique » se voyait le plus : la liste
+acceptait `grader` mais refusait `gradera`, `nourrir` mais aucune forme de son
+futur. Un joueur qui connaît sa conjugaison était puni de la connaître, ce qui
+est la façon la moins pardonnable pour un dictionnaire d'avoir tort.
+
+```bash
+npm run audit:conj          # mesure les trous
+npm run audit:conj -- --write   # les comble dans extra-words.txt
+npm run test:dict           # vérifie, hors ligne, en une seconde
+```
+
+La règle tient en une phrase : **seuls les verbes que le jeu accepte déjà sont
+complétés**. Aucun vocabulaire n'est ajouté, aucune opinion n'est prise sur ce
+qui a sa place dans un jeu de famille, et un verbe volontairement absent ne peut
+pas rentrer par la fenêtre. **7 118 formes** ajoutées, et la couverture des
+verbes connus passe de 97,3 % à 100 %.
+
+La référence est le Wiktionnaire, seule des deux sources à porter la
+conjugaison — Lexique ne connaît `grader` que comme un nom, et ne peut donc même
+pas voir le trou. Mais le Wiktionnaire *décrit* le français, il ne le prescrit
+pas : il consigne aussi l'orthographe d'avant 1835 (`avoit`, `seroit`), les
+formes régionales (`mangeont`), les contractions (`tsé`), les formes forgées par
+plaisanterie (`boivez`) et jusqu'aux régularisations enfantines — `fontsaient`
+est glosé « régularisation de *faisaient* à partir du présent *font* ». Toutes
+sont écartées. `rare` ne l'est pas : `gésir` est rare et parfaitement correct.
+
 ### Les définitions
 
 `GET /api/definition/:mot` répond depuis un fichier embarqué de
-**315 813 mots, 688 722 sens, 99,1 % du dictionnaire, 7 Mo compressés**, servi
+**322 739 mots, 701 741 sens, 99,1 % du dictionnaire, 7 Mo compressés**, servi
 en 0,01 s. Un mot polysémique montre ses trois principaux sens, et les
 homographes sont classés par fréquence d'usage réelle : `COTE` donne *côté*,
 *côte*, *cote*, *coté* dans cet ordre.

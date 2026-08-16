@@ -8,7 +8,7 @@ from real-world feedback". That repository was archived in May 2019, so the list
 is frozen there. Around 336,000 inflected forms, conjugations and plurals
 included; after normalisation, meaning uppercase, accents stripped and
 hyphenated or apostrophised entries dropped, about 318,800 playable words
-remain.
+remain — 325,700 with the conjugations added below.
 
 It is a word list for a game, not a lexicon, and it shows: see
 `scripts/audit-dictionary.mjs`, which measures what is missing against Lexique
@@ -21,6 +21,27 @@ ignored. Accents and case do not matter.
 
 - `extra-words.txt` : words to add
 - `excluded-words.txt` : words to drop
+
+## `extra-words.txt` is generated
+
+It currently holds **7,118 conjugations** the base list was missing — it
+accepted `grader` but refused `gradera` — put there by:
+
+```bash
+npm run audit:conj -- --write
+```
+
+Only verbs the dictionary already accepts are completed, so nothing new gets in
+by this route. Rerunning the command **keeps any line you added by hand**: only
+words it recognises as its own are rewritten. `npm run test:dict` checks the
+result in a second, offline.
+
+Two things need doing after editing either file:
+
+1. restart the server, which rereads them at startup;
+2. run `node scripts/build-definitions.mjs` if words were added, or they will
+   be the only ones in the game with no bundled definition, falling through to
+   a live Wiktionary call.
 
 Example `extra-words.txt`:
 

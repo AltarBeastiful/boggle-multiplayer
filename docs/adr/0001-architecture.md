@@ -106,8 +106,9 @@ rewritten, which is most of what Socket.IO brings.
 ## Decision 5: a permissive dictionary, adjustable without rebuilding
 
 `an-array-of-french-words` (MIT): 336,000 raw forms, 318,800 after
-normalisation. Hyphenated and apostrophised entries are dropped, as they cannot
-be traced anyway.
+normalisation, and 325,700 once the missing conjugations are filled in (below).
+Hyphenated and apostrophised entries are dropped, as they cannot be traced
+anyway.
 
 **Where it really comes from.** This ADR said "the Dicollecte/Grammalecte
 lexicon" until the claim was checked and found to be wrong. The package's own
@@ -134,6 +135,45 @@ more "correct" in tournament play, but it is under copyright.
 **Adjustment.** `server/data/extra-words.txt` and `excluded-words.txt` are read
 at startup. Fixing an omission needs neither a rebuild nor a release, which is
 the answer to the gaps above: fill them as they are met.
+
+**The conjugations, filled in.** The most damaging form of "word list, not
+lexicon" was the verbs: `grader` accepted and `gradera` refused, `nourrir`
+accepted and none of its future. A player who knows their conjugation was
+punished for knowing it. `scripts/audit-conjugations.mjs` measures the gap
+against Wiktionary and writes the missing forms into `extra-words.txt`: 7,118
+of them, taking coverage of the verbs the game knows from 97.3% to 100%.
+
+Three things make that safe to run unattended:
+
+- **Only verbs already accepted are completed.** No vocabulary is added, no
+  view is taken on what belongs in a family game, and a verb deliberately left
+  out cannot come back in through its own conjugation.
+- **Wiktionary describes French, it does not prescribe it.** It also records
+  pre-1835 spelling (`avoit`), regional forms (`mangeont`), contractions
+  (`tsé`), forms coined as jokes (`boivez`) and children's regularisations —
+  `fontsaient` is glossed "régularisation de *faisaient* à partir du présent
+  *font*". All are filtered out by tag, label and gloss. `rare` is deliberately
+  kept: `gésir` is rare and correct.
+- **Only the modern French alphabet.** `\p{L}` was too generous: Wiktionary
+  carries `aboutißẽt` under the French heading, and the eszett uppercases to
+  SS, so normalising it yields ABOUTISSET — a word that looks real, is entirely
+  traceable on a grid, and does not exist. One of those makes the dictionary
+  worse than the hole it was filling.
+
+Lexique cannot see this gap at all: it knows `grader` only as a noun. And the
+first pass silently skipped every pronominal verb in French, `enfuira` included,
+because Wiktionary files those under `s’enfuir` and the apostrophe failed the
+lookup without failing anything else.
+
+`scripts/game-dictionary.mjs` exists because of the same class of mistake: the
+audit and the definitions builder each built the dictionary from the bare npm
+package, ignoring the adjustment files. The definitions build therefore left
+every added word without a bundled definition — the words added precisely
+because they were missing became the only ones needing a live Wiktionary call.
+One helper, used by all three scripts and mirroring `server/src/dictionary.ts`.
+
+`npm run test:dict` checks the result offline in a second, so a lost or
+mis-generated file is caught without a browser or a network.
 
 ---
 
@@ -296,7 +336,7 @@ access goes through Traefik.
 ## Decision 14: bundled definitions, Wiktionary as fallback (options C then B)
 
 `GET /api/definition/:word` first consults a file shipped with the image
-(7 MB compressed, 315,813 words, 99.1% of the dictionary), and only falls back
+(7 MB compressed, 322,739 words, 99.1% of the dictionary), and only falls back
 to the live lookup for missing words, or if the file is absent, in which case
 the game behaves exactly as before.
 

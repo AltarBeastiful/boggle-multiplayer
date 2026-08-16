@@ -22,18 +22,18 @@
  */
 
 import { createReadStream, createWriteStream, existsSync, mkdirSync, statSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { pipeline } from 'node:stream/promises';
 import { createGunzip, createGzip } from 'node:zlib';
 
-import { buildDictionary, normalizeWord } from '@boggle/shared';
+import { normalizeWord } from '@boggle/shared';
+
+import { gameDictionary, wordAdjustments } from './game-dictionary.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
-const require = createRequire(resolve(root, 'server/package.json'));
 
 const WIKT_URL = 'https://kaikki.org/dictionary/downloads/fr/fr-extract.jsonl.gz';
 const LEXIQUE_URL = 'http://www.lexique.org/databases/Lexique383/Lexique383.tsv';
@@ -175,8 +175,16 @@ async function main() {
   log(`${frequencies.size} spellings with a known frequency`);
 
   log('loading the game dictionary');
-  const dictionary = buildDictionary(require('an-array-of-french-words'));
-  log(`${dictionary.size} playable words`);
+  /*
+   * The dictionary the server plays with, adjustments included. Building from
+   * the bare package instead leaves every added word without a bundled
+   * definition, so the words added precisely because they were missing become
+   * the only ones falling through to the live Wiktionary call.
+   */
+  const extra = wordAdjustments('extra-words.txt');
+  const excluded = wordAdjustments('excluded-words.txt');
+  const dictionary = gameDictionary();
+  log(`${dictionary.size} playable words (+${extra.length} added, -${excluded.length} excluded)`);
 
   // -- passe 1 : les sens des lemmes ----------------------------------------
   log('pass 1/2: lemma senses');

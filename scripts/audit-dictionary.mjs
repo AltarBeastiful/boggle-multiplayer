@@ -21,20 +21,20 @@
 
 import { createReadStream, existsSync } from 'node:fs';
 import { createInterface } from 'node:readline';
-import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createGunzip } from 'node:zlib';
 
-import { buildDictionary, normalizeWord } from '@boggle/shared';
+import { normalizeWord } from '@boggle/shared';
+
+import { gameDictionary } from './game-dictionary.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const require = createRequire(resolve(root, 'server/package.json'));
 const work = resolve(root, '.work');
 const LEXIQUE = resolve(work, 'Lexique383.tsv');
 const WIKTIONARY = resolve(work, 'fr-extract.jsonl.gz');
 
-const dictionary = buildDictionary(require('an-array-of-french-words'));
+const dictionary = gameDictionary();
 console.log(`Game dictionary: ${dictionary.size} playable forms\n`);
 
 /** A word the game could accept at all. */

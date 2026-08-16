@@ -22,8 +22,10 @@
     "test:daily": "node scripts/test-daily.mjs",
     "test:awards": "node scripts/test-awards.mjs",
     "test:restart": "node scripts/test-restart.mjs",
+    "test:dict": "node scripts/test-dictionary.mjs",
     "audit:mobile": "node scripts/audit-mobile.mjs",
-    "audit:dict": "node scripts/audit-dictionary.mjs"
+    "audit:dict": "node scripts/audit-dictionary.mjs",
+    "audit:conj": "node scripts/audit-conjugations.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

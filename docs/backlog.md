@@ -9,6 +9,42 @@ Nothing is outstanding. What follows is what was asked for and built.
 
 ---
 
+## ~~The conjugations that were not there~~ (done)
+
+Reported as `gradera`, refused although `grader` is accepted. It was not one
+word: 7,118 forms were missing, across 706 verbs the game already knew, with
+`nourrir` short of its entire future.
+
+The rule that made the repair safe to apply unattended: **only verbs the
+dictionary already accepts are completed**. It adds no vocabulary, takes no view
+on what belongs in a family game, and cannot let a deliberately excluded verb
+back in through its own conjugation.
+
+Three traps, all found by looking rather than by reasoning:
+
+- Lexique cannot see this gap. It knows `grader` only as a noun, so the
+  reference had to be Wiktionary, the only one of the two carrying conjugation.
+- Wiktionary *describes* French. It also holds pre-1835 spelling (`avoit`),
+  regional forms (`mangeont`), jokes (`boivez`) and children's regularisations
+  — `fontsaient`, glossed as such. All filtered; `rare` deliberately kept, since
+  `gésir` is rare and correct.
+- `\p{L}` let in `aboutißẽt`, and ß uppercases to SS, so it would have entered
+  the dictionary as ABOUTISSET: real-looking, traceable, non-existent.
+
+Then the same class of mistake twice over: the audit and the definitions builder
+both built the dictionary from the bare npm package, ignoring `extra-words.txt`.
+The definitions build therefore left every added word without a bundled
+definition — the words added because they were missing became the only ones
+needing a network call. Hence `scripts/game-dictionary.mjs`, one helper for all
+three scripts.
+
+And the first pass silently skipped every pronominal verb in French, `enfuira`
+included, because Wiktionary files those under `s’enfuir` and the apostrophe
+failed the lookup without failing anything else. Nothing reported it; it was
+found by probing a verb that ought to have been fixed and was not.
+
+---
+
 ## ~~Dice that do not all land the right way up~~ (done)
 
 Four orientations, because a cube in a square cell has four, and a setting for
