@@ -194,7 +194,7 @@ interface Rule {
  *
  * Returning null is how a rule says "not this player": the threshold lives in
  * the measure, so a rule reads as "whoever did this most, among those who did
- * it enough at all". Both halves matter — without the threshold the fastest of
+ * it enough at all". Both halves matter: without the threshold the fastest of
  * three slow players becomes a hare, and without the comparison every fast
  * player does.
  *

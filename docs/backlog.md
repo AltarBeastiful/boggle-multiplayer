@@ -12,13 +12,22 @@ Nothing is outstanding. What follows is what was asked for and built.
 ## ~~The conjugations that were not there~~ (done)
 
 Reported as `gradera`, refused although `grader` is accepted. It was not one
-word: 7,118 forms were missing, across 706 verbs the game already knew, with
-`nourrir` short of its entire future.
+word: 7,118 forms were missing across 706 verbs the game already knew, with
+`nourrir` short of its entire future. Then the verbs it had never had at all,
+which came to 27,600 words more.
 
-The rule that made the repair safe to apply unattended: **only verbs the
-dictionary already accepts are completed**. It adds no vocabulary, takes no view
-on what belongs in a family game, and cannot let a deliberately excluded verb
-back in through its own conjugation.
+Two rules, one per half. Completing a verb the dictionary already accepts needs
+no judgement, so it is done unattended. Adding a verb outright does, and the
+judgement is delegated to a corpus: **has anyone actually used the word**, per
+Lexique 3.83. Wiktionary conjugates 24,281 verbs the game lacked, and taking
+them all would have added 772,000 words, tripling the dictionary with
+`encyclopédier` and `concupiscer`.
+
+The two remaining conditions take opposite quantifiers, and getting that wrong
+put `enculer` at the top of the list. **Any** live sense keeps a verb, because
+tags sit on senses and `cibler` is dated in one reading and current in another
+(aggregating them threw out `zapper`, `cibler` and `zoomer`). But **no** sense
+may be vulgar: a word with one coarse meaning is a coarse word.
 
 Three traps, all found by looking rather than by reasoning:
 
@@ -26,7 +35,7 @@ Three traps, all found by looking rather than by reasoning:
   reference had to be Wiktionary, the only one of the two carrying conjugation.
 - Wiktionary *describes* French. It also holds pre-1835 spelling (`avoit`),
   regional forms (`mangeont`), jokes (`boivez`) and children's regularisations
-  — `fontsaient`, glossed as such. All filtered; `rare` deliberately kept, since
+  (`fontsaient`, glossed as such). All filtered; `rare` deliberately kept, since
   `gésir` is rare and correct.
 - `\p{L}` let in `aboutißẽt`, and ß uppercases to SS, so it would have entered
   the dictionary as ABOUTISSET: real-looking, traceable, non-existent.
@@ -34,7 +43,7 @@ Three traps, all found by looking rather than by reasoning:
 Then the same class of mistake twice over: the audit and the definitions builder
 both built the dictionary from the bare npm package, ignoring `extra-words.txt`.
 The definitions build therefore left every added word without a bundled
-definition — the words added because they were missing became the only ones
+definition, so the words added because they were missing became the only ones
 needing a network call. Hence `scripts/game-dictionary.mjs`, one helper for all
 three scripts.
 
@@ -44,6 +53,26 @@ failed the lookup without failing anything else. Nothing reported it; it was
 found by probing a verb that ought to have been fixed and was not.
 
 ---
+
+## ~~Version and release the generated dictionary~~ (done)
+
+`definitions.tsv.gz` was 17.5 MB of a 17.9 MB repository: 7 MB of gzip, which
+never delta-compresses, so every rebuild left a whole new copy in the history
+for ever.
+
+The two artefacts wanted opposite homes, so they got them. `extra-words.txt`
+stays in git, being 425 KB of text that diffs and *is* the lexicon; it carries
+its own version, date, word count and a SHA-256 of its contents.
+`definitions.tsv.gz` becomes a release asset, built by
+`.github/workflows/release.yml` on a tag, behind the rules tests and
+`test:dict`. Only the newest is kept: the workflow strips the asset from older
+releases, since it is reproducible and nothing reads an old one.
+
+The trap was where to download it. Not the Dockerfile: `docker-compose.yml`
+mounts `./server/data` over the image read-only, so a file baked into the image
+is shadowed at runtime by the very directory it was meant to fill. It goes in
+`deploy.sh`, before the build, which also puts it in the build context so the
+Dockerfile's own fallback finds it already there.
 
 ## ~~Dice that do not all land the right way up~~ (done)
 
@@ -69,7 +98,7 @@ Twelve of them, plus two so that nobody leaves empty-handed. A player keeps at
 most three, ordered by what says most about them.
 
 Each one goes to a single player. The first draft handed every threshold to
-everyone who cleared it, which meant a fast room produced nothing but Lièvres —
+everyone who cleared it, which meant a fast room produced nothing but Lièvres,
 a word that then told nobody apart. Every rule became "whoever did this most,
 among those who did it enough at all", and the cap had to learn to pass an
 award down to the next qualifier rather than drop it, or a dominant player would
@@ -82,7 +111,7 @@ with the room without any thought.
 
 What nearly went wrong was the thresholds. "Found what nobody else did" at four
 words in ten, and "thought like everybody else" at six in ten, between them
-covered every player who had found anything — two rules that carried no
+covered every player who had found anything: two rules that carried no
 information at all. A unit test built around a deliberately unremarkable player
 caught it: they came out a Fantôme. The bands were pulled apart to leave
 ordinary play ordinary, which is what makes the rest mean something.

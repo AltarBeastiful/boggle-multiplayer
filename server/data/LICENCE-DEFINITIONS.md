@@ -1,7 +1,17 @@
-# Licence of the definitions file
+# Licence of the generated dictionary files
 
-`definitions.tsv.gz` is not written by this project: it is **derived from the
-French Wiktionary**, and therefore remains subject to its licence.
+Two files here are not written by this project but **derived from the French
+Wiktionary**, and therefore remain subject to its licence:
+
+- `definitions.tsv.gz`, the bundled definitions, served by `/api/definition`.
+  Not in git; built by `scripts/build-definitions.mjs` and published as a
+  release asset.
+- `extra-words.txt`, the lexicon: conjugations the base word list was missing,
+  and verbs a French corpus attests. In git, written by
+  `scripts/audit-conjugations.mjs`.
+
+Both are published as release assets, so both are **distributed**, which is
+what makes attribution a duty here rather than a courtesy.
 
 ## Origin
 
@@ -18,6 +28,21 @@ French Wiktionary**, and therefore remains subject to its licence.
   attaches inflected forms to their lemma. No content is rewritten.
 - **Extraction date**: see the header of the build log, or the date of the
   commit that introduced the file.
+
+## The lexicon, `extra-words.txt`
+
+Same sources, different use. Wiktionary supplies which conjugated forms exist
+and which infinitive they belong to; Lexique 3.83 supplies whether a French
+corpus has ever met the verb, which is the test for admitting one. No
+definition, no gloss and no frequency is copied: what is kept is a list of
+words, one per line.
+
+A bare word list is thin material for copyright, and in places would fall under
+a database right rather than under copyright at all. Rather than argue the
+point, it is released under the same **CC BY-SA 4.0** as its sources, with the
+same attribution. The file carries its version, its date, its word count and a
+SHA-256 of its own contents in a header, so a copy found anywhere can say what
+it is.
 
 ## Licence
 

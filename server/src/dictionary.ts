@@ -19,7 +19,7 @@ const here = dirname(fileURLToPath(import.meta.url));
  * the French Wiktionary. Everyday French comes out intact; abbreviations
  * ("labo", "appart") and anglicisms ("deal", "fans") are what is missing.
  *
- * Its worst gap was the verbs — "grader" accepted, "gradera" refused — and
+ * Its worst gap was the verbs ("grader" accepted, "gradera" refused), and
  * `data/extra-words.txt` now carries the 7,118 conjugations that were missing,
  * written by `scripts/audit-conjugations.mjs`. See `data/README.md`.
  *

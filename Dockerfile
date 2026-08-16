@@ -14,6 +14,26 @@ COPY packages/shared packages/shared
 COPY server server
 COPY client client
 
+# The bundled definitions are not in git, so a fresh clone does not have them.
+# `docker compose` mounts server/data over this directory and gets its copy from
+# scripts/deploy.sh, which is why the file is usually already here and this step
+# does nothing. It is for `docker build` on its own, so the documented quickstart
+# still ships definitions.
+#
+# Best-effort throughout: a build must not fail because GitHub is unreachable,
+# and a game without this file still answers, by asking Wiktionary live.
+ARG DEFINITIONS_BASE=https://github.com/AltarBeastiful/boggle-multiplayer/releases/latest/download
+RUN if [ ! -s server/data/definitions.tsv.gz ]; then \
+      ( cd /tmp \
+        && wget -q -O definitions.tsv.gz "$DEFINITIONS_BASE/definitions.tsv.gz" \
+        && wget -q -O SHA256SUMS "$DEFINITIONS_BASE/SHA256SUMS" \
+        && grep 'definitions\.tsv\.gz$' SHA256SUMS > definitions.sha256 \
+        && sha256sum -c definitions.sha256 \
+        && mv definitions.tsv.gz /app/server/data/definitions.tsv.gz \
+        && echo '[build] definitions downloaded and verified' ) \
+      || echo '[build] no bundled definitions: words will be looked up on Wiktionary'; \
+    fi
+
 # Trace of a found word on the grid; VITE_WORD_TRACE=off removes it.
 ARG VITE_WORD_TRACE=on
 ENV VITE_WORD_TRACE=$VITE_WORD_TRACE

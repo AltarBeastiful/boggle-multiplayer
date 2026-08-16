@@ -7,9 +7,9 @@
  * Fast, offline, no browser: it builds the dictionary exactly as the server
  * does and asks it questions. The point is the conjugations. The word list is
  * derived from a game word list rather than a lexicon, and it used to accept
- * `grader` while refusing `gradera` — a player who knows their conjugation
- * being punished for it, which is the least forgivable way for a dictionary to
- * be wrong. `server/data/extra-words.txt` repairs that, and this is what
+ * `grader` while refusing `gradera`, so a player who knew their conjugation
+ * was punished for it, which is the least forgivable way for a dictionary to be
+ * wrong. `server/data/extra-words.txt` repairs that, and this is what
  * notices if the file is ever lost or rebuilt wrongly.
  *
  * Regenerate the file with: node scripts/audit-conjugations.mjs --write
@@ -61,6 +61,27 @@ console.log('── Conjugations of verbs the game accepts ──');
 }
 
 // ---------------------------------------------------------------------------
+console.log('\n── Verbs the base list never had ──');
+{
+  // Admitted because a French corpus has actually met them, and Wiktionary
+  // calls them neither obsolete nor coarse.
+  const verbs = [
+    ['télécharger', ['téléchargea', 'téléchargeront']],
+    ['zapper', ['zappait', 'zapperais']],
+    ['cibler', ['ciblera', 'ciblaient']],
+    ['réécrire', ['réécrira', 'réécrivait']],
+    ['menotter', ['menotta', 'menotteront']],
+    ['rembobiner', ['rembobina', 'rembobinerait']],
+  ];
+  for (const [infinitive, forms] of verbs) {
+    expect(infinitive, true, 'an attested modern verb is missing');
+    const missing = forms.filter((form) => !accepts(form));
+    console.log(`  ${infinitive.padEnd(13)} ${forms.length - missing.length + 1}/${forms.length + 1}`);
+    for (const form of missing) problems.push(`${form}: refused, though ${infinitive} was added`);
+  }
+}
+
+// ---------------------------------------------------------------------------
 console.log('\n── What must stay out ──');
 {
   const rubbish = [
@@ -74,6 +95,11 @@ console.log('\n── What must stay out ──');
     ['boivez', 'coined as a joke'],
     ['mangeont', 'regional'],
     ['zzzzz', 'not a word in any language'],
+    // Wiktionary conjugates 20,870 more verbs nobody has ever printed. Taking
+    // them would have added 772,000 words to a family word game.
+    ['encyclopédier', 'a Wiktionary coinage, in no corpus'],
+    ['concupiscer', 'the same'],
+    ['insecter', 'the same'],
   ];
   for (const [word, why] of rubbish) {
     const got = expect(word, false, `${why}: it should not be in the dictionary`);

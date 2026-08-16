@@ -70,6 +70,39 @@ else
   done < .env.example
 fi
 
+# The bundled definitions are not in git: 7 MB of gzip, which never
+# delta-compresses, so every rebuild left a permanent copy in the history. They
+# come from the latest release instead.
+#
+# It has to happen here rather than in the Dockerfile, because compose mounts
+# ./server/data over the image read-only: a file baked into the image would be
+# shadowed at runtime by this very directory. Fetched only when missing or
+# stale, and a failure is not fatal: without the file the game looks words up
+# on Wiktionary live, which is what it did before the file existed.
+defs=server/data/definitions.tsv.gz
+base="https://github.com/AltarBeastiful/boggle-multiplayer/releases/latest/download"
+if sums=$(curl -fsSL --max-time 60 "$base/SHA256SUMS" 2>/dev/null); then
+  want=$(printf '%s\n' "$sums" | awk '$2 ~ /definitions\.tsv\.gz$/ { print $1 }')
+  have=$(sha256sum "$defs" 2>/dev/null | cut -d' ' -f1 || true)
+  if [ -z "$want" ]; then
+    echo "-> The latest release has no definitions; Wiktionary will be used live"
+  elif [ "$want" = "$have" ]; then
+    echo "-> Definitions already up to date"
+  else
+    echo "-> Fetching the definitions from the latest release"
+    if curl -fsSL --max-time 900 -o "$defs.tmp" "$base/definitions.tsv.gz" &&
+      [ "$(sha256sum "$defs.tmp" | cut -d' ' -f1)" = "$want" ]; then
+      mv "$defs.tmp" "$defs"
+      echo "   verified, $(du -h "$defs" | cut -f1)"
+    else
+      rm -f "$defs.tmp"
+      echo "   download failed or corrupt: keeping what is there, Wiktionary covers the rest"
+    fi
+  fi
+else
+  echo "-> No release to take the definitions from; Wiktionary will be used live"
+fi
+
 # The container runs as the "node" user, uid 1000. Docker creates a missing
 # bind-mount directory as root, and the day's scores would then fail to save,
 # quietly. Creating it here, owned by 1000, is the whole fix.

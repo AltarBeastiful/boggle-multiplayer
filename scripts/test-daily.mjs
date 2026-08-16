@@ -136,8 +136,8 @@ await second.context.close();
  * The definition is the one thing on this page that lives in two places at
  * once: the solutions panel carries it for a narrow screen and hides it on a
  * wide one, where it belongs beside the grid and only the page around it can
- * put it there. Forgetting that half is silent — the word lights up, the card
- * opens where nothing is looking — so both widths are checked, and the
+ * put it there. Forgetting that half is silent: the word lights up and the card
+ * opens where nothing is looking. So both widths are checked, and the
  * invariant is exactly one visible card, never none and never two.
  */
 console.log('\n── The definition opens, whatever the width ──');

@@ -5,7 +5,7 @@
  * and `excluded-words.txt` adjust it, and a script that skips them measures,
  * or builds definitions for, a dictionary nobody is playing. That is how the
  * added conjugations came to be the only words in the game with no bundled
- * definition — the very words added because they were missing.
+ * definition, and those are the very words added because they were missing.
  *
  * Mirrors `server/src/dictionary.ts`, which does the same thing at runtime.
  */

@@ -106,7 +106,8 @@ rewritten, which is most of what Socket.IO brings.
 ## Decision 5: a permissive dictionary, adjustable without rebuilding
 
 `an-array-of-french-words` (MIT): 336,000 raw forms, 318,800 after
-normalisation, and 325,700 once the missing conjugations are filled in (below).
+normalisation, and 352,200 once the missing conjugations and verbs are filled
+in (below).
 Hyphenated and apostrophised entries are dropped, as they cannot be traced
 anyway.
 
@@ -150,13 +151,13 @@ Three things make that safe to run unattended:
   out cannot come back in through its own conjugation.
 - **Wiktionary describes French, it does not prescribe it.** It also records
   pre-1835 spelling (`avoit`), regional forms (`mangeont`), contractions
-  (`tsé`), forms coined as jokes (`boivez`) and children's regularisations —
+  (`tsé`), forms coined as jokes (`boivez`) and children's regularisations.
   `fontsaient` is glossed "régularisation de *faisaient* à partir du présent
   *font*". All are filtered out by tag, label and gloss. `rare` is deliberately
   kept: `gésir` is rare and correct.
 - **Only the modern French alphabet.** `\p{L}` was too generous: Wiktionary
   carries `aboutißẽt` under the French heading, and the eszett uppercases to
-  SS, so normalising it yields ABOUTISSET — a word that looks real, is entirely
+  SS, so normalising it yields ABOUTISSET: a word that looks real, is entirely
   traceable on a grid, and does not exist. One of those makes the dictionary
   worse than the hole it was filling.
 
@@ -165,10 +166,41 @@ first pass silently skipped every pronominal verb in French, `enfuira` included,
 because Wiktionary files those under `s’enfuir` and the apostrophe failed the
 lookup without failing anything else.
 
+**The verbs that were missing outright.** Completing known verbs left the ones
+the list had never had. Wiktionary conjugates 24,281 of those, and taking them
+all would have added **772,000 words**, nearly tripling the dictionary with
+`encyclopédier`, `plager`, `idéer`, `concupiscer`: real Wiktionary entries, and
+nonce coinages all the same. Every grid would have filled with words no player
+could be expected to know, which is a worse failure than the one being fixed.
+
+The test used instead is **attestation in a corpus**: has the verb actually
+been met in French films and books, per Lexique 3.83? That is what "does it make
+sense in French" means once it has to be decided by a program rather than
+argued, and it cuts 24,281 candidates to 746: `zapper`, `télécharger`,
+`réécrire`, `menotter`, `rembobiner`, `crasher`, `cibler`.
+
+Two further conditions, and they take **opposite quantifiers**, which is the
+part that was got wrong first. Tags sit on senses, not on words: `cibler` is
+`dated` in its military sense and current in its ordinary one. So **any** live
+sense keeps a verb (one live reading is enough, and aggregating the tags threw
+out `zapper`, `cibler` and `zoomer`), while **no** sense may be `vulgar` or
+`offensive` (a word with one coarse meaning is a coarse word, and reading it as
+"any clean sense" put `enculer` at the top of the list). Refusing the coarse
+ones is a decision about the source list rather than about the language: it has
+no `encule`, no `niquer`, no `pede`, so somebody already made that call, and
+re-adding them would quietly overrule it in a game meant for a family. Register
+is not a reason to refuse: `zyeuter` and `chourer` are familiar and slang and
+entirely French.
+
+**A known limit of the corpus test.** Lexique 3.83 is a fixed corpus, so a verb
+that became common after it was compiled is refused: `procrastiner` is missing
+for that reason alone. The alternative was an opinion, and an opinion does not
+scale to 24,281 candidates.
+
 `scripts/game-dictionary.mjs` exists because of the same class of mistake: the
 audit and the definitions builder each built the dictionary from the bare npm
 package, ignoring the adjustment files. The definitions build therefore left
-every added word without a bundled definition — the words added precisely
+every added word without a bundled definition, so the words added precisely
 because they were missing became the only ones needing a live Wiktionary call.
 One helper, used by all three scripts and mirroring `server/src/dictionary.ts`.
 
@@ -252,7 +284,7 @@ it, practice being nobody's business but the player's.
 **Where the state lives.** The room keeps a single `phase`, decided by the
 server. Which screen a player is on, and whether they are still searching, is
 client state. That distinction is the whole design: scoring is shared, reading
-and practising are private, and the game carries on around them — the host can
+and practising are private, and the game carries on around them: the host can
 start the next round while somebody is still on the old grid.
 
 **An untimed round** (`roundSeconds: null`) has no buzzer at all, so the host
@@ -336,7 +368,7 @@ access goes through Traefik.
 ## Decision 14: bundled definitions, Wiktionary as fallback (options C then B)
 
 `GET /api/definition/:word` first consults a file shipped with the image
-(7 MB compressed, 322,739 words, 99.1% of the dictionary), and only falls back
+(7 MB compressed, 349,200 words, 99.2% of the dictionary), and only falls back
 to the live lookup for missing words, or if the file is absent, in which case
 the game behaves exactly as before.
 
@@ -383,8 +415,9 @@ d'adjectif" where only "Forme de" was expected.
 
 A shaken die does not land upright, and a cube in a square cell can settle four
 ways, so grids are drawn with each die turned a quarter, a half or three
-quarters. It changes nothing about the game — a turned tile spells the same
-letter, the solver never sees the angle — only about reading it, which is the
+quarters. It changes nothing about the game (a turned tile spells the same
+letter, and the solver never sees the angle) and everything about reading it,
+which is the
 point. `rotatedDice` turns it off for whoever wants the letters standing to
 attention.
 
@@ -423,7 +456,7 @@ three hundred timestamps would, and they survive being written to disk with the
 room without thought. Nothing is kept that a rule does not already ask for.
 
 **Each award goes to one player.** The first draft handed every threshold to
-everyone who cleared it, so a room of four fast players produced four Lièvres —
+everyone who cleared it, so a room of four fast players produced four Lièvres,
 a word that then told nobody apart, since being fast is only interesting next to
 someone slower. Every rule is now "whoever did this most, among those who did it
 enough at all": the threshold keeps the fastest of three slow players from
@@ -433,7 +466,7 @@ an exact tie shares, there being no tie-break here that would mean anything.
 **The cap passes awards down rather than dropping them.** Three each, and an
 award whose leader is already full goes to the next qualifier. Otherwise the two
 rules pull against each other: a dominant player wins eight, keeps three, and
-the five the rest of the room had earned are never said out loud — which is the
+the five the rest of the room had earned are never said out loud, which is the
 "everyone is a hare" problem again, wearing the opposite coat. Nobody is ever
 shown a figure that is not theirs, since the threshold is checked against
 whoever ends up holding it.
@@ -446,7 +479,7 @@ line under a name reads as a verdict, which is the opposite of the intent.
 "found what nobody else did" at four words in ten and "thought like everybody
 else" at six in ten, which between them covered every player who had found
 anything: two rules carrying no information. A unit test written around an
-ordinary player caught it — they came out a Fantôme — and the bands were pulled
+ordinary player caught it (they came out a Fantôme) and the bands were pulled
 apart to leave ordinary play ordinary.
 
 **Ordered by a fixed list, not by a score.** Which of a player's awards comes
@@ -458,6 +491,46 @@ the rest of the rules engine. The server keeps the counters and calls
 `computeAwards` when `gameOver` turns true; the result rides along in
 `RoundResults`, so it survives a restart with the room and needs no event of
 its own.
+
+---
+
+## Decision 17: generated artefacts leave git, and a release builds them
+
+`definitions.tsv.gz` is 7 MB of gzip, and gzip does not delta-compress: every
+rebuild left a whole new 7 MB blob in the history, permanently. Three editions
+of it had taken the repository to 17.9 MB, of which **17.5 MB was that one
+file**. It was the repository.
+
+The two artefacts pull in opposite directions, so they are stored differently:
+
+- **`extra-words.txt` stays in git.** 425 KB of plain text, it diffs, it delta-
+  compresses, and it *is* the lexicon: the thing worth reviewing, versioning
+  and being able to blame line by line. It carries its own version, date, word
+  count and a SHA-256 of its contents.
+- **`definitions.tsv.gz` becomes a release asset.** Derived, binary, and
+  rebuildable from the lexicon at any time. `.github/workflows/release.yml`
+  builds it on a tag, after running the rules tests and `test:dict`, and
+  publishes it with the lexicon and the packaged game.
+
+**Only the newest dictionary is kept.** The workflow strips the asset from
+older releases: it is 7 MB an edition, it is reproducible, and nothing reads an
+old one, since the deploy always asks for `releases/latest`.
+
+**The download happens on the host, not in the Dockerfile**, and that is not a
+preference. `docker-compose.yml` mounts `./server/data` over the image
+read-only, so a file baked into the image is shadowed at runtime by the very
+directory it was meant to fill. `scripts/deploy.sh` fetches it before the build
+and verifies the SHA-256; because `server/data` is in the build context, the
+Dockerfile's own best-effort download then finds the file already there and
+does nothing. Both paths work, and one download happens.
+
+**What it costs.** Deploying now touches the network for something it used to
+have locally. That is affordable only because the file is optional by design:
+without it `/api/definition` falls back to Wiktionary live, which is the path
+decision 14 already describes and already tests. A failed download degrades the
+game; it does not stop it. The tension with decision 13's self-contained stack
+is real, and this is the boundary of it: the game runs offline, the
+definitions want a network, and they always did.
 
 ---
 

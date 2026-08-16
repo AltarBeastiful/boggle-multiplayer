@@ -9,3 +9,8 @@ audit-mobile/
 
 # Runtime state: the daily grid results. Kept on a volume in production.
 server/.state/
+
+# Bundled definitions: 7 MB of gzip, which never delta-compresses, so every
+# rebuild left a permanent copy in history. Downloaded from the latest release
+# by scripts/deploy.sh, or rebuilt with scripts/build-definitions.mjs.
+server/data/definitions.tsv.gz

@@ -1,0 +1,162 @@
+name: release
+
+# Builds the dictionary and publishes it with the game.
+#
+#   git tag v1.0.0 && git push origin v1.0.0
+#
+# or run it by hand from the Actions tab. The lexicon
+# (server/data/extra-words.txt) is committed and is the source of truth; what
+# this builds is everything derived from it, which is too big to keep in git:
+# definitions.tsv.gz is 7 MB of gzip, and gzip never delta-compresses, so every
+# rebuild used to leave a permanent 7 MB behind in the history.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (e.g. v1.0.1)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # The Wiktionary extract is 715 MB and the two passes over it are not quick.
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Work out the tag
+        id: tag
+        run: echo "name=${{ inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - run: npm ci
+
+      # The gate. A release that ships a dictionary nobody checked is worse
+      # than no release: the rules engine and the word list are both tested
+      # before anything is published.
+      - name: Test the rules engine
+        run: npm test
+
+      - name: Test the dictionary
+        run: npm run test:dict
+
+      - name: Build the game
+        run: npm run build
+
+      # 741 MB of sources. Cached by month so a rebuild in the same month is
+      # quick, and a new month picks up whatever Wiktionary has learned since.
+      - name: Cache the reference sources
+        uses: actions/cache@v4
+        with:
+          path: .work
+          key: sources-${{ hashFiles('scripts/build-definitions.mjs') }}-${{ github.run_id }}
+          restore-keys: |
+            sources-${{ hashFiles('scripts/build-definitions.mjs') }}-
+            sources-
+
+      - name: Build the definitions
+        run: node scripts/build-definitions.mjs
+
+      # What the dictionary is still missing, printed into the run's log so the
+      # release has a measured claim behind it rather than an assumption.
+      - name: Measure what is left
+        run: npm run audit:conj -- --verbs || true
+
+      - name: Package the game
+        id: package
+        env:
+          TAG: ${{ steps.tag.outputs.name }}
+        run: |
+          set -euo pipefail
+          out="boggle-multiplayer-$TAG"
+          mkdir -p "dist/$out"
+          cp package.json package-lock.json README.md "dist/$out/"
+          for workspace in packages/shared server client; do
+            mkdir -p "dist/$out/$workspace"
+            [ -f "$workspace/package.json" ] && cp "$workspace/package.json" "dist/$out/$workspace/"
+            cp -r "$workspace/dist" "dist/$out/$workspace/dist"
+          done
+          cp -r server/data "dist/$out/server/data"
+          cat > "dist/$out/RUNNING.md" <<'EOF'
+          # Running this build
+
+              npm ci --omit=dev --workspace @boggle/server --include-workspace-root
+              node server/dist/index.js      # http://localhost:3001
+
+          server/data holds the dictionary: extra-words.txt adjusts it and
+          definitions.tsv.gz answers /api/definition. Both are optional: without
+          them the game still runs, and definitions are looked up on Wiktionary
+          live.
+          EOF
+          tar -czf "$out.tar.gz" -C dist "$out"
+          echo "archive=$out.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Collect the artefacts
+        env:
+          TAG: ${{ steps.tag.outputs.name }}
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          cp server/data/definitions.tsv.gz release/
+          cp server/data/extra-words.txt release/boggle-lexicon.txt
+          cp "${{ steps.package.outputs.archive }}" release/
+          # Bare filenames, so `sha256sum -c` works from wherever they land.
+          ( cd release && sha256sum ./* | sed 's# \./# #' > SHA256SUMS )
+          ls -lh release
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.name }}
+        run: |
+          set -euo pipefail
+          words=$(grep -c '^[^#]' server/data/extra-words.txt || echo '?')
+          notes=$(mktemp)
+          cat > "$notes" <<EOF
+          Built by \`.github/workflows/release.yml\` from \`$TAG\`.
+
+          | Asset | What it is |
+          | --- | --- |
+          | \`definitions.tsv.gz\` | Bundled definitions, served by \`/api/definition\`. Downloaded at deploy time by \`scripts/deploy.sh\`. |
+          | \`boggle-lexicon.txt\` | The $words words added to the base dictionary: conjugations it was missing, and verbs attested in a French corpus. |
+          | \`boggle-multiplayer-$TAG.tar.gz\` | The built game. See \`RUNNING.md\` inside. |
+          | \`SHA256SUMS\` | Checksums for all of the above. |
+
+          The dictionary is derived from the **French Wiktionary** (via the
+          wiktextract extraction at kaikki.org) and **Lexique 3.83**, both
+          **CC BY-SA 4.0**; these two assets are therefore CC BY-SA 4.0 as well.
+          See \`server/data/LICENCE-DEFINITIONS.md\`.
+          EOF
+
+          gh release create "$TAG" release/* \
+            --title "$TAG" --notes-file "$notes" \
+            --verify-tag || gh release upload "$TAG" release/* --clobber
+
+      # Only the newest dictionary is kept. It is 7 MB an edition, it is
+      # regenerated from sources whenever it is wanted, and an older copy has no
+      # readers: the deploy always fetches `releases/latest`.
+      - name: Drop the dictionary from older releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.name }}
+        run: |
+          set -euo pipefail
+          for old in $(gh release list --limit 100 --json tagName --jq '.[].tagName' | grep -vx "$TAG" || true); do
+            for asset in definitions.tsv.gz; do
+              if gh release view "$old" --json assets --jq '.assets[].name' | grep -qx "$asset"; then
+                gh release delete-asset "$old" "$asset" --yes
+                echo "removed $asset from $old"
+              fi
+            done
+          done

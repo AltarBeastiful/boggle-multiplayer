@@ -8,7 +8,7 @@ from real-world feedback". That repository was archived in May 2019, so the list
 is frozen there. Around 336,000 inflected forms, conjugations and plurals
 included; after normalisation, meaning uppercase, accents stripped and
 hyphenated or apostrophised entries dropped, about 318,800 playable words
-remain — 325,700 with the conjugations added below.
+remain, and 352,200 with the conjugations and verbs added below.
 
 It is a word list for a game, not a lexicon, and it shows: see
 `scripts/audit-dictionary.mjs`, which measures what is missing against Lexique
@@ -24,8 +24,7 @@ ignored. Accents and case do not matter.
 
 ## `extra-words.txt` is generated
 
-It currently holds **7,118 conjugations** the base list was missing — it
-accepted `grader` but refused `gradera` — put there by:
+It currently holds **34,725 words** the base list was missing, put there by:
 
 ```bash
 npm run audit:conj -- --write
@@ -39,9 +38,27 @@ result in a second, offline.
 Two things need doing after editing either file:
 
 1. restart the server, which rereads them at startup;
-2. run `node scripts/build-definitions.mjs` if words were added, or they will
-   be the only ones in the game with no bundled definition, falling through to
-   a live Wiktionary call.
+2. rebuild the definitions if words were added, or they will be the only ones
+   in the game with no bundled definition, falling through to a live Wiktionary
+   call. Locally that is `node scripts/build-definitions.mjs`; in production it
+   happens by tagging a release.
+
+## `definitions.tsv.gz` is not in git
+
+It is 7 MB of gzip, and gzip never delta-compresses, so every rebuild left
+another permanent 7 MB in the history. Three editions had taken the repository
+to 17.9 MB, of which 17.5 MB was this one file.
+
+It is published as a release asset instead. `scripts/deploy.sh` fetches the
+newest one and checks its SHA-256 before the container starts; the download has
+to happen there rather than in the Dockerfile, because `docker-compose.yml`
+mounts this directory over the image read-only, so a copy baked into the image
+would be shadowed at runtime by this very directory.
+
+Nothing breaks without it: `/api/definition` falls back to looking words up on
+Wiktionary live, which is what it did before the file existed. To build one
+locally, run `node scripts/build-definitions.mjs`, which needs the 715 MB
+Wiktionary extract and downloads it into `.work/` once.
 
 Example `extra-words.txt`:
 

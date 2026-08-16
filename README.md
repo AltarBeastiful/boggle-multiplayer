@@ -106,68 +106,23 @@ npm run test:dict      # conjugations acceptées, orthographes fantômes refusé
 
 ### Les dés tombent comme ils tombent
 
-Un dé secoué ne retombe pas toujours dans le bon sens, et un cube dans une case
-carrée n'a que quatre façons de se poser. La grille est donc affichée telle
-qu'elle est tombée : chaque dé tourné d'un quart, d'un demi ou de trois quarts
-de tour. Cela ne change rien au jeu — une case tournée épelle la même lettre et
-vaut le même nombre de points — seulement à la lecture, et c'est bien l'idée.
-Réglage `Orientation des dés`, pour qui préfère les lettres au garde-à-vous.
+Un dé secoué ne retombe pas toujours du bon côté, et un cube dans une case
+carrée n'a que quatre façons de se poser : la grille est affichée telle qu'elle
+est tombée. Cela ne change rien au jeu, seulement à la lecture, et c'est bien
+l'idée. Réglage `Orientation des dés` pour qui préfère les lettres droites.
 
-Deux lettres deviennent une autre en tournant : le `M` renversé est un `W`, le
-`N` couché est un `Z`. Elles sont donc **soulignées**, le trait indiquant où est
-le bas. C'est la lecture qui est ambiguë, jamais le décompte : la grille tient
-un `M`, quoi qu'on y lise.
-
-Le jet n'est ni transmis ni enregistré : il est **déduit des lettres**
-elles-mêmes (`dieOrientations`), donc identique sur tous les écrans, retrouvé à
-l'identique après une reconnexion, et absent du protocole comme des fichiers de
-sauvegarde.
+Le `M` renversé est un `W` et le `N` couché un `Z` : ces lettres sont
+**soulignées**, le trait indiquant où est le bas. La grille tient un `M`, quoi
+qu'on y lise.
 
 ### Les récompenses de fin de partie
 
 Quand la dernière manche est jouée, le classement dit qui a gagné et le
 **palmarès** dit comment chacun a joué : `🧠 Gros Cerveau` pour le plus long mot
-de la partie, `🐜 Grignoteur` pour qui empile les mots de trois lettres,
-`🐇 Lièvre`, `🔨 Force Brute` pour qui tente tout, `👻 Fantôme` pour les mots que
-personne d'autre n'a vus, et une douzaine d'autres.
-
-**Chaque récompense revient à un seul joueur** : celui qui a fait la chose le
-plus, à condition de l'avoir assez faite pour que ça veuille dire quelque chose.
-Si tout le monde est Lièvre, personne ne l'est — être rapide ne se remarque
-qu'à côté de quelqu'un de plus lent. Seule une égalité parfaite se partage.
-
-Un joueur en cumule au plus trois, et une récompense dont le premier est déjà
-plein **descend au suivant** plutôt que de disparaître : sans cela un joueur
-dominant en gagnerait huit, en garderait trois, et les cinq que le reste de la
-table avait méritées ne seraient jamais prononcées.
-
-**Personne ne repart les mains vides** : une carte sans rien dessous se lirait
-comme un verdict. Chaque récompense affiche le chiffre qui l'a value, pour
-qu'elle ne soit jamais une simple affirmation.
-
-Le coût est une vingtaine de compteurs par joueur, incrémentés à la volée : rien
-n'est conservé mot par mot ni horodaté.
-
-Quand un mot est accepté, son chemin s'éclaire **deux dixièmes de seconde** puis
-s'efface : rien ne reste affiché entre deux mots. La marque est volontairement
-**plus pâle** que celle d'un mot en cours de composition ; une marque légère se
-comprend plus vite, donc elle peut partir plus tôt, et l'œil est déjà reparti
-chercher le mot suivant. Survoler un mot déjà trouvé garde en revanche la marque
-franche : là, on regarde. Pour supprimer complètement ce tracé, compilez avec
-`VITE_WORD_TRACE=off` (variable reprise par `docker compose` comme argument de
-build).
-
-L'interface suit le **thème clair ou sombre** du système, avec un bouton pour
-forcer l'un ou l'autre. Les contrastes des deux thèmes vérifient le niveau AA.
-
-```bash
-npm run audit:mobile   # parcourt une partie en 412x915, mesure et photographie
-```
-
-Le script relève les cibles tactiles sous 44 px, les textes sous 12 px, les
-débordements horizontaux et ce qui reste lisible sans faire défiler. Mesures
-utiles : un dé fait 89 px de côté, la grille et le champ tiennent ensemble dans
-453 px, donc un clavier virtuel peut en prendre 460 sans rien couper.
+de la partie, `🐜 Grignoteur` pour qui empile les mots courts, `🐇 Lièvre`,
+`🔨 Force Brute` pour qui tente tout, et une dizaine d'autres. Chacune revient à
+un seul joueur, personne ne repart les mains vides, et la règle exacte est dans
+l'[ADR](docs/adr/0001-architecture.md).
 
 ### Variantes disponibles (réglées par l'hôte, avant la partie)
 
@@ -260,38 +215,33 @@ Pour combler un trou sans rien reconstruire : voir
 
 C'est là que « liste de jeu, pas lexique » se voyait le plus : la liste
 acceptait `grader` mais refusait `gradera`, `nourrir` mais aucune forme de son
-futur. Un joueur qui connaît sa conjugaison était puni de la connaître, ce qui
-est la façon la moins pardonnable pour un dictionnaire d'avoir tort.
+futur. **34 700 formes** ont été ajoutées, et les verbes connus passent de
+97,3 % à 100 % de couverture.
 
 ```bash
-npm run audit:conj          # mesure les trous
-npm run audit:conj -- --write   # les comble dans extra-words.txt
-npm run test:dict           # vérifie, hors ligne, en une seconde
+npm run audit:conj -- --verbs --write   # mesure et comble
+npm run test:dict                       # vérifie, hors ligne, en une seconde
 ```
 
-La règle tient en une phrase : **seuls les verbes que le jeu accepte déjà sont
-complétés**. Aucun vocabulaire n'est ajouté, aucune opinion n'est prise sur ce
-qui a sa place dans un jeu de famille, et un verbe volontairement absent ne peut
-pas rentrer par la fenêtre. **7 118 formes** ajoutées, et la couverture des
-verbes connus passe de 97,3 % à 100 %.
-
-La référence est le Wiktionnaire, seule des deux sources à porter la
-conjugaison — Lexique ne connaît `grader` que comme un nom, et ne peut donc même
-pas voir le trou. Mais le Wiktionnaire *décrit* le français, il ne le prescrit
-pas : il consigne aussi l'orthographe d'avant 1835 (`avoit`, `seroit`), les
-formes régionales (`mangeont`), les contractions (`tsé`), les formes forgées par
-plaisanterie (`boivez`) et jusqu'aux régularisations enfantines — `fontsaient`
-est glosé « régularisation de *faisaient* à partir du présent *font* ». Toutes
-sont écartées. `rare` ne l'est pas : `gésir` est rare et parfaitement correct.
+Deux règles, détaillées dans l'[ADR](docs/adr/0001-architecture.md) : on ne
+complète que les verbes déjà acceptés, et on n'ajoute un verbe manquant que si
+un corpus français l'a réellement rencontré (Lexique 3.83). Sans ce second
+garde-fou, le Wiktionnaire en aurait apporté 772 000 de plus, `encyclopédier` et
+`concupiscer` compris.
 
 ### Les définitions
 
 `GET /api/definition/:mot` répond depuis un fichier embarqué de
-**322 739 mots, 701 741 sens, 99,1 % du dictionnaire, 7 Mo compressés**, servi
+**349 200 mots, 743 366 sens, 99,2 % du dictionnaire, 7 Mo compressés**, servi
 en 0,01 s. Un mot polysémique montre ses trois principaux sens, et les
 homographes sont classés par fréquence d'usage réelle : `COTE` donne *côté*,
 *côte*, *cote*, *coté* dans cet ordre.
-Il est construit par :
+
+Ce fichier **n'est pas dans git** : 7 Mo de gzip, qui ne se compresse jamais en
+delta, donc chaque reconstruction laissait 7 Mo de plus dans l'historique pour
+toujours. Il est publié comme **asset de release**, construit par la CI
+(`.github/workflows/release.yml`), et `scripts/deploy.sh` récupère le plus
+récent en vérifiant son SHA-256. Pour en construire un localement :
 
 ```bash
 node scripts/build-definitions.mjs      # ~10 min, 715 Mo téléchargés en flux
