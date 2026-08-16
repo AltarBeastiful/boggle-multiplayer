@@ -13,118 +13,41 @@ npm install
 npm run dev            # serveur sur :3001, client sur :5173
 ```
 
-Ouvrez http://localhost:5173, créez une partie, partagez le lien `/r/CODE`.
-
-En production, un seul processus sert l'API, les WebSockets et le client :
-
-```bash
-npm run build
-npm start              # http://localhost:3001
-```
-
-Ou avec Docker :
+Ouvrez http://localhost:5173, créez une partie, partagez le lien `/r/CODE`. En
+production, un seul processus sert l'API, les WebSockets et le client :
 
 ```bash
-docker build -t boggle .
-docker run -p 3001:3001 boggle
+npm run build && npm start                          # http://localhost:3001
+docker build -t boggle . && docker run -p 3001:3001 boggle
 ```
 
-Les tests du moteur de règles :
+## Jouer
 
-```bash
-npm test
-```
+- Manche de **3 minutes**, réglable, ou sans limite.
+- Lettres **adjacentes**, diagonales comprises ; une case ne sert pas deux fois.
+- Mots de **3 lettres ou plus**, **accents ignorés** : `cœur` s'écrit `COEUR`.
+- Décompte **3-4 → 1, 5 → 2, 6 → 3, 7 → 5, 8+ → 11**, cumulé de manche en manche.
 
-## La grille du jour
+La saisie se fait au clavier ou **sur la grille**, au doigt comme à la souris. Le
+coup de sifflet ne retire pas la grille : chacun choisit, pour lui seul, de voir
+les solutions ou de continuer à chercher hors chrono. La page des solutions
+groupe les mots par longueur, marque qui les a trouvés et affiche leur
+définition.
+
+Les dés sont montrés **tels qu'ils sont tombés**, tournés d'un quart ou d'un
+demi-tour, comme au sortir du gobelet. Le `M` renversé étant un `W` et le `N`
+couché un `Z`, ces lettres sont soulignées. Réglage `Orientation des dés` pour
+qui préfère les lettres droites.
+
+### La grille du jour
 
 Sur la page d'accueil, une **grille par jour, la même pour tout le monde**, qui
-se joue seul, sans salle ni code. Le chronomètre **compte mais n'arrête rien** :
-on cherche aussi longtemps qu'on veut, et on décide quand voir les solutions.
-Une fois terminée, la grille affiche les solutions manquées et le **classement
-du jour**, où les ex æquo sont départagés par le temps mis.
+se joue seul. Le chronomètre compte mais n'arrête rien ; une fois la grille
+terminée viennent les solutions manquées et le **classement du jour**, où les ex
+æquo sont départagés par le temps mis. Elle se déduit de la date, n'est donc
+stockée nulle part, et change à **minuit à Paris**.
 
-La grille n'est stockée nulle part : elle se **déduit de la date**, donc
-n'importe quel serveur reconstruit la même. Le jour change à **minuit à Paris**,
-pas à minuit UTC, qui tombe à une ou deux heures du matin ici.
-
-## Les règles implémentées
-
-- Manche de **3 minutes** (réglable).
-- On enchaîne les lettres **adjacentes**, horizontalement, verticalement ou en
-  diagonale ; une case ne sert **pas deux fois** dans le même mot.
-- Mots de **3 lettres ou plus**.
-- Les **accents ne comptent pas** : `E` vaut É, È, Ê ; `cœur` s'écrit `COEUR`.
-- Décompte : **3-4 → 1, 5 → 2, 6 → 3, 7 → 5, 8+ → 11**.
-- Les points **s'additionnent d'une manche à l'autre**. La partie s'arrête au
-  nombre de manches ou au score fixé par l'hôte.
-
-Chaque manche démarre par un **décompte de 2 secondes** (« Prêt ? », « Partez ! »),
-grille floutée : le
-serveur donne l'instant du départ, donc tout le monde voit les lettres au même
-moment, même si sa grille est arrivée quelques dizaines de millisecondes plus tôt.
-
-**Le coup de sifflet ne retire pas la grille.** La manche est comptée et le
-classement est fixé, mais les lettres restent devant vous, et le champ de saisie
-laisse place à un choix :
-
-- **« Voir les solutions »**, pour lire les réponses ;
-- **« Continuer à chercher »**, pour finir la grille **hors chrono**.
-
-Chacun choisit pour lui seul : un joueur lit les réponses pendant qu'un autre
-s'acharne encore. En mode hors chrono, le chronomètre reste affiché à `0:00`,
-les mots sont jugés exactement comme pendant la manche (« absent du
-dictionnaire » ou « pas traçable sur la grille ») mais **ne comptent pas** et
-s'affichent à part : le classement est déjà arrêté, il ne bougera plus. Un
-bouton en bas ramène aux solutions quand vous avez fini. La partie, elle,
-continue : l'hôte peut lancer la manche suivante à tout moment.
-
-En **durée « sans limite »**, il n'y a pas de sifflet : l'hôte arrête la manche
-avec ce même bouton, pour tout le monde à la fois.
-
-À la fin de la manche, la **page des solutions** liste les mots de la grille
-groupés par longueur, en marquant ceux que vous avez trouvés, ceux qu'un autre
-joueur a trouvés et ceux que personne n'a vus. Un clic trace le mot sur la grille
-**et affiche sa définition**, tirée du Wiktionnaire francophone.
-
-Le mot ouvert garde une **teinte un peu plus soutenue** que ses voisins : la
-couleur dit toujours qui l'a trouvé, la nuance dit lequel on lit. Sur téléphone,
-la définition est ramenée dans l'écran si le mot touché la laissait hors champ.
-
-La saisie se fait au clavier, ou **sur la grille** : on tape les lettres une à
-une, ou on glisse le doigt d'une lettre à l'autre. Les deux gestes obéissent à
-la même règle, un appui n'étant qu'un glissé d'une seule case. Retoucher la
-dernière lettre l'enlève. Le mot composé se dépose dans le champ, reste
-modifiable au clavier, et part avec le bouton d'envoi.
-
-```bash
-npm run test:trace     # vraies entrées tactiles et souris, via Playwright
-npm run test:round     # les deux façons de terminer une manche, à deux joueurs
-npm run test:daily     # la grille du jour, de l'accueil au classement
-npm run test:awards    # le jet des dés et les récompenses de fin de partie
-npm run test:dict      # conjugations acceptées, orthographes fantômes refusées
-```
-
-### Les dés tombent comme ils tombent
-
-Un dé secoué ne retombe pas toujours du bon côté, et un cube dans une case
-carrée n'a que quatre façons de se poser : la grille est affichée telle qu'elle
-est tombée. Cela ne change rien au jeu, seulement à la lecture, et c'est bien
-l'idée. Réglage `Orientation des dés` pour qui préfère les lettres droites.
-
-Le `M` renversé est un `W` et le `N` couché un `Z` : ces lettres sont
-**soulignées**, le trait indiquant où est le bas. La grille tient un `M`, quoi
-qu'on y lise.
-
-### Les récompenses de fin de partie
-
-Quand la dernière manche est jouée, le classement dit qui a gagné et le
-**palmarès** dit comment chacun a joué : `🧠 Gros Cerveau` pour le plus long mot
-de la partie, `🐜 Grignoteur` pour qui empile les mots courts, `🐇 Lièvre`,
-`🔨 Force Brute` pour qui tente tout, et une dizaine d'autres. Chacune revient à
-un seul joueur, personne ne repart les mains vides, et la règle exacte est dans
-l'[ADR](docs/adr/0001-architecture.md).
-
-### Variantes disponibles (réglées par l'hôte, avant la partie)
+### Variantes (réglées par l'hôte, avant la partie)
 
 | Variante | Effet |
 | --- | --- |
@@ -142,191 +65,99 @@ Les pages de boggle.fr ne disent rien du sort des mots trouvés par plusieurs
 joueurs : le mode par défaut applique la règle classique du Boggle (annulation),
 et l'autre mode reste disponible.
 
-## Décisions d'architecture
-
-- [ADR 0001 : architecture](docs/adr/0001-architecture.md) : moteur partagé,
-  serveur faisant autorité, état en mémoire, tirage des grilles, thème,
-  publication HTTPS, définitions en direct.
-- [Option C : définitions embarquées](docs/plan-option-c-embedded-definitions.md) :
-  plan détaillé, chiffré, pour supprimer l'appel au Wiktionnaire à l'exécution.
-
 ## Comment ça marche
 
 ```
 packages/shared/   Moteur de règles pur TypeScript, partagé client/serveur
-  board.ts           adjacence, recherche de chemin (avec la variante Q=QU)
-  dice.ts            sachet de 96 faces, tirage d'une grille jouable, jet des dés
-  awards.ts          compteurs par joueur, récompenses de fin de partie
-  scoring.ts         les deux barèmes
-  solver.ts          énumère tous les mots d'une grille
-  dictionary.ts      recherche exacte + par préfixe
 server/            Fastify + Socket.IO, salles en mémoire, aucune base de données
-  rooms.ts           cycle de vie d'une salle, manche, décompte, reconnexion
 client/            React + Vite + Tailwind, interface en français, pensée mobile
 ```
 
-**Le serveur fait autorité.** Il tire la grille, tient le chronomètre et valide
-chaque mot ; le client n'affiche que ce que le serveur confirme. En début de
-manche le serveur résout la grille entière (1 à 2 ms), ce qui rend la validation
-d'un mot immédiate et permet d'afficher les mots manqués à la fin.
+**Le serveur fait autorité** : il tire la grille, tient le chronomètre et valide
+chaque mot, le client n'affichant que ce qu'il confirme. En début de manche le
+serveur résout la grille entière en 1 à 2 ms, ce qui rend la validation d'un mot
+immédiate et donne les mots manqués à la fin. Chaque joueur garde un identifiant
+dans son `localStorage` : une coupure réseau ou un rafraîchissement lui rendent
+ses mots et son score.
 
-**Identité et reconnexion.** Chaque joueur garde un identifiant dans son
-`localStorage`. Une coupure réseau, un écran verrouillé ou un rafraîchissement
-de page rendent au joueur ses mots et son score cumulé.
+Les grilles sont tirées **sans remise** dans un sachet de 96 faces suivant la
+fréquence des lettres en français, faute de source publiée pour les dés de
+l'édition française. Chacune est vérifiée avant d'être servie : voyelles en
+proportion correcte, et 40 mots au minimum en 4x4, 120 en 5x5.
 
-**Salles.** Code à 4 caractères sans lettres ambiguës (ni `O`/`0`, ni `I`/`1`),
-lien direct `/r/CODE`. L'hôte règle les variantes ; s'il se déconnecte, le rôle
-passe automatiquement à un autre joueur. Les salles vides sont nettoyées.
+```bash
+npm test               # moteur de règles
+npm run test:trace     # entrées tactiles et souris, via Playwright
+npm run test:round     # les deux façons de terminer une manche, à deux joueurs
+npm run test:daily     # la grille du jour, de l'accueil au classement
+npm run test:dict      # conjugaisons acceptées, orthographes fantômes refusées
+npm run test:restart   # tue le serveur en pleine manche et vérifie la reprise
+```
 
 ## Le dictionnaire
 
-Environ **325 700 mots** : le paquet npm `an-array-of-french-words` (MIT),
-lui-même tiré des [listes de Letterpress](https://github.com/lorenbrichter/Words)
-(CC0), complété des conjugaisons manquantes (voir plus bas). Volontairement
-permissif : `déci`, `zut`, `eus`, `ait` et `mangeassions` sont acceptés. Les
-entrées à trait d'union ou apostrophe sont écartées : elles ne sont pas
-traçables sur une grille.
+**352 189 mots**, assemblés de trois sources :
 
-**C'est une liste de jeu, pas un lexique**, et son dépôt d'origine est archivé
-depuis mai 2019. Ce que ça coûte, mesuré plutôt que supposé :
+- `an-array-of-french-words` (MIT), tiré des
+  [listes de Letterpress](https://github.com/lorenbrichter/Words) (CC0) : la base ;
+- les **conjugaisons** des verbes de cette base, prises au Wiktionnaire français ;
+- les **verbes qui manquaient**, retenus s'ils sont attestés par un corpus
+  (Lexique 3.83) et si le Wiktionnaire ne les dit ni désuets ni grossiers.
 
-```bash
-node scripts/audit-dictionary.mjs   # compare à Lexique 3.83 et au Wiktionnaire
-```
+Volontairement permissif : `déci`, `zut`, `eus` et `mangeassions` passent. Les
+entrées à trait d'union ou apostrophe sont écartées, n'étant pas traçables sur
+une grille. `extra-words.txt` et `excluded-words.txt` ajustent le résultat, un
+mot par ligne, relus au démarrage du serveur : voir
+[`server/data/README.md`](server/data/README.md).
 
-| Fréquence d'usage (Lexique 3.83) | Formes manquantes |
-| --- | --- |
-| très courant (≥ 100 par million) | **0 sur 655** |
-| courant (10 à 100) | 16 sur 3 649 (0,4 %) |
-| ordinaire (1 à 10) | 331 sur 14 547 (2,3 %) |
-| rare (< 0,1) | 8 398 sur 61 871 (13,6 %) |
+Les définitions viennent du même Wiktionnaire : **349 200 mots, 743 366 sens**,
+soit 99,2 % du dictionnaire, servis en 0,01 s. Un mot polysémique montre ses
+trois principaux sens et les homographes sont classés par fréquence d'usage,
+donc `COTE` donne *côté*, *côte*, *cote*, *coté* dans cet ordre. Sans ce fichier
+le serveur interroge le Wiktionnaire en direct, ce qu'il fait de toute façon
+pour les mots qu'il ne couvre pas.
 
-Le français de tous les jours est donc intact. Ce qui manque est ailleurs : les
-**abréviations** (`labo`, `appart`, `psy`, `resto`, `fac`), les **anglicismes**
-(`deal`, `fans`, `baseball`), quelques **interjections** (`ouah`, `aïe`) et
-`courriel`. À l'inverse `tufa` est bien refusé : c'est de l'anglais, le mot
-français est `tuf`.
+### Le construire et le publier
 
-Pour combler un trou sans rien reconstruire : voir
-[`server/data/README.md`](server/data/README.md), un mot par ligne dans
-`extra-words.txt`, relecture au démarrage du serveur.
-
-### Les conjugaisons
-
-C'est là que « liste de jeu, pas lexique » se voyait le plus : la liste
-acceptait `grader` mais refusait `gradera`, `nourrir` mais aucune forme de son
-futur. **34 700 formes** ont été ajoutées, et les verbes connus passent de
-97,3 % à 100 % de couverture.
+`extra-words.txt` (425 Ko de texte) est dans git. `definitions.tsv.gz` (7 Mo de
+gzip) n'y est pas : c'est un **asset de release**, que
+[`scripts/deploy.sh`](scripts/deploy.sh) récupère en vérifiant son SHA-256.
 
 ```bash
-npm run audit:conj -- --verbs --write   # mesure et comble
+npm run audit:conj -- --verbs --write   # régénère le lexique
+node scripts/build-definitions.mjs      # ~5 min, 715 Mo lus en flux
 npm run test:dict                       # vérifie, hors ligne, en une seconde
+
+git commit -am "…" && git push
+git tag v1.0.1 && git push origin v1.0.1
 ```
 
-Deux règles, détaillées dans l'[ADR](docs/adr/0001-architecture.md) : on ne
-complète que les verbes déjà acceptés, et on n'ajoute un verbe manquant que si
-un corpus français l'a réellement rencontré (Lexique 3.83). Sans ce second
-garde-fou, le Wiktionnaire en aurait apporté 772 000 de plus, `encyclopédier` et
-`concupiscer` compris.
-
-### Les définitions
-
-`GET /api/definition/:mot` répond depuis un fichier embarqué de
-**349 200 mots, 743 366 sens, 99,2 % du dictionnaire, 7 Mo compressés**, servi
-en 0,01 s. Un mot polysémique montre ses trois principaux sens, et les
-homographes sont classés par fréquence d'usage réelle : `COTE` donne *côté*,
-*côte*, *cote*, *coté* dans cet ordre.
-
-Ce fichier **n'est pas dans git** : 7 Mo de gzip, qui ne se compresse jamais en
-delta, donc chaque reconstruction laissait 7 Mo de plus dans l'historique pour
-toujours. Il est publié comme **asset de release**, construit par la CI
-(`.github/workflows/release.yml`), et `scripts/deploy.sh` récupère le plus
-récent en vérifiant son SHA-256. Pour en construire un localement :
-
-```bash
-node scripts/build-definitions.mjs      # ~10 min, 715 Mo téléchargés en flux
-```
-
-Le fichier est **facultatif** : sans lui, le serveur interroge le Wiktionnaire en
-direct, comme avant. C'est aussi ce qui arrive pour les mots qu'il ne couvre pas.
-Le contenu embarqué est sous CC BY-SA 4.0 :
-voir [`server/data/LICENCE-DEFINITIONS.md`](server/data/LICENCE-DEFINITIONS.md).
-
-Le chemin de secours doit traiter trois obstacles, dans `server/src/definitions.ts` :
-
-- il n'existe pas d'API de définition exploitable (l'endpoint REST répond 501 sur
-  fr.wiktionary), donc la page est récupérée en texte brut puis analysée ;
-- le jeu ignore les accents (`ETE`) alors que le Wiktionnaire les indexe (`été`) :
-  un index inverse (~16 Mo, 130 830 entrées) redonne les graphies réelles, et
-  `COTE` renvoie bien *cote*, *coté*, *côte* et *côté* ;
-- les formes fléchies ne portent pas de définition mais un renvoi : le lemme est
-  suivi automatiquement, donc `DEDOUBLAIT` affiche la définition de *dédoubler*.
-
-Les réponses sont mises en cache (24 h), les appels concurrents pour un même mot
-sont mutualisés, les requêtes sortantes plafonnées à 4 et limitées par IP. Une
-absence de définition n'est jamais une erreur : l'interface propose alors un lien
-vers le Wiktionnaire.
-
-## Les grilles
-
-Hasbro ne publie pas les faces des dés de l'édition française. Plutôt que
-d'inventer un jeu de dés « officiel », le tirage se fait **sans remise** dans un
-sachet de 96 faces dont la composition suit la fréquence des lettres en français
-(14 `E`, 7 `A`, un seul `Z`…). Une grille ne peut donc pas contenir trois `Z`, et
-les voyelles restent proportionnées.
-
-Chaque grille est ensuite vérifiée avant d'être servie : proportion de voyelles
-correcte et nombre de mots suffisant (40 en 4x4, 120 en 5x5), sinon elle est
-retirée. En pratique une grille 4x4 contient une centaine de mots.
+Le tag suffit : la CI ([`release.yml`](.github/workflows/release.yml)) rejoue
+les tests, reconstruit le dictionnaire et publie le lexique, les définitions, le
+jeu empaqueté et leurs `SHA256SUMS`. Seule la dernière version des définitions
+est conservée. Les deux sources sont sous CC BY-SA 4.0, donc le dictionnaire
+produit aussi : voir
+[`server/data/LICENCE-DEFINITIONS.md`](server/data/LICENCE-DEFINITIONS.md).
 
 ## Déploiement
 
 Un seul processus Node, aucune base de données. L'état vit en mémoire et se
-recopie dans des fichiers JSON : **un redémarrage ne coupe plus une manche en
-cours**. Les salles sont reprises au démarrage, avec les mots et les scores de
-chacun ; une manche dont le sifflet est passé pendant l'arrêt se termine
-aussitôt, elle ne reprend pas.
-
-```bash
-npm run build && npm run test:restart   # tue le serveur en pleine manche et vérifie
-```
+recopie dans des fichiers JSON, donc **un redémarrage ne coupe pas une manche en
+cours** : les salles reviennent avec les mots et les scores de chacun.
 
 ```bash
 cp .env.example .env      # choisir le port
 docker compose up -d --build
+./scripts/deploy.sh       # ssh + git pull + définitions + rebuild + healthcheck
 ```
 
-La pile est **autonome** : elle ne touche à aucun conteneur existant. Le port
-publié se règle avec `BOGGLE_PORT` dans `.env`.
+`deploy.sh` clone le dépôt au premier passage, puis met à jour et reconstruit. Il
+ne copie rien depuis le poste local, donc **poussez avant de déployer**.
+Variables utiles : `BOGGLE_SSH_HOST` (défaut `wordpress`), `BOGGLE_REMOTE_DIR`,
+`BOGGLE_BRANCH`, `BOGGLE_PORT`.
 
-### Mise à jour par git
-
-```bash
-./scripts/deploy.sh       # ssh + git pull + rebuild + healthcheck
-```
-
-Le script clone le dépôt au premier passage, puis se contente d'un
-`git merge --ff-only` et d'un `docker compose up -d --build`. Il ne copie rien
-depuis le poste local : **poussez avant de déployer**. Variables utiles :
-`BOGGLE_SSH_HOST` (défaut `wordpress`), `BOGGLE_REMOTE_DIR`, `BOGGLE_BRANCH`.
-
-Sur le serveur, la mise à jour manuelle tient en deux lignes :
-
-```bash
-cd ~/boggle-multiplayer && git pull
-sudo docker compose up -d --build
-```
-
-### Derrière Traefik
-
-`docker-compose.yml` contient un bloc `labels` prêt à l'emploi, commenté : il
-suit l'entrypoint `websecure` et le resolver `myresolver` déjà configurés. Il
-faut aussi décommenter le bloc `networks` (Traefik ne route que vers les
-conteneurs de son propre réseau) et faire pointer `BOGGLE_HOST` vers le serveur.
-Socket.IO passe sans réglage particulier, Traefik relaie l'upgrade WebSocket.
-
-### Monter en charge
-
-Pour plusieurs instances il faudrait un adaptateur Redis pour Socket.IO et un
-stockage partagé des salles. Inutile à l'échelle d'un serveur entre amis : un
-processus tient largement la charge.
+La pile embarque son propre **Traefik** : HTTPS par Let's Encrypt, domaine dans
+`BOGGLE_HOST`, et Socket.IO passe sans réglage. Elle ne touche à aucun conteneur
+existant. Pour plusieurs instances il faudrait un adaptateur Redis pour
+Socket.IO et un stockage partagé des salles, inutile à l'échelle d'un serveur
+entre amis.
