@@ -56,43 +56,60 @@ found by probing a verb that ought to have been fixed and was not.
 
 ## ~~The modern words that were not there~~ (done)
 
-Reported as `orc`, which is French: a masculine noun in the Wiktionnaire,
-plural `orcs`. One word again, and one of a class again. The base list has no
-`blog`, no `tofu`, no `selfie`; of 185 everyday modern words probed, 93 were
-missing.
+Reported as `orc`, which is French. One word again, and one of a class again:
+the base list has no `blog`, no `tofu`, no `selfie`; of 185 everyday modern
+words probed, 93 were missing. The root cause is not a hole, it is a date. The
+Letterpress list was archived in May 2019 and nothing maintains it, so patching
+it word by word is patching a frozen list.
 
-The verb trick does not transfer, and finding that out was most of the work. A
-conjugation is closed, so completing `grader` needs no judgement. Open
-vocabulary is not, and there is nothing in the sources that ranks `orc` above
-`yttrotantalite`. Four rules were tried and all four failed the same way:
+The first attempt did exactly that, 87 lemmas picked by hand, and measuring is
+what killed it. Four automatic rules were tried over Wiktionary, each judged on
+what it admits **first**: attested in Lexique (5,306 words, and the corpus
+closed in 2001, so it has never met `orc` at all, and its `ortho` column carries
+proper nouns and subtitle English that the verb pass never saw because it
+filtered on `cgram == 'VER'`); five or more Wiktionary translations (7,445, and
+the sample is `yttrotantalite`, `métazeunérite`, `décicandela`, translation
+tables measuring editor activity and bots having been busy in mineralogy);
+borrowed from English, aimed straight at the blind spot (3,445, and it admits
+`fistball`, `nightcore`, `hyperscaler`); any translation or example at all
+(88,704, worse of the same). Taking Wiktionary whole was measured on grids
+rather than on lists: **128 words per 4x4 grid became 246**, the additions being
+`kdo`, `tjs`, `orser`, `neocorat`.
 
-- **Attested in Lexique**, which decided the verbs: 5,306 words, and the corpus
-  closed in 2001, so it has never met `orc`, `blog` or `selfie` at all. Its
-  `ortho` column also carries proper nouns (`Ève`, `Isabelle`) and untranslated
-  subtitle English (`team`, `clean`); the verb pass never saw that because it
-  filtered on `cgram == 'VER'`.
-- **Five or more Wiktionary translations**: 7,445 words, and the sample is
-  `yttrotantalite`, `métazeunérite`, `décicandela`, `nanonewton`. Translation
-  tables measure editor activity, and bots have been busy in mineralogy.
-- **Borrowed from English**, aimed straight at the blind spot: 3,445 words, and
-  it admits `fistball`, `nightcore`, `foodpairing`, `hyperscaler`. Wiktionary
-  records English words used in French, which is not the same as French.
-- **Any translation or example at all**: 88,704 words, and worse of the same.
+The answer was not a better filter, it was a dictionary somebody maintains.
+**Grammalecte**, MPL 2.0, the one Firefox and LibreOffice spell with, expanded
+from its Hunspell affixes: 100,034 words the base list lacks, `orc` and `blog`
+and `procrastiner` among them, and the same grid measurement gives **128 to
+145**, the additions being `rosti`, `recap`, `crosne`, `durite`, `strudel`. The
+ADR used to claim the base list *was* Dicollecte, a claim checked and found
+wrong once; it is true now, by having been made true.
 
-So block 3 of `extra-words.txt` is hand-picked, 87 lemmas and 175 words, and
-the script now says so in the file. Plurals and feminines come from Wiktionary
-entries glossed "Pluriel de" and from the lemma's inflection table, not from its
-`forms` array, which files variant spellings alongside inflections and would
-have brought `drône`, `beug` and `hummus` in with the rest.
+Four things fell out of it.
 
-Two things fell out of it. `--write` was not idempotent: it computed the
-generated blocks against a dictionary that already contained its own output, so
-a second run found nothing missing and swept all 34,725 generated words into the
-hand block. It now reads the hand block first and computes against the base list
-plus those words, and the file is byte-identical on a re-run. And adding
-`hacker` as a noun made it a verb the dictionary knows, so the conjugation pass
-completed it on the next run: 38 forms, correct, and worth a test saying it was
-meant.
+- **One flag family had to go.** `U.` is the SI unit prefix table: nineteen
+  prefixes on every unit symbol, turning `sr` into `zsr` and `cal` into `dcal`.
+  Generated rather than written, and the only real noise in 440,000 forms.
+- **The conjugations had to move last.** Grammalecte has `hacker` as a noun and
+  no verb; the old order would have accepted `hacker` and refused `hacke`,
+  which is `gradera` again wearing a hat. The block that completes verbs now
+  runs against the finished dictionary, whatever source each verb came from.
+- **Two licences do not share a file.** MPL 2.0 is copyleft per file, CC BY-SA
+  4.0 per work, and one file holding both asks a question with no good answer.
+  `grammalecte-words.txt` and `extra-words.txt`, one source each, and the
+  release publishes two assets.
+- **The hand block prunes itself**, 175 words down to 33. A word stays only
+  until a source covers it, so what is left is a record of what the
+  dictionaries actually lack: `visio`, `ramen`, `wrap`, `covid`, `padel`.
+
+`--write` was not idempotent either. It computed the generated blocks against a
+dictionary that already contained its own output, so a second run found nothing
+missing and swept all 34,725 generated words into the hand block. Every block is
+now computed against the base list plus the blocks before it, and the files come
+out byte-identical on a re-run.
+
+The bill: the bundled definitions now cover 96.5% of the dictionary instead of
+99.2%, since Grammalecte has 15,000 words Wiktionary does not define. Those fall
+through to a live lookup, which is what the fallback was built for.
 
 ---
 

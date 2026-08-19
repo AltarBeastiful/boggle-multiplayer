@@ -1,17 +1,27 @@
 # Licence of the generated dictionary files
 
-Two files here are not written by this project but **derived from the French
-Wiktionary**, and therefore remain subject to its licence:
+Three files here are not written by this project but derived from dictionaries
+that are, and they remain subject to those dictionaries' licences:
 
 - `definitions.tsv.gz`, the bundled definitions, served by `/api/definition`.
   Not in git; built by `scripts/build-definitions.mjs` and published as a
-  release asset.
-- `extra-words.txt`, the lexicon: conjugations the base word list was missing,
-  and verbs a French corpus attests. In git, written by
-  `scripts/audit-conjugations.mjs`.
+  release asset. **From the French Wiktionary: CC BY-SA 4.0.**
+- `extra-words.txt`, the conjugations the base word list was missing and the
+  verbs a French corpus attests. In git, written by `scripts/build-lexicon.mjs`.
+  **From the French Wiktionary and Lexique 3.83: CC BY-SA 4.0.**
+- `grammalecte-words.txt`, the Grammalecte dictionary flattened to one word per
+  line. In git, written by the same script. **From the Dictionnaire
+  orthographique français: MPL 2.0.**
 
-Both are published as release assets, so both are **distributed**, which is
-what makes attribution a duty here rather than a courtesy.
+**Why the last one is a separate file.** MPL 2.0 is copyleft per file and
+CC BY-SA 4.0 is copyleft per work, and neither is written to give way to the
+other. Merging both word lists into one file would ask which licence the result
+carries, a question with no comfortable answer. Keeping one source per file
+avoids it entirely: each file states where its words came from and keeps that
+source's licence, and the release publishes them as two assets rather than one.
+
+All are published as release assets, so all are **distributed**, which is what
+makes attribution a duty here rather than a courtesy.
 
 ## Origin
 
@@ -29,13 +39,34 @@ what makes attribution a duty here rather than a courtesy.
 - **Extraction date**: see the header of the build log, or the date of the
   commit that introduced the file.
 
+## Grammalecte, `grammalecte-words.txt`
+
+- **Source**: [Dictionnaire orthographique français](https://grammalecte.net/)
+  "classique" v7.5, by Olivier R., the dictionary Firefox and LibreOffice spell
+  with. Obtained through the npm package `dictionary-fr`, which packages it
+  unchanged.
+- **Transformation**: `scripts/build-lexicon.mjs` expands the Hunspell affixes
+  to every inflected form and keeps those the base word list lacks. Two flag
+  families are dropped: the SI unit prefixes, which multiply each unit symbol
+  by nineteen and yield `zsr` and `dcal`, and the elisions, whose apostrophes
+  cannot be traced on a grid. No word is rewritten and nothing is added.
+- **Licence**: **MPL 2.0**, [Mozilla Public License
+  2.0](https://www.mozilla.org/MPL/2.0/), which this file keeps. Concretely:
+  the file may be redistributed and used freely, including here, and any
+  modified version of it stays under MPL 2.0. The licence attaches to this file
+  alone and says nothing about the rest of the project.
+
 ## The lexicon, `extra-words.txt`
 
-Same sources, different use. Wiktionary supplies which conjugated forms exist
-and which infinitive they belong to; Lexique 3.83 supplies whether a French
-corpus has ever met the verb, which is the test for admitting one. No
-definition, no gloss and no frequency is copied: what is kept is a list of
-words, one per line.
+Same sources as the definitions, different use. Wiktionary supplies which
+conjugated forms exist and which infinitive they belong to; Lexique 3.83
+supplies whether a French corpus has ever met the verb, which is the test for
+admitting one. No definition, no gloss and no frequency is copied: what is kept
+is a list of words, one per line.
+
+Some of those conjugations complete a verb Grammalecte brought in. The forms
+themselves are Wiktionary's, which is why they are filed here; what Grammalecte
+contributed is the infinitive, and that word is in its own file.
 
 A bare word list is thin material for copyright, and in places would fall under
 a database right rather than under copyright at all. Rather than argue the
@@ -44,10 +75,12 @@ same attribution. The file carries its version, its date, its word count and a
 SHA-256 of its own contents in a header, so a copy found anywhere can say what
 it is.
 
-## Licence
+## Licence of the Wiktionary files
 
 **CC BY-SA 4.0**, that is [Creative Commons Attribution-ShareAlike 4.0
-International](https://creativecommons.org/licenses/by-sa/4.0/).
+International](https://creativecommons.org/licenses/by-sa/4.0/). It covers
+`definitions.tsv.gz` and `extra-words.txt`; `grammalecte-words.txt` is under
+MPL 2.0, as above.
 
 What follows from it, concretely:
 

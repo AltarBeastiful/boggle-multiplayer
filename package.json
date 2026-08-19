@@ -25,10 +25,12 @@
     "test:dict": "node scripts/test-dictionary.mjs",
     "audit:mobile": "node scripts/audit-mobile.mjs",
     "audit:dict": "node scripts/audit-dictionary.mjs",
-    "audit:conj": "node scripts/audit-conjugations.mjs"
+    "lexicon": "node scripts/build-lexicon.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
+    "dictionary-fr": "^3.0.0",
+    "hunspell-reader": "^10.0.1",
     "playwright": "^1.62.1",
     "typescript": "^5.7.3"
   },

@@ -19,13 +19,15 @@ const here = dirname(fileURLToPath(import.meta.url));
  * the French Wiktionary. Everyday French comes out intact; abbreviations
  * ("labo", "appart") and anglicisms ("deal", "fans") are what is missing.
  *
- * Its worst gap was the verbs ("grader" accepted, "gradera" refused), and
- * `data/extra-words.txt` now carries the 7,118 conjugations that were missing,
- * written by `scripts/audit-conjugations.mjs`. See `data/README.md`.
+ * Two players found the two shapes of that gap: "grader" accepted and
+ * "gradera" refused, "orque" accepted and "orc" refused. `scripts/build-lexicon.mjs`
+ * fills both from dictionaries that are lexicons, into the two files below,
+ * one per source licence. See `data/README.md`.
  *
- * Two optional files adjust it without rebuilding anything:
- *   data/extra-words.txt    words to add, one per line
- *   data/excluded-words.txt words to drop, one per line
+ * Three optional files adjust it without rebuilding anything:
+ *   data/grammalecte-words.txt  the Grammalecte dictionary, flattened (MPL 2.0)
+ *   data/extra-words.txt        Wiktionary conjugations and verbs (CC BY-SA 4.0)
+ *   data/excluded-words.txt     words to drop, one per line
  */
 function readWordFile(name: string): string[] {
   for (const base of [resolve(here, '..', 'data'), resolve(here, '..', '..', 'data')]) {
@@ -78,7 +80,7 @@ export function getDictionary(): SortedDictionary {
 
   const started = Date.now();
   const base = require('an-array-of-french-words') as string[];
-  const extra = readWordFile('extra-words.txt');
+  const extra = [...readWordFile('grammalecte-words.txt'), ...readWordFile('extra-words.txt')];
   const excluded = readWordFile('excluded-words.txt');
 
   cached = buildDictionary(extra.length > 0 ? [...base, ...extra] : base, {

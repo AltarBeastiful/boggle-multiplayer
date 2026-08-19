@@ -37,7 +37,11 @@ export function baseSpellings() {
 
 /** Every spelling the game knows, before normalising. */
 export function gameSpellings() {
-  return [...baseSpellings(), ...wordAdjustments('extra-words.txt')];
+  return [
+    ...baseSpellings(),
+    ...wordAdjustments('grammalecte-words.txt'),
+    ...wordAdjustments('extra-words.txt'),
+  ];
 }
 
 /** The dictionary, adjustments included. */

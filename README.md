@@ -96,16 +96,17 @@ npm run test:restart   # tue le serveur en pleine manche et vérifie la reprise
 
 ## Le dictionnaire
 
-**352 400 mots**, assemblés de quatre sources :
+**437 770 mots**, assemblés de trois sources :
 
 - `an-array-of-french-words` (MIT), tiré des
-  [listes de Letterpress](https://github.com/lorenbrichter/Words) (CC0) : la base ;
-- les **conjugaisons** des verbes de cette base, prises au Wiktionnaire français ;
-- les **verbes qui manquaient**, retenus s'ils sont attestés par un corpus
-  (Lexique 3.83) et si le Wiktionnaire ne les dit ni désuets ni grossiers ;
-- les **mots récents** que la base ignore (`orc`, `blog`, `tofu`, `covoiturage`),
-  choisis un à un, aucune règle automatique ne les classant avant
-  `yttrotantalite`.
+  [listes de Letterpress](https://github.com/lorenbrichter/Words) (CC0) : la
+  base, figée en 2019, d'où `orc` et `blog` absents ;
+- [**Grammalecte**](https://grammalecte.net/) (MPL 2.0), le dictionnaire
+  orthographique de Firefox et LibreOffice, à jour et tenu à la main : 100 034
+  mots de plus ;
+- le **Wiktionnaire** pour les conjugaisons, calculées en dernier pour que tout
+  verbe accepté ait ses temps, et pour les verbes qui manquaient encore,
+  retenus s'ils sont attestés par un corpus (Lexique 3.83).
 
 Volontairement permissif : `déci`, `zut`, `eus` et `mangeassions` passent. Les
 entrées à trait d'union ou apostrophe sont écartées, n'étant pas traçables sur
@@ -113,8 +114,8 @@ une grille. `extra-words.txt` et `excluded-words.txt` ajustent le résultat, un
 mot par ligne, relus au démarrage du serveur : voir
 [`server/data/README.md`](server/data/README.md).
 
-Les définitions viennent du même Wiktionnaire : **349 408 mots, 743 768 sens**,
-soit 99,2 % du dictionnaire, servis en 0,01 s. Un mot polysémique montre ses
+Les définitions viennent du Wiktionnaire : **422 624 mots, 848 703 sens**,
+soit 96,5 % du dictionnaire, servis en 0,01 s. Un mot polysémique montre ses
 trois principaux sens et les homographes sont classés par fréquence d'usage,
 donc `COTE` donne *côté*, *côte*, *cote*, *coté* dans cet ordre. Sans ce fichier
 le serveur interroge le Wiktionnaire en direct, ce qu'il fait de toute façon
@@ -122,14 +123,14 @@ pour les mots qu'il ne couvre pas.
 
 ### Le construire et le publier
 
-`extra-words.txt` (425 Ko de texte) est dans git. `definitions.tsv.gz` (7 Mo de
-gzip) n'y est pas : c'est un **asset de release**, que
-[`scripts/deploy.sh`](scripts/deploy.sh) récupère en vérifiant son SHA-256.
+Les deux fichiers de mots (1,5 Mo de texte) sont dans git, un par licence.
+`definitions.tsv.gz` (9 Mo de gzip) n'y est pas : c'est un **asset de release**,
+que [`scripts/deploy.sh`](scripts/deploy.sh) récupère en vérifiant son SHA-256.
 
 ```bash
-npm run audit:conj -- --verbs --write   # régénère le lexique
-node scripts/build-definitions.mjs      # ~5 min, 715 Mo lus en flux
-npm run test:dict                       # vérifie, hors ligne, en une seconde
+npm run lexicon -- --write          # régénère le lexique
+node scripts/build-definitions.mjs  # ~5 min, 715 Mo lus en flux
+npm run test:dict                   # vérifie, hors ligne, en une seconde
 
 git commit -am "…" && git push
 git tag v1.0.1 && git push origin v1.0.1
@@ -138,8 +139,8 @@ git tag v1.0.1 && git push origin v1.0.1
 Le tag suffit : la CI ([`release.yml`](.github/workflows/release.yml)) rejoue
 les tests, reconstruit le dictionnaire et publie le lexique, les définitions, le
 jeu empaqueté et leurs `SHA256SUMS`. Seule la dernière version des définitions
-est conservée. Les deux sources sont sous CC BY-SA 4.0, donc le dictionnaire
-produit aussi : voir
+est conservée. Grammalecte reste sous MPL 2.0 et le reste sous CC BY-SA 4.0,
+d'où deux fichiers séparés : voir
 [`server/data/LICENCE-DEFINITIONS.md`](server/data/LICENCE-DEFINITIONS.md).
 
 ## Déploiement

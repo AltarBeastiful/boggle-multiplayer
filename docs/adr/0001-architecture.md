@@ -106,8 +106,8 @@ rewritten, which is most of what Socket.IO brings.
 ## Decision 5: a permissive dictionary, adjustable without rebuilding
 
 `an-array-of-french-words` (MIT): 336,000 raw forms, 318,800 after
-normalisation, and 352,400 once the missing conjugations, verbs and modern
-words are filled in (below).
+normalisation, and 437,770 once Grammalecte and the missing conjugations are
+merged in (below).
 Hyphenated and apostrophised entries are dropped, as they cannot be traced
 anyway.
 
@@ -140,11 +140,16 @@ the answer to the gaps above: fill them as they are met.
 **The conjugations, filled in.** The most damaging form of "word list, not
 lexicon" was the verbs: `grader` accepted and `gradera` refused, `nourrir`
 accepted and none of its future. A player who knows their conjugation was
-punished for knowing it. `scripts/audit-conjugations.mjs` measures the gap
-against Wiktionary and writes the missing forms into `extra-words.txt`: 7,118
-of them, taking coverage of the verbs the game knows from 97.3% to 100%.
+punished for knowing it. `scripts/build-lexicon.mjs` measures the gap against
+Wiktionary and writes the missing forms out: 9,623 of them across 8,706 verbs,
+taking coverage from 97.1% to 100%.
 
-Three things make that safe to run unattended:
+That pass runs **last**, after every other source has had its say, because it
+is the one rule that has to see the finished dictionary. A verb arriving from
+Grammalecte or from the hand block would otherwise land without its tenses,
+which is `gradera` again under a new name.
+
+Three things make it safe to run unattended:
 
 - **Only verbs already accepted are completed.** No vocabulary is added, no
   view is taken on what belongs in a family game, and a verb deliberately left
@@ -197,45 +202,69 @@ that became common after it was compiled is refused: `procrastiner` is missing
 for that reason alone. The alternative was an opinion, and an opinion does not
 scale to 24,281 candidates.
 
-**The modern words, and why no rule found them.** That limit was reported from
-the other side: `orc` refused, and a player saying it looks French. It is, and
-it is one of a class, since the base list has no `blog`, no `tofu`, no `selfie`
-and no `covoiturage` either. Ninety-three of a hundred and eighty-five everyday
-modern words probed were missing.
+**A second dictionary, because the base list is frozen.** The same gap was
+reported from the other side: `orc` refused, and a player saying it looks
+French. It is, and it is one of a class, since the base list has no `blog`, no
+`tofu`, no `selfie` and no `covoiturage` either. Of 185 everyday modern words
+probed, 93 were missing. The Letterpress list was archived in May 2019 and
+nothing has maintained it since; no amount of patching a frozen list fixes a
+frozen list.
 
-Nouns are not verbs, and the trick that worked for the verbs does not transfer.
-A conjugation is closed: given `grader`, its forms are determined, and the only
-question is which infinitives to admit. Open vocabulary has no such handle, and
-four rules were tried against Wiktionary and measured, each on what it admits
-first rather than on how many words it admits:
+The first attempt was to pick the missing words by hand, and measuring showed
+why that could not be the answer. Four automatic rules were tried over
+Wiktionary and each was judged on what it admits **first**, not on how many
+words it admits:
 
 | Rule | Admits | What the sample looks like |
 | --- | --- | --- |
-| Attested in Lexique | 5,306 | `poquette`, `pastophore`, `niolo`, plus proper nouns (`Ève`, `Isabelle`) and subtitle English (`team`, `clean`) |
+| Attested in Lexique | 5,306 | `poquette`, `pastophore`, plus proper nouns (`Ève`) and subtitle English (`team`, `clean`) |
 | 5 or more translations | 7,445 | `yttrotantalite`, `métazeunérite`, `décicandela`, `nanonewton` |
 | Borrowed from English | 3,445 | `fistball`, `nightcore`, `foodpairing`, `hyperscaler` |
 | Any translation or example | 88,704 | the same, and more of it |
 
 Wiktionary's translation tables measure editor activity, not currency, and bots
-have filled in mineralogy, chemistry and metrology. Lexique's `ortho` column
-carries proper nouns and untranslated subtitle English, which the verb pass
-never saw because it filtered on `cgram == 'VER'`. Every ranking puts
-`attoweber` thousands of places above `orc`.
+have filled in mineralogy and metrology. Lexique's `ortho` column carries proper
+nouns and untranslated subtitle English, which the verb pass never saw because
+it filtered on `cgram == 'VER'`. Every ranking puts `attoweber` thousands of
+places above `orc`. Taking Wiktionary whole was measured too, on grids rather
+than on lists: **128 words per 4x4 grid became 246**, and the additions were
+`kdo`, `tjs`, `orser`, `neocorat`.
 
-So block 3 of `extra-words.txt` is picked by hand: 87 lemmas, 175 words with
-their plurals and feminines, each one a word a player would reasonably try. The
-inflections come from Wiktionary, from entries glossed "Pluriel de" and from the
-lemma's own inflection table, never from its `forms` array wholesale: that array
-holds variant spellings next to inflections, and taking it whole would have
-added `drône`, `beug` and `hummus`.
+So the answer is not a filter over Wiktionary, it is **a dictionary that is
+maintained**: [Grammalecte](https://grammalecte.net/), the orthographic
+dictionary Firefox and LibreOffice spell with, MPL 2.0, "classique" v7.5,
+shipped in the `dictionary-fr` package. Its Hunspell affixes are expanded to
+every inflected form and the 100,034 the base list lacks are kept. It has `orc`,
+`blog`, `tofu`, `selfie`, `covoiturage`, `procrastiner`. The same grid
+measurement: **128 words per grid become 145**, and the additions are `rosti`,
+`recap`, `crosne`, `taco`, `durite`, `strudel`, `aitre`, `gaite`.
 
-Making that block survive is what changed in `audit-conjugations.mjs`. Its
-`--write` used to compute the generated blocks against the dictionary
-*including* its own previous output, so a second run found nothing missing and
-swept all 34,725 generated words into the hand block. It now reads the hand
-block first and computes against the base list plus those words alone, which
-makes the file byte-identical on a re-run and means the header no longer has to
-tell you to delete the file before regenerating it.
+Note the earlier claim in this decision, that the base list *was* Dicollecte,
+which was checked and found wrong. It is now true, by having been made true.
+
+One flag family is dropped in the expansion: `U.`, the SI unit prefixes, which
+apply nineteen prefixes to every unit symbol and turn `sr` into `zsr`, `dsr`,
+and `cal` into `dcal`. Generated by rule rather than written by anybody, and the
+only real noise in 440,000 forms. The elision flags go too, their apostrophes
+being untraceable on a grid.
+
+Grammalecte does not replace the Wiktionary work: it covers only 44% of the
+conjugations block 3 supplies and half of the verbs, because the two disagree
+on the 1990 reform spellings and both are right. It is a source alongside, not
+instead.
+
+**Two files, because two licences.** Grammalecte is MPL 2.0, copyleft per
+*file*; Wiktionary and Lexique are CC BY-SA 4.0, copyleft per *work*. Merging
+both word lists into one file asks which licence the result carries, and there
+is no comfortable answer. `grammalecte-words.txt` and `extra-words.txt` keep one
+source each, and the release publishes two assets rather than one. It also
+happens to document where every word came from.
+
+**What it costs.** The bundled definitions cover 96.5% of the dictionary rather
+than 99.2%: Grammalecte has 15,000 words Wiktionary does not define, and those
+fall through to a live lookup. And the hand block, which was 175 words, is now
+33: the script drops a hand-picked word once a source covers it, so what remains
+is a record of what the dictionaries genuinely lack.
 
 `scripts/game-dictionary.mjs` exists because of the same class of mistake: the
 audit and the definitions builder each built the dictionary from the bare npm

@@ -8,44 +8,53 @@ from real-world feedback". That repository was archived in May 2019, so the list
 is frozen there. Around 336,000 inflected forms, conjugations and plurals
 included; after normalisation, meaning uppercase, accents stripped and
 hyphenated or apostrophised entries dropped, about 318,800 playable words
-remain, and 352,400 with the conjugations, verbs and modern words added
-below.
+remain, and 437,770 with the two files below.
 
-It is a word list for a game, not a lexicon, and it shows: see
-`scripts/audit-dictionary.mjs`, which measures what is missing against Lexique
-3.83 and the French Wiktionary. Everyday French is covered, abbreviations and
-anglicisms less so. That is what the two files below are for.
+It is a word list for a game, not a lexicon, and players find the seams: it
+accepted `grader` and refused `gradera`, it accepted `orque` and refused `orc`.
+Everyday French is covered; conjugations, abbreviations and anything coined
+since are what is missing.
 
-Two optional files, read when the server starts, adjust it without rebuilding
+Three optional files, read when the server starts, adjust it without rebuilding
 anything. One word per line; blank lines and lines starting with `#` are
 ignored. Accents and case do not matter.
 
-- `extra-words.txt` : words to add
+- `grammalecte-words.txt` : the Grammalecte dictionary, flattened
+- `extra-words.txt` : what Wiktionary adds on top
 - `excluded-words.txt` : words to drop
 
-## `extra-words.txt` is generated, except its last block
-
-It currently holds **34,938 words** the base list was missing, in three blocks:
+## Both word files are generated
 
 ```bash
-npm run audit:conj -- --write --verbs
+npm run lexicon -- --write
 ```
 
-writes the first two. Block 1 completes verbs the dictionary already accepts,
-so nothing new gets in by that route; block 2 adds verbs it lacked outright,
-kept only if a corpus has met them.
+writes them, 122,342 words in all, and produces a byte-identical result when
+run twice. `npm run test:dict` checks it in a second, offline.
 
-Block 3 is written by hand, and is where to add a word somebody reports as
-missing. These are the modern words no rule finds: `orc`, `blog`, `tofu`,
-`covoiturage`. Rerunning the command **keeps every line of it**, and produces a
-byte-identical file otherwise. `npm run test:dict` checks the result in a
-second, offline.
+**`grammalecte-words.txt`** holds the 100,034 words the [Grammalecte
+dictionary](https://grammalecte.net/) has and the base list does not: the
+dictionary Firefox and LibreOffice spell with, human-curated and still
+maintained, which is what the base list stopped being in 2019. It is where
+`orc`, `blog`, `tofu` and `covoiturage` come from. Its own licence, MPL 2.0, is
+why it is a file of its own: see
+[`LICENCE-DEFINITIONS.md`](LICENCE-DEFINITIONS.md).
 
-Adding a noun that is also a verb infinitive has a consequence worth knowing:
-the next run completes its conjugation. `hacker` brought 38 forms with it, which
-is correct, and the test says so on purpose.
+**`extra-words.txt`** holds the 22,308 that Wiktionary adds on top, in three
+blocks:
 
-Two things need doing after editing either file:
+1. verbs no source has, kept only if a French corpus has met them;
+2. **words added by hand**, which is where to put one somebody reports as
+   missing;
+3. conjugations completing every verb in the dictionary, computed last so it
+   sees the finished thing. That is what stops `orc` from repeating `gradera`:
+   a verb arriving from any source gets its tenses.
+
+The hand block prunes itself. A word stays there only until a source covers it,
+so it records what the dictionaries do not have yet rather than growing for
+ever.
+
+Two things need doing after editing any of them:
 
 1. restart the server, which rereads them at startup;
 2. rebuild the definitions if words were added, or they will be the only ones
@@ -55,8 +64,8 @@ Two things need doing after editing either file:
 
 ## `definitions.tsv.gz` is not in git
 
-It is 7 MB of gzip, and gzip never delta-compresses, so every rebuild left
-another permanent 7 MB in the history. Three editions had taken the repository
+It is 9 MB of gzip, and gzip never delta-compresses, so every rebuild left
+another permanent copy in the history. Three editions had taken the repository
 to 17.9 MB, of which 17.5 MB was this one file.
 
 It is published as a release asset instead. `scripts/deploy.sh` fetches the
@@ -70,10 +79,11 @@ Wiktionary live, which is what it did before the file existed. To build one
 locally, run `node scripts/build-definitions.mjs`, which needs the 715 MB
 Wiktionary extract and downloads it into `.work/` once.
 
-To add a word, put it under the block 3 marker with its plural:
+To add a word, put it under the hand block marker in `extra-words.txt`, with
+its plural:
 
 ```
-# --- 3. modern words, added by hand ---------------------------------------
+# --- 2. added by hand -----------------------------------------------------
 
 kombucha
 kombuchas

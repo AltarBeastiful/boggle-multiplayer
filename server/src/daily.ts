@@ -1,9 +1,10 @@
 /**
  * The "grille du jour": one grid a day, the same for everyone, played alone.
  *
- * The grid is not stored. It is derived from the date (`dailySeed`), so any
- * server rebuilds the same one for the same day; only what players did with it
- * is written down.
+ * The grid is derived from the date (`dailySeed`), so any server rebuilds the
+ * same one for the same day; what players did with it is written down beside
+ * it. The grid itself is written down too, but only as an anchor: see
+ * `restore()` for the one thing that can move it.
  */
 
 import {
@@ -39,6 +40,8 @@ interface Session {
 /** What is written to disk. Deliberately dull, and readable by hand. */
 interface StoredDay {
   day: string;
+  /** The grid as it was played. Absent in files written before this existed. */
+  cells?: string[];
   sessions: Array<{
     playerId: string;
     nickname: string;
@@ -61,30 +64,44 @@ class DailyGame {
     private readonly dictionary: Dictionary,
   ) {
     const { boardSize, minWordLength, qEqualsQu, scoringMode } = DAILY_RULES;
-    const generated = generateBoard({
-      size: boardSize,
-      dictionary,
-      minWordLength,
-      qEqualsQu,
-      seed: dailySeed(day),
-    });
-    const solved = solveBoard(generated.board, dictionary, { minWordLength, qEqualsQu }, scoringMode);
-    this.board = generated.board;
+    const stored = readRecord<StoredDay>(recordName(day));
+    const kept = stored?.day === day ? stored.cells : undefined;
+
+    /*
+     * A day already played keeps the grid it was played on.
+     *
+     * The seed alone does not fix the grid: `generateBoard` redraws until it
+     * finds one with enough words, so the dictionary is part of the derivation.
+     * Adding 85,000 words moved one grid in forty, which would have left a
+     * finished attempt holding words that no longer trace, and a leaderboard
+     * quietly scored against a board nobody saw.
+     */
+    this.board =
+      kept?.length === boardSize * boardSize
+        ? { size: boardSize, cells: kept }
+        : generateBoard({
+            size: boardSize,
+            dictionary,
+            minWordLength,
+            qEqualsQu,
+            seed: dailySeed(day),
+          }).board;
+
+    const solved = solveBoard(this.board, dictionary, { minWordLength, qEqualsQu }, scoringMode);
     this.solution = solved.words;
     this.solutionPoints = solved.totalPoints;
-    this.restore();
+    this.restore(stored);
   }
 
   // -- persistence -----------------------------------------------------------
 
   /**
    * Only the words are kept, not their points or paths: both are recomputed
-   * from the grid, which is itself recomputed from the date. A saved file that
-   * disagrees with today's rules therefore corrects itself rather than
-   * preserving a stale score.
+   * from the grid. A saved file that disagrees with today's scoring therefore
+   * corrects itself rather than preserving a stale score. The grid is the one
+   * thing taken as written, because it is what the words were found on.
    */
-  private restore(): void {
-    const stored = readRecord<StoredDay>(recordName(this.day));
+  private restore(stored: StoredDay | null): void {
     if (!stored || stored.day !== this.day) return;
     for (const entry of stored.sessions) {
       const words = new Map<string, { points: number; path: number[] }>();
@@ -106,6 +123,7 @@ class DailyGame {
   private save(): void {
     scheduleWrite(recordName(this.day), () => ({
       day: this.day,
+      cells: this.board.cells,
       sessions: [...this.sessions.values()].map((session) => ({
         playerId: session.playerId,
         nickname: session.nickname,
