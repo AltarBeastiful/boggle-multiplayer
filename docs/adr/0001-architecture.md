@@ -106,8 +106,8 @@ rewritten, which is most of what Socket.IO brings.
 ## Decision 5: a permissive dictionary, adjustable without rebuilding
 
 `an-array-of-french-words` (MIT): 336,000 raw forms, 318,800 after
-normalisation, and 352,200 once the missing conjugations and verbs are filled
-in (below).
+normalisation, and 352,400 once the missing conjugations, verbs and modern
+words are filled in (below).
 Hyphenated and apostrophised entries are dropped, as they cannot be traced
 anyway.
 
@@ -196,6 +196,46 @@ entirely French.
 that became common after it was compiled is refused: `procrastiner` is missing
 for that reason alone. The alternative was an opinion, and an opinion does not
 scale to 24,281 candidates.
+
+**The modern words, and why no rule found them.** That limit was reported from
+the other side: `orc` refused, and a player saying it looks French. It is, and
+it is one of a class, since the base list has no `blog`, no `tofu`, no `selfie`
+and no `covoiturage` either. Ninety-three of a hundred and eighty-five everyday
+modern words probed were missing.
+
+Nouns are not verbs, and the trick that worked for the verbs does not transfer.
+A conjugation is closed: given `grader`, its forms are determined, and the only
+question is which infinitives to admit. Open vocabulary has no such handle, and
+four rules were tried against Wiktionary and measured, each on what it admits
+first rather than on how many words it admits:
+
+| Rule | Admits | What the sample looks like |
+| --- | --- | --- |
+| Attested in Lexique | 5,306 | `poquette`, `pastophore`, `niolo`, plus proper nouns (`Ève`, `Isabelle`) and subtitle English (`team`, `clean`) |
+| 5 or more translations | 7,445 | `yttrotantalite`, `métazeunérite`, `décicandela`, `nanonewton` |
+| Borrowed from English | 3,445 | `fistball`, `nightcore`, `foodpairing`, `hyperscaler` |
+| Any translation or example | 88,704 | the same, and more of it |
+
+Wiktionary's translation tables measure editor activity, not currency, and bots
+have filled in mineralogy, chemistry and metrology. Lexique's `ortho` column
+carries proper nouns and untranslated subtitle English, which the verb pass
+never saw because it filtered on `cgram == 'VER'`. Every ranking puts
+`attoweber` thousands of places above `orc`.
+
+So block 3 of `extra-words.txt` is picked by hand: 87 lemmas, 175 words with
+their plurals and feminines, each one a word a player would reasonably try. The
+inflections come from Wiktionary, from entries glossed "Pluriel de" and from the
+lemma's own inflection table, never from its `forms` array wholesale: that array
+holds variant spellings next to inflections, and taking it whole would have
+added `drône`, `beug` and `hummus`.
+
+Making that block survive is what changed in `audit-conjugations.mjs`. Its
+`--write` used to compute the generated blocks against the dictionary
+*including* its own previous output, so a second run found nothing missing and
+swept all 34,725 generated words into the hand block. It now reads the hand
+block first and computes against the base list plus those words alone, which
+makes the file byte-identical on a re-run and means the header no longer has to
+tell you to delete the file before regenerating it.
 
 `scripts/game-dictionary.mjs` exists because of the same class of mistake: the
 audit and the definitions builder each built the dictionary from the bare npm

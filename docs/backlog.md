@@ -54,6 +54,48 @@ found by probing a verb that ought to have been fixed and was not.
 
 ---
 
+## ~~The modern words that were not there~~ (done)
+
+Reported as `orc`, which is French: a masculine noun in the Wiktionnaire,
+plural `orcs`. One word again, and one of a class again. The base list has no
+`blog`, no `tofu`, no `selfie`; of 185 everyday modern words probed, 93 were
+missing.
+
+The verb trick does not transfer, and finding that out was most of the work. A
+conjugation is closed, so completing `grader` needs no judgement. Open
+vocabulary is not, and there is nothing in the sources that ranks `orc` above
+`yttrotantalite`. Four rules were tried and all four failed the same way:
+
+- **Attested in Lexique**, which decided the verbs: 5,306 words, and the corpus
+  closed in 2001, so it has never met `orc`, `blog` or `selfie` at all. Its
+  `ortho` column also carries proper nouns (`Ève`, `Isabelle`) and untranslated
+  subtitle English (`team`, `clean`); the verb pass never saw that because it
+  filtered on `cgram == 'VER'`.
+- **Five or more Wiktionary translations**: 7,445 words, and the sample is
+  `yttrotantalite`, `métazeunérite`, `décicandela`, `nanonewton`. Translation
+  tables measure editor activity, and bots have been busy in mineralogy.
+- **Borrowed from English**, aimed straight at the blind spot: 3,445 words, and
+  it admits `fistball`, `nightcore`, `foodpairing`, `hyperscaler`. Wiktionary
+  records English words used in French, which is not the same as French.
+- **Any translation or example at all**: 88,704 words, and worse of the same.
+
+So block 3 of `extra-words.txt` is hand-picked, 87 lemmas and 175 words, and
+the script now says so in the file. Plurals and feminines come from Wiktionary
+entries glossed "Pluriel de" and from the lemma's inflection table, not from its
+`forms` array, which files variant spellings alongside inflections and would
+have brought `drône`, `beug` and `hummus` in with the rest.
+
+Two things fell out of it. `--write` was not idempotent: it computed the
+generated blocks against a dictionary that already contained its own output, so
+a second run found nothing missing and swept all 34,725 generated words into the
+hand block. It now reads the hand block first and computes against the base list
+plus those words, and the file is byte-identical on a re-run. And adding
+`hacker` as a noun made it a verb the dictionary knows, so the conjugation pass
+completed it on the next run: 38 forms, correct, and worth a test saying it was
+meant.
+
+---
+
 ## ~~Version and release the generated dictionary~~ (done)
 
 `definitions.tsv.gz` was 17.5 MB of a 17.9 MB repository: 7 MB of gzip, which

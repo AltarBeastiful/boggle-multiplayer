@@ -34,7 +34,19 @@
  * in French" means operationally, and it cuts 24,281 candidates to 804:
  * `zapper`, `réécrire`, `rembobiner`, `menotter`, `grésiller`, `crasher`.
  *
+ * Neither pass covers nouns, and the file's third block holds those: modern
+ * words the base list predates and no rule can find. `orc` was reported by a
+ * player, and it is one of a class, since the base list has no `blog`, no
+ * `tofu`, no `selfie` either. Lexique cannot help here as it did for the verbs,
+ * its corpus being closed in 2001, and every automatic substitute was tried and
+ * rejected: Wiktionary translation counts, example counts and corpus frequency
+ * each admit mineralogy and chemistry (`yttrotantalite`, `attoweber`,
+ * `décicandela`) thousands of words before they admit `orc`. Open vocabulary is
+ * not conjugation, so those words are chosen one at a time, by hand.
+ *
  * With --write the missing forms are merged into server/data/extra-words.txt.
+ * Anything already in the file that this script did not generate is kept, which
+ * is what makes the third block survive a regeneration.
  */
 
 import { createHash } from 'node:crypto';
@@ -44,9 +56,9 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createGunzip } from 'node:zlib';
 
-import { normalizeWord } from '@boggle/shared';
+import { buildDictionary, normalizeWord } from '@boggle/shared';
 
-import { gameDictionary, gameSpellings } from './game-dictionary.mjs';
+import { baseSpellings, wordAdjustments } from './game-dictionary.mjs';
 
 /**
  * Bumped by hand when what goes into the file changes: a different source, a
@@ -54,7 +66,7 @@ import { gameDictionary, gameSpellings } from './game-dictionary.mjs';
  * with a checksum of its own contents, so a copy found anywhere can say what it
  * is and whether it is intact.
  */
-const LEXICON_VERSION = '1.0.0';
+const LEXICON_VERSION = '1.1.0';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const WIKTIONARY = resolve(root, '.work', 'fr-extract.jsonl.gz');
@@ -95,10 +107,38 @@ function attestedVerbs() {
   return verbs;
 }
 
-const dictionary = gameDictionary();
+/**
+ * The words in the file that this script did not put there.
+ *
+ * The generated blocks are marked, so anything outside them was written by
+ * hand and has to come back out unchanged. Reading them first is also what
+ * makes a second run produce the same file as the first: the blocks below are
+ * computed against the dictionary *without* them, so a form generated last
+ * time is still seen as missing and lands back in the block it came from,
+ * rather than being read as vocabulary somebody added.
+ */
+function handPicked() {
+  if (!existsSync(EXTRA)) return [];
+  let generated = false;
+  const words = [];
+  for (const line of readFileSync(EXTRA, 'utf8').split('\n')) {
+    const marker = /^# --- ([0-9])\./.exec(line);
+    if (marker) generated = marker[1] === '1' || marker[1] === '2';
+    else if (line.startsWith('#')) continue;
+    else if (!generated && line.trim().length > 0) words.push(line.trim());
+  }
+  return words;
+}
+
+const hand = handPicked();
+const excluded = wordAdjustments('excluded-words.txt');
 /** Spellings as written, which is what the extra-words file holds. */
-const spellings = new Set(gameSpellings());
-console.log(`Game dictionary: ${dictionary.size} playable forms\n`);
+const spellings = new Set([...baseSpellings(), ...hand]);
+const dictionary = buildDictionary([...spellings], {
+  exclude: excluded.length > 0 ? excluded : undefined,
+});
+console.log(`Dictionary before the generated blocks: ${dictionary.size} playable forms`);
+console.log(`  ${hand.length} of them added by hand\n`);
 
 /**
  * The modern French alphabet, and nothing else.
@@ -358,7 +398,6 @@ if (withVerbs) {
   console.log(`  ${admitted.slice(0, 30).map((v) => v.lemma).join(' ')}`);
 }
 
-const additions = new Set([...completions, ...newVerbs]);
 console.log(`\n-- a sample of what is refused --\n  ${[...completions].sort().slice(0, 16).join(' ')}`);
 
 if (!write) {
@@ -371,13 +410,8 @@ if (!write) {
   const conjugations = fresh(completions);
   const verbs = fresh(newVerbs);
 
-  // Anything hand-written in the file is kept: only the generated blocks are
-  // replaced, and a word already present is never written twice.
-  const previous = existsSync(EXTRA) ? readFileSync(EXTRA, 'utf8') : '';
-  const handWritten = previous
-    .split('\n')
-    .filter((line) => line.trim().length > 0 && !line.startsWith('#'))
-    .filter((word) => !additions.has(word.trim()));
+  // Read before anything was computed, and written back untouched.
+  const handWritten = [...hand].sort((a, b) => a.localeCompare(b, 'fr'));
 
   const blocks = [];
   if (conjugations.length > 0) {
@@ -403,7 +437,18 @@ if (!write) {
     );
   }
   if (handWritten.length > 0) {
-    blocks.push('# --- added by hand --------------------------------------------------------', '', ...handWritten, '');
+    blocks.push(
+      '# --- 3. modern words, added by hand ---------------------------------------',
+      `#     ${handWritten.length} words. The base list predates them and Lexique cannot attest`,
+      '#     them, its corpus being closed in 2001: `orc`, `blog`, `tofu`, `selfie`,',
+      '#     `manga`, `covoiturage`. Counting Wiktionary translations, examples or',
+      '#     corpus frequency was tried in place of judgement and each one admits',
+      '#     `yttrotantalite` and `attoweber` long before `orc`, so these are picked',
+      '#     one at a time. Add another here: the script keeps whatever it finds.',
+      '',
+      ...handWritten,
+      '',
+    );
   }
 
   const body = blocks.join('\n');
@@ -423,8 +468,9 @@ if (!write) {
     '# One word per line. Blank lines and lines starting with # are ignored;',
     '# accents and case do not matter. Read when the server starts.',
     '#',
-    '# Regenerate from scratch:',
-    `#   rm server/data/extra-words.txt && npm run audit:conj -- --write${withVerbs ? ' --verbs' : ''}`,
+    '# Regenerate:',
+    `#   npm run audit:conj -- --write${withVerbs ? ' --verbs' : ''}`,
+    '#   (blocks 1 and 2 are rebuilt from the sources, block 3 is carried over)',
     '#   node scripts/build-definitions.mjs   # or the new words have no definition',
     '',
   ].join('\n');

@@ -12,6 +12,11 @@
  * wrong. `server/data/extra-words.txt` repairs that, and this is what
  * notices if the file is ever lost or rebuilt wrongly.
  *
+ * Its third block is different in kind: modern words the base list predates,
+ * `orc` and `blog` and `tofu`, which no rule found and somebody chose. The
+ * checks below hold both halves, and hold out the technical vocabulary that
+ * every automatic rule wanted to let in instead.
+ *
  * Regenerate the file with: node scripts/audit-conjugations.mjs --write
  */
 
@@ -82,6 +87,42 @@ console.log('\n── Verbs the base list never had ──');
 }
 
 // ---------------------------------------------------------------------------
+console.log('\n── Modern words the base list predates ──');
+{
+  // Reported as `orc`, and one of a class: the base list is a Letterpress word
+  // list from before any of these, and Lexique cannot vouch for them either,
+  // its corpus having closed in 2001. Each is in block 3 of extra-words.txt,
+  // with its plural, chosen by hand.
+  const modern = [
+    ['orc', 'orcs'],
+    ['blog', 'blogs'],
+    ['selfie', 'selfies'],
+    ['manga', 'mangas'],
+    ['tofu', 'tofus'],
+    ['pixel', 'pixels'],
+    ['covoiturage', 'covoiturages'],
+    ['écolo', 'écolos'],
+    ['sudoku', 'sudokus'],
+    ['kebab', 'kebabs'],
+  ];
+  let held = 0;
+  for (const forms of modern) {
+    const missing = forms.filter((form) => !accepts(form));
+    held += forms.length - missing.length;
+    for (const form of missing) problems.push(`${form}: refused, though it was added by hand`);
+  }
+  console.log(`  ${held}/${modern.length * 2} accepted, singular and plural`);
+
+  // Adding `hacker` as a noun makes it a verb the dictionary knows, so the
+  // conjugation pass now completes it. That cascade is the intended behaviour
+  // and this is what says so.
+  for (const form of ['hacker', 'hackers', 'hacke', 'hackait', 'hackerait']) {
+    expect(form, true, 'hacker was added, so its conjugation must follow');
+  }
+  console.log('  hacker conjugates');
+}
+
+// ---------------------------------------------------------------------------
 console.log('\n── What must stay out ──');
 {
   const rubbish = [
@@ -100,6 +141,13 @@ console.log('\n── What must stay out ──');
     ['encyclopédier', 'a Wiktionary coinage, in no corpus'],
     ['concupiscer', 'the same'],
     ['insecter', 'the same'],
+    // Every automatic rule tried for the modern words admits these first:
+    // counting Wiktionary translations, examples or corpus frequency ranks
+    // bot-written mineralogy and metrology above `orc` by thousands of words.
+    // They stay out, and that is why block 3 is picked by hand.
+    ['yttrotantalite', 'a mineral nobody plays'],
+    ['attoweber', 'an SI unit nobody plays'],
+    ['décicandela', 'the same'],
   ];
   for (const [word, why] of rubbish) {
     const got = expect(word, false, `${why}: it should not be in the dictionary`);

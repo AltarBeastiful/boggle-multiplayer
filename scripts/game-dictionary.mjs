@@ -30,9 +30,14 @@ export function wordAdjustments(name) {
     .filter((line) => line.length > 0 && !line.startsWith('#'));
 }
 
+/** The npm package alone, before anything was added to it. */
+export function baseSpellings() {
+  return [...require('an-array-of-french-words')];
+}
+
 /** Every spelling the game knows, before normalising. */
 export function gameSpellings() {
-  return [...require('an-array-of-french-words'), ...wordAdjustments('extra-words.txt')];
+  return [...baseSpellings(), ...wordAdjustments('extra-words.txt')];
 }
 
 /** The dictionary, adjustments included. */

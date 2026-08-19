@@ -96,13 +96,16 @@ npm run test:restart   # tue le serveur en pleine manche et vérifie la reprise
 
 ## Le dictionnaire
 
-**352 189 mots**, assemblés de trois sources :
+**352 400 mots**, assemblés de quatre sources :
 
 - `an-array-of-french-words` (MIT), tiré des
   [listes de Letterpress](https://github.com/lorenbrichter/Words) (CC0) : la base ;
 - les **conjugaisons** des verbes de cette base, prises au Wiktionnaire français ;
 - les **verbes qui manquaient**, retenus s'ils sont attestés par un corpus
-  (Lexique 3.83) et si le Wiktionnaire ne les dit ni désuets ni grossiers.
+  (Lexique 3.83) et si le Wiktionnaire ne les dit ni désuets ni grossiers ;
+- les **mots récents** que la base ignore (`orc`, `blog`, `tofu`, `covoiturage`),
+  choisis un à un, aucune règle automatique ne les classant avant
+  `yttrotantalite`.
 
 Volontairement permissif : `déci`, `zut`, `eus` et `mangeassions` passent. Les
 entrées à trait d'union ou apostrophe sont écartées, n'étant pas traçables sur
@@ -110,7 +113,7 @@ une grille. `extra-words.txt` et `excluded-words.txt` ajustent le résultat, un
 mot par ligne, relus au démarrage du serveur : voir
 [`server/data/README.md`](server/data/README.md).
 
-Les définitions viennent du même Wiktionnaire : **349 200 mots, 743 366 sens**,
+Les définitions viennent du même Wiktionnaire : **349 408 mots, 743 768 sens**,
 soit 99,2 % du dictionnaire, servis en 0,01 s. Un mot polysémique montre ses
 trois principaux sens et les homographes sont classés par fréquence d'usage,
 donc `COTE` donne *côté*, *côte*, *cote*, *coté* dans cet ordre. Sans ce fichier

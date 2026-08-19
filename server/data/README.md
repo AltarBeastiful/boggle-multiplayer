@@ -8,7 +8,8 @@ from real-world feedback". That repository was archived in May 2019, so the list
 is frozen there. Around 336,000 inflected forms, conjugations and plurals
 included; after normalisation, meaning uppercase, accents stripped and
 hyphenated or apostrophised entries dropped, about 318,800 playable words
-remain, and 352,200 with the conjugations and verbs added below.
+remain, and 352,400 with the conjugations, verbs and modern words added
+below.
 
 It is a word list for a game, not a lexicon, and it shows: see
 `scripts/audit-dictionary.mjs`, which measures what is missing against Lexique
@@ -22,18 +23,27 @@ ignored. Accents and case do not matter.
 - `extra-words.txt` : words to add
 - `excluded-words.txt` : words to drop
 
-## `extra-words.txt` is generated
+## `extra-words.txt` is generated, except its last block
 
-It currently holds **34,725 words** the base list was missing, put there by:
+It currently holds **34,938 words** the base list was missing, in three blocks:
 
 ```bash
-npm run audit:conj -- --write
+npm run audit:conj -- --write --verbs
 ```
 
-Only verbs the dictionary already accepts are completed, so nothing new gets in
-by this route. Rerunning the command **keeps any line you added by hand**: only
-words it recognises as its own are rewritten. `npm run test:dict` checks the
-result in a second, offline.
+writes the first two. Block 1 completes verbs the dictionary already accepts,
+so nothing new gets in by that route; block 2 adds verbs it lacked outright,
+kept only if a corpus has met them.
+
+Block 3 is written by hand, and is where to add a word somebody reports as
+missing. These are the modern words no rule finds: `orc`, `blog`, `tofu`,
+`covoiturage`. Rerunning the command **keeps every line of it**, and produces a
+byte-identical file otherwise. `npm run test:dict` checks the result in a
+second, offline.
+
+Adding a noun that is also a verb infinitive has a consequence worth knowing:
+the next run completes its conjugation. `hacker` brought 38 forms with it, which
+is correct, and the test says so on purpose.
 
 Two things need doing after editing either file:
 
@@ -60,12 +70,13 @@ Wiktionary live, which is what it did before the file existed. To build one
 locally, run `node scripts/build-definitions.mjs`, which needs the 715 MB
 Wiktionary extract and downloads it into `.work/` once.
 
-Example `extra-words.txt`:
+To add a word, put it under the block 3 marker with its plural:
 
 ```
-# missing common nouns
+# --- 3. modern words, added by hand ---------------------------------------
+
 kombucha
-mocktail
+kombuchas
 ```
 
 Restart the server to apply the changes.

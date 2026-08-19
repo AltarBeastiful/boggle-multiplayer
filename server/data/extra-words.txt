@@ -1,9 +1,9 @@
-# Boggle multijoueur — complément du dictionnaire français
+# Boggle multijoueur : complément du dictionnaire français
 #
-# version   1.0.0
-# generated 2026-08-16 by scripts/audit-conjugations.mjs
-# words     34725
-# sha256    992b44d775fd2650
+# version   1.1.0
+# generated 2026-08-19 by scripts/audit-conjugations.mjs
+# words     34938
+# sha256    2dcf70c66b0d81de
 #
 # Sources, both CC BY-SA 4.0, see LICENCE-DEFINITIONS.md:
 #   French Wiktionary, via the wiktextract extraction at kaikki.org
@@ -12,11 +12,12 @@
 # One word per line. Blank lines and lines starting with # are ignored;
 # accents and case do not matter. Read when the server starts.
 #
-# Regenerate from scratch:
-#   rm server/data/extra-words.txt && npm run audit:conj -- --write --verbs
+# Regenerate:
+#   npm run audit:conj -- --write --verbs
+#   (blocks 1 and 2 are rebuilt from the sources, block 3 is carried over)
 #   node scripts/build-definitions.mjs   # or the new words have no definition
 # --- 1. conjugations of verbs the dictionary already had ------------------
-#     7118 forms. It held `grader` but not `gradera`, `nourrir` but none
+#     7156 forms. It held `grader` but not `gradera`, `nourrir` but none
 #     of its future. No new vocabulary: every one is a form of a known verb.
 
 abondée
@@ -4121,6 +4122,44 @@ guilleméteront
 guillemèteront
 guinchée
 guinchées
+hacka
+hackai
+hackaient
+hackais
+hackait
+hackâmes
+hackant
+hackas
+hackasse
+hackassent
+hackasses
+hackassiez
+hackassions
+hackât
+hackâtes
+hacke
+hacké
+hackée
+hackées
+hackent
+hackera
+hackerai
+hackeraient
+hackerais
+hackerait
+hackeras
+hackèrent
+hackerez
+hackeriez
+hackerions
+hackerons
+hackeront
+hackes
+hackés
+hackez
+hackiez
+hackions
+hackons
 hagui
 haguis
 hannetonnée
@@ -34751,3 +34790,187 @@ zyeutez
 zyeutiez
 zyeutions
 zyeutons
+
+# --- 3. modern words, added by hand ---------------------------------------
+#     175 words. The base list predates them and Lexique cannot attest
+#     them, its corpus being closed in 2001: `orc`, `blog`, `tofu`, `selfie`,
+#     `manga`, `covoiturage`. Counting Wiktionary translations, examples or
+#     corpus frequency was tried in place of judgement and each one admits
+#     `yttrotantalite` and `attoweber` long before `orc`, so these are picked
+#     one at a time. Add another here: the script keeps whatever it finds.
+
+appli
+applis
+bagel
+bagels
+bento
+bentos
+bio
+bios
+blog
+blogs
+blogueur
+blogueurs
+blogueuse
+brownie
+brownies
+bug
+bugs
+burnout
+burnouts
+burrito
+burritos
+chatbot
+chatbots
+cloud
+clouds
+cookie
+cookies
+cosplay
+cosplays
+covid
+covids
+covoiturage
+covoiturages
+coworking
+coworkings
+cupcake
+cupcakes
+drone
+drones
+écolo
+écolos
+edamame
+edamames
+emoji
+emojis
+falafel
+falafels
+firewall
+firewalls
+freelance
+freelances
+funk
+funks
+futsal
+geek
+geeks
+hacker
+hackers
+halloumi
+halloumis
+hashtag
+hashtags
+hobbit
+hobbite
+hobbites
+hobbits
+houmous
+house
+influenceur
+influenceurs
+influenceuse
+karaoké
+karaokés
+kebab
+kebabs
+kitesurf
+kitesurfs
+manga
+mangas
+mojito
+mojitos
+mozzarella
+mozzarellas
+nem
+nems
+orc
+orcs
+otaku
+otakus
+padel
+panini
+paninis
+pesto
+pestos
+pixel
+pixels
+podcast
+podcasteur
+podcasteurs
+podcasteuse
+podcasts
+quiz
+quizs
+ramen
+ramens
+rap
+raps
+routeur
+routeurs
+routeuse
+samoussa
+samoussas
+sashimi
+sashimis
+scan
+scans
+selfie
+selfies
+slam
+slams
+smartphone
+smartphones
+smoothie
+smoothies
+snowboard
+snowboards
+spam
+spams
+startup
+startups
+streameur
+streameurs
+streameuse
+streaming
+streamings
+sudoku
+sudokus
+sumo
+sumos
+taboulé
+taboulés
+tacos
+techno
+technos
+texto
+textos
+tiramisu
+tiramisus
+tofu
+tofus
+tuto
+tutos
+tweet
+tweets
+végan
+végane
+véganes
+végans
+visio
+visios
+wasabi
+wasabis
+webcam
+webcams
+wifi
+wifis
+wok
+woks
+wrap
+wraps
+youtubeur
+youtubeurs
+youtubeuse
+zumba
+zumbas
