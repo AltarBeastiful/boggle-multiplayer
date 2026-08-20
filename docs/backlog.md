@@ -54,6 +54,31 @@ found by probing a verb that ought to have been fixed and was not.
 
 ---
 
+## ~~Deploying from CI rather than from a laptop~~ (done)
+
+`.github/workflows/deploy.yml`, run by hand from the Actions tab. It does not
+reimplement the deployment: it hands the runner a key and an ssh alias and then
+runs `scripts/deploy.sh`, the same script that has always worked from a laptop
+and still does. One deployment path, two places to start it.
+
+Manual on purpose. Building a release and putting it on the server are two
+decisions, and this project has made them separately every time. The `on:`
+block says how to change that in one line if it ever stops being true.
+
+Two secrets, and the second is the one people skip: `BOGGLE_SSH_KEY` is a key
+made for this and nothing else, so revoking it is one line out of the server's
+`authorized_keys` rather than a key rotation; `BOGGLE_SSH_KNOWN_HOSTS` is the
+server's own fingerprint, without which the runner would hand that key to
+whatever answers on the address, which is the whole of what ssh protects
+against.
+
+The key is written under `umask 077` rather than chmod'd afterwards, so it is
+never briefly world-readable, and the alias carries `BatchMode yes` so a missing
+secret fails in a second instead of hanging on a password prompt until the job
+times out.
+
+---
+
 ## ~~The modern words that were not there~~ (done)
 
 Reported as `orc`, which is French. One word again, and one of a class again:

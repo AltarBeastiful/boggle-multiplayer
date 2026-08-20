@@ -168,6 +168,11 @@ ne copie rien depuis le poste local, donc **poussez avant de déployer**.
 Variables utiles : `BOGGLE_SSH_HOST` (défaut `wordpress`), `BOGGLE_REMOTE_DIR`,
 `BOGGLE_BRANCH`, `BOGGLE_PORT`.
 
+Le même script tourne depuis GitHub Actions
+([`deploy.yml`](.github/workflows/deploy.yml)), déclenché à la main, pour ne pas
+dépendre du poste qui est allumé. Deux secrets à poser une fois, une clé dédiée
+et l'empreinte du serveur : la marche à suivre est en tête du workflow.
+
 La pile embarque son propre **Traefik** : HTTPS par Let's Encrypt, domaine dans
 `BOGGLE_HOST`, et Socket.IO passe sans réglage. Elle ne touche à aucun conteneur
 existant. Pour plusieurs instances il faudrait un adaptateur Redis pour

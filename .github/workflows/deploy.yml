@@ -1,0 +1,126 @@
+name: deploy
+
+# Runs scripts/deploy.sh from here instead of from a laptop, so a deploy does
+# not depend on whose machine is open. The script is not duplicated: this
+# workflow only gives the runner an ssh key and a host to use it on, and the
+# deployment logic stays in one file that still works by hand.
+#
+# Manual on purpose. The release workflow builds and publishes; this one puts
+# it on the server, and those are two decisions. To make a published release
+# deploy itself, add `release: {types: [published]}` to the triggers below.
+#
+# Set up once, on your own machine, with a key made for this and nothing else:
+#
+#   ssh-keygen -t ed25519 -f ~/.ssh/boggle-deploy -C "github-actions" -N ""
+#   ssh-copy-id -i ~/.ssh/boggle-deploy.pub ubuntu@193.122.4.195
+#   gh secret set BOGGLE_SSH_KEY < ~/.ssh/boggle-deploy
+#   ssh-keyscan 193.122.4.195 | gh secret set BOGGLE_SSH_KNOWN_HOSTS
+#
+# The private key goes straight from the file into GitHub's secret store, which
+# encrypts it and will not print it back, in this log or anywhere else. Use a
+# key created for this and kept off your other hosts: a secret that can be
+# rotated by deleting one line from the server's authorized_keys is a different
+# thing from your personal key.
+#
+# The host key matters as much. Without BOGGLE_SSH_KNOWN_HOSTS the runner would
+# accept whatever answers on that address, which is the whole of what an ssh
+# key protects against.
+#
+# Optional repository variables, if any of this ever moves:
+#   BOGGLE_SSH_HOST     default 193.122.4.195
+#   BOGGLE_SSH_USER     default ubuntu
+#   BOGGLE_REMOTE_DIR   default /home/ubuntu/boggle-multiplayer
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch the server should deploy (deploy.sh mirrors origin, so tags do not work)'
+        required: false
+        default: 'main'
+
+# Nothing here reads or writes the repository beyond checking it out.
+permissions:
+  contents: read
+
+# Two deploys at once would fight over the same working copy on the server.
+# Queued rather than cancelled: a half-finished deploy is worse than a slow one.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Add a required reviewer to this environment in the repository settings and
+    # every deploy waits for a human. The repository is public, so that costs
+    # nothing.
+    environment: production
+    # The server builds the image from scratch, which is the slow part.
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # A missing secret would otherwise surface as ssh asking for a password
+      # and the job hanging until it times out.
+      - name: Check the secrets are set
+        env:
+          KEY: ${{ secrets.BOGGLE_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.BOGGLE_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          missing=
+          [ -n "$KEY" ] || missing="$missing BOGGLE_SSH_KEY"
+          [ -n "$KNOWN_HOSTS" ] || missing="$missing BOGGLE_SSH_KNOWN_HOSTS"
+          if [ -n "$missing" ]; then
+            echo "Missing repository secret(s):$missing"
+            echo "See the header of .github/workflows/deploy.yml for how to set them."
+            exit 1
+          fi
+
+      - name: Give the runner the key
+        env:
+          KEY: ${{ secrets.BOGGLE_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.BOGGLE_SSH_KNOWN_HOSTS }}
+          SSH_HOST: ${{ vars.BOGGLE_SSH_HOST || '193.122.4.195' }}
+          SSH_USER: ${{ vars.BOGGLE_SSH_USER || 'ubuntu' }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          # umask, not chmod after the fact: the key is never readable by
+          # anyone else, not even for the instant between writing and chmod.
+          (umask 077 && printf '%s\n' "$KEY" > ~/.ssh/boggle-deploy)
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+          # deploy.sh calls plain `ssh "$BOGGLE_SSH_HOST"`, so the user, the
+          # address and the key all come from here and the script stays the
+          # same one that runs by hand.
+          cat > ~/.ssh/config <<CONFIG
+          Host boggle
+            HostName $SSH_HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/boggle-deploy
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            BatchMode yes
+            ServerAliveInterval 30
+            ServerAliveCountMax 20
+          CONFIG
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy
+        env:
+          BOGGLE_SSH_HOST: boggle
+          BOGGLE_BRANCH: ${{ inputs.branch || 'main' }}
+          BOGGLE_REMOTE_DIR: ${{ vars.BOGGLE_REMOTE_DIR || '/home/ubuntu/boggle-multiplayer' }}
+        run: ./scripts/deploy.sh
+
+      # The runner is thrown away after the job, so this is belt and braces.
+      # It costs one line and removes the question.
+      - name: Forget the key
+        if: always()
+        run: rm -f ~/.ssh/boggle-deploy ~/.ssh/config
