@@ -13,6 +13,11 @@ that are, and they remain subject to those dictionaries' licences:
   line. In git, written by the same script. **From the Dictionnaire
   orthographique français: MPL 2.0.**
 
+A fourth, `words-without-definition.txt`, is the leftover of the definitions
+build: the words the game accepts that nothing defines. It holds no content from
+either source, only words already published in the two files above, and it goes
+out with the release so the gap can be read rather than assumed.
+
 **Why the last one is a separate file.** MPL 2.0 is copyleft per file and
 CC BY-SA 4.0 is copyleft per work, and neither is written to give way to the
 other. Merging both word lists into one file would ask which licence the result
