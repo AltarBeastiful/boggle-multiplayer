@@ -501,8 +501,11 @@ The lines are sorted by normalised form and those forms are ASCII, so the
 gunzipped bytes are kept as a `Buffer` and binary-searched instead: about twenty
 probes, 6.7 µs a word, and only the handful of matching lines is ever turned
 into strings. It costs 83 MB that V8 does not count against its heap, and 4 MB
-of heap. It is also faster than the Map it replaces, and ready five times
-sooner, 0.3 s against 1.4 s, since nothing is built.
+of heap, and the whole server holds in 165 MB. It is also faster than the Map it
+replaces, and ready five times sooner, 0.3 s against 1.4 s on a laptop, 10 s on
+the two slow cores of the server, which is spent gunzipping. That happens on the
+first lookup, which is the healthcheck's, so the first probe times out and the
+second, thirty seconds later, finds it done.
 
 An off-by-one line here shows a player another word's definition, which no
 crash would announce, so `scripts/test-definitions.mjs` checks the search
