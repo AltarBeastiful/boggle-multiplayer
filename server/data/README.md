@@ -79,6 +79,19 @@ Wiktionary live, which is what it did before the file existed. To build one
 locally, run `node scripts/build-definitions.mjs`, which needs the 715 MB
 Wiktionary extract and downloads it into `.work/` once.
 
+It covers **98.9%** of the dictionary. Getting there took a third pass: the
+Wiktionary has no entry for many of the words Grammalecte contributes, mostly
+conjugations of rare verbs, but Grammalecte knows which lemma it built each form
+from. 2,793 of them borrow their lemma's definition and 7,601 at least say
+"Forme de …", which is what Wiktionary's own form-of entries say.
+
+## `words-without-definition.txt` is the rest
+
+The 4,763 the third pass could not place either, written out by the same build
+so the gap is a list somebody can read rather than a percentage. Not in git,
+published with the release. The server still answers for them by asking the
+Wiktionary live, which for most of these will not know either.
+
 To add a word, put it under the hand block marker in `extra-words.txt`, with
 its plural:
 

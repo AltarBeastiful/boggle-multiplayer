@@ -114,12 +114,16 @@ une grille. `extra-words.txt` et `excluded-words.txt` ajustent le résultat, un
 mot par ligne, relus au démarrage du serveur : voir
 [`server/data/README.md`](server/data/README.md).
 
-Les définitions viennent du Wiktionnaire : **422 624 mots, 848 703 sens**,
-soit 96,5 % du dictionnaire, servis en 0,01 s. Un mot polysémique montre ses
-trois principaux sens et les homographes sont classés par fréquence d'usage,
-donc `COTE` donne *côté*, *côte*, *cote*, *coté* dans cet ordre. Sans ce fichier
-le serveur interroge le Wiktionnaire en direct, ce qu'il fait de toute façon
-pour les mots qu'il ne couvre pas.
+Les définitions viennent du Wiktionnaire : **433 018 mots, 859 874 sens**, soit
+98,9 % du dictionnaire, servis en 0,01 s. Un mot polysémique montre ses trois
+principaux sens et les homographes sont classés par fréquence d'usage, donc
+`COTE` donne *côté*, *côte*, *cote*, *coté* dans cet ordre. Le Wiktionnaire
+ignore beaucoup de mots venus de Grammalecte, mais Grammalecte sait de quel
+lemme il a formé chacun : ces mots reprennent la définition du lemme, ou à
+défaut annoncent « Forme de … ». Les 4 763 restants sont listés dans
+`words-without-definition.txt`, publié avec la release. Sans le fichier, le
+serveur interroge le Wiktionnaire en direct, ce qu'il fait de toute façon pour
+les mots qu'il ne couvre pas.
 
 ### Le construire et le publier
 

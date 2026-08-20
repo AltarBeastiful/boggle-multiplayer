@@ -1,7 +1,7 @@
 # Boggle multijoueur : complément du dictionnaire français
 #
 # version   2.0.0
-# generated 2026-08-19 by scripts/build-lexicon.mjs
+# generated 2026-08-20 by scripts/build-lexicon.mjs
 # words     22308
 # sha256    bc9846bd1a2a9149
 #

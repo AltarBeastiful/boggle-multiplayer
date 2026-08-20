@@ -107,9 +107,13 @@ missing and swept all 34,725 generated words into the hand block. Every block is
 now computed against the base list plus the blocks before it, and the files come
 out byte-identical on a re-run.
 
-The bill: the bundled definitions now cover 96.5% of the dictionary instead of
-99.2%, since Grammalecte has 15,000 words Wiktionary does not define. Those fall
-through to a live lookup, which is what the fallback was built for.
+The bill came in at 15,000 words the Wiktionary does not define, which would
+have taken the bundled definitions from 99.2% to 96.5%. Grammalecte knows the
+lemma it built each form from, so a third pass in the definitions build places
+10,394 of them: 2,793 borrow the lemma's definition, 7,601 say "Forme de …".
+Coverage ends at 98.9%, better than it started. The 4,763 nothing can define go
+into `words-without-definition.txt`, published with the release, on the grounds
+that a gap you can read beats a percentage you cannot.
 
 ---
 

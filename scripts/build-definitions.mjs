@@ -15,13 +15,32 @@
  *
  * Neither file is decompressed to disk; both are read as streams.
  *
+ * A third source fills the gap the first two leave. Grammalecte contributes
+ * 100,000 words to the dictionary and the Wiktionary has no entry for many of
+ * them, mostly conjugations of rare verbs: `abombait`, `amotissions`. What
+ * Grammalecte does know is which lemma each form belongs to, since it generated
+ * the form from it, so `scripts/grammalecte.mjs` hands back that map and a word
+ * with no entry of its own can still borrow its lemma's definition, or failing
+ * that say what it is a form of. That is 10,000 words rescued of 15,000.
+ *
  * Output: server/data/definitions.tsv.gz, **one line per sense**
  *   NORMALISED_FORM \t part of speech \t spelling \t lemma \t definition
+ *
+ * And server/data/words-without-definition.txt, the words nothing could
+ * define, so the remaining gap is a list somebody can read rather than a
+ * percentage. Neither file is in git; both are published with the release.
  *
  * Content under CC BY-SA 4.0, see server/data/LICENCE-DEFINITIONS.md
  */
 
-import { createReadStream, createWriteStream, existsSync, mkdirSync, statSync } from 'node:fs';
+import {
+  createReadStream,
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
@@ -30,7 +49,8 @@ import { createGunzip, createGzip } from 'node:zlib';
 
 import { normalizeWord } from '@boggle/shared';
 
-import { gameDictionary, wordAdjustments } from './game-dictionary.mjs';
+import { gameDictionary, gameSpellings, wordAdjustments } from './game-dictionary.mjs';
+import { grammalecteLemmas } from './grammalecte.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
@@ -43,6 +63,7 @@ const WORK_DIR = process.env.BOGGLE_WORK_DIR ?? resolve(root, '.work');
 const WIKT_FILE = resolve(WORK_DIR, 'fr-extract.jsonl.gz');
 const LEXIQUE_FILE = resolve(WORK_DIR, 'Lexique383.tsv');
 const OUT_FILE = resolve(root, 'server/data/definitions.tsv.gz');
+const GAPS_FILE = resolve(root, 'server/data/words-without-definition.txt');
 
 /** Anything longer belongs to an encyclopaedia, not to a word game. */
 const MAX_DEFINITION = 400;
@@ -264,6 +285,61 @@ async function main() {
     `${rows.size} spellings: ${direct} defined outright, ${viaLemma} via lemma, ${unresolved} pointers only`,
   );
 
+  // -- passe 3 : ce que Grammalecte peut encore rattacher --------------------
+  //
+  // Everything above needed a Wiktionary entry for the spelling itself. A
+  // conjugation Grammalecte generated and the Wiktionary never described has
+  // none, and there are 15,000 of those. Grammalecte knows their lemma, having
+  // built them from it, which is enough for two things: the lemma's own
+  // definition when the Wiktionary defines it, and otherwise a sentence saying
+  // what the word is a form of. Neither invents anything: the second is the
+  // shape Wiktionary's own form-of entries already take ("Pluriel de orc.").
+  log('pass 3/3: the forms Grammalecte can still place');
+  const defined = new Set([...rows.values()].map((row) => row.normalized));
+  const grammalecte = await grammalecteLemmas();
+  let borrowed = 0;
+  let placed = 0;
+  const orphans = new Set();
+
+  for (const spelling of gameSpellings()) {
+    if (!/^[\p{L}]+$/u.test(spelling)) continue;
+    const normalized = normalizeWord(spelling);
+    if (normalized.length < 3 || !dictionary.has(normalized) || defined.has(normalized)) continue;
+
+    const lemma = grammalecte.lemmas.get(spelling);
+    if (!lemma || lemma === spelling) {
+      orphans.add(normalized);
+      continue;
+    }
+    const target = lemmaDefs.get(lemma);
+    if (target) {
+      rows.set(`${normalized}\t${spelling}`, {
+        normalized,
+        spelling,
+        partOfSpeech: target.partOfSpeech,
+        lemma,
+        definitions: target.definitions,
+      });
+      borrowed++;
+    } else {
+      // The lemma column means "this definition was borrowed from that word",
+      // and here the definition *is* about the lemma rather than taken from
+      // it. Leaving it empty is what pass 2 already does for the same case,
+      // and it keeps the card from printing the lemma twice over.
+      rows.set(`${normalized}\t${spelling}`, {
+        normalized,
+        spelling,
+        partOfSpeech: '',
+        lemma: '',
+        definitions: [`Forme de ${lemma}.`],
+      });
+      placed++;
+    }
+    defined.add(normalized);
+    orphans.delete(normalized);
+  }
+  log(`${borrowed} took their lemma's definition, ${placed} name their lemma, ${orphans.size} left`);
+
   // -- ranking the spellings ------------------------------------------------
   //
   // Wiktionary also describes acronyms and proper nouns, so without ranking
@@ -327,6 +403,35 @@ async function main() {
     `  ${ordered.length} spellings, ${senses} senses (${(senses / ordered.length).toFixed(2)} per spelling)`,
   );
   log(`  ${(raw / 1e6).toFixed(1)} MB raw, ${(size / 1e6).toFixed(1)} MB compressed`);
+
+  // The gap, written out rather than reported as a percentage. Most of it is
+  // rare verbs Grammalecte conjugates and no dictionary online defines; the
+  // list is what makes that checkable instead of assumed.
+  const gaps = [];
+  for (const spelling of gameSpellings()) {
+    if (!/^[\p{L}]+$/u.test(spelling)) continue;
+    const normalized = normalizeWord(spelling);
+    if (normalized.length >= 3 && dictionary.has(normalized) && !words.has(normalized)) {
+      gaps.push(spelling);
+    }
+  }
+  const unique = [...new Set(gaps)].sort((a, b) => a.localeCompare(b, 'fr'));
+  writeFileSync(
+    GAPS_FILE,
+    [
+      '# Words the game accepts and nothing defines.',
+      `# ${unique.length} of ${dictionary.size}, written by scripts/build-definitions.mjs.`,
+      '#',
+      '# The server still answers for them, by asking the Wiktionary live, which',
+      '# for most of these will not know either. Mostly conjugations of rare',
+      '# verbs Grammalecte carries and no dictionary online describes.',
+      '',
+      ...unique,
+      '',
+    ].join('\n'),
+    'utf8',
+  );
+  log(`  ${unique.length} words nothing defines, listed in ${GAPS_FILE}`);
 
   if (words.size < dictionary.size * 0.5) {
     throw new Error(`coverage suspiciously low (${words.size}), extraction looks wrong`);

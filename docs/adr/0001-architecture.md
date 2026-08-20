@@ -260,11 +260,22 @@ is no comfortable answer. `grammalecte-words.txt` and `extra-words.txt` keep one
 source each, and the release publishes two assets rather than one. It also
 happens to document where every word came from.
 
-**What it costs.** The bundled definitions cover 96.5% of the dictionary rather
-than 99.2%: Grammalecte has 15,000 words Wiktionary does not define, and those
-fall through to a live lookup. And the hand block, which was 175 words, is now
-33: the script drops a hand-picked word once a source covers it, so what remains
-is a record of what the dictionaries genuinely lack.
+**What it costs, and what pays it back.** The Wiktionary has no entry for 15,000
+of the words Grammalecte contributes, mostly conjugations of rare verbs, which
+would have taken the bundled definitions from 99.2% of the dictionary down to
+96.5%. Grammalecte knows the lemma it built each form from, though, having built
+it, so `scripts/grammalecte.mjs` hands that map to the definitions build and a
+third pass places 10,394 of them: 2,793 borrow their lemma's definition, and
+7,601 say "Forme de …", which is the shape Wiktionary's own form-of entries take
+anyway. Coverage ends at **98.9%**, better than before the change.
+
+The 4,763 left are written to `words-without-definition.txt` and published with
+the release, so what is missing is a list somebody can read rather than a
+percentage in a build log.
+
+The hand block, which was 175 words, is now 33: the script drops a hand-picked
+word once a source covers it, so what remains is a record of what the
+dictionaries genuinely lack.
 
 `scripts/game-dictionary.mjs` exists because of the same class of mistake: the
 audit and the definitions builder each built the dictionary from the bare npm

@@ -113,6 +113,7 @@ jobs:
           # concatenating them would put MPL text inside a CC BY-SA asset.
           cp server/data/grammalecte-words.txt release/
           cp server/data/extra-words.txt release/boggle-lexicon.txt
+          cp server/data/words-without-definition.txt release/
           cp "${{ steps.package.outputs.archive }}" release/
           # Bare filenames, so `sha256sum -c` works from wherever they land.
           ( cd release && sha256sum ./* | sed 's# \./# #' > SHA256SUMS )
@@ -126,6 +127,7 @@ jobs:
           set -euo pipefail
           words=$(grep -hc '^[^#]' server/data/extra-words.txt || echo '?')
           curated=$(grep -hc '^[^#]' server/data/grammalecte-words.txt || echo '?')
+          gaps=$(grep -hc '^[^#]' server/data/words-without-definition.txt || echo '?')
           notes=$(mktemp)
           cat > "$notes" <<EOF
           Built by \`.github/workflows/release.yml\` from \`$TAG\`.
@@ -135,6 +137,7 @@ jobs:
           | \`definitions.tsv.gz\` | Bundled definitions, served by \`/api/definition\`. Downloaded at deploy time by \`scripts/deploy.sh\`. |
           | \`grammalecte-words.txt\` | The $curated words the Grammalecte dictionary has and the base list does not. **MPL 2.0**. |
           | \`boggle-lexicon.txt\` | The $words words added on top: conjugations the dictionary was missing, and verbs attested in a French corpus. **CC BY-SA 4.0**. |
+          | \`words-without-definition.txt\` | The $gaps words the game accepts and nothing defines, so the gap is a list rather than a percentage. |
           | \`boggle-multiplayer-$TAG.tar.gz\` | The built game. See \`RUNNING.md\` inside. |
           | \`SHA256SUMS\` | Checksums for all of the above. |
 

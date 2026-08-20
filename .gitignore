@@ -14,3 +14,7 @@ server/.state/
 # rebuild left a permanent copy in history. Downloaded from the latest release
 # by scripts/deploy.sh, or rebuilt with scripts/build-definitions.mjs.
 server/data/definitions.tsv.gz
+
+# The words nothing defines: the leftovers of the same build, written out so
+# the gap is a list somebody can read. Published with the release.
+server/data/words-without-definition.txt
