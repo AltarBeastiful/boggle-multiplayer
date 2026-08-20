@@ -68,6 +68,7 @@ const WIKTIONARY = resolve(root, '.work', 'fr-extract.jsonl.gz');
 const LEXIQUE = resolve(root, '.work', 'Lexique383.tsv');
 const WORK = resolve(root, '.work');
 const EXTRA = resolve(root, 'server', 'data', 'extra-words.txt');
+const EXCLUDED = resolve(root, 'server', 'data', 'excluded-words.txt');
 const CURATED = resolve(root, 'server', 'data', 'grammalecte-words.txt');
 const write = process.argv.includes('--write');
 
@@ -125,6 +126,26 @@ function handPicked() {
 const hand = handPicked();
 const excluded = wordAdjustments('excluded-words.txt');
 
+/**
+ * Base-list words on trial: struck off as each reference is found to know them.
+ *
+ * The list is a Letterpress word list archived in 2019 and it has decayed, in
+ * ways only visible now that there is something to compare it against. What
+ * survives both references untouched is not rare vocabulary, it is `conpresser`
+ * and `stratigraphiqu` and `nourrirrai`. Marking rather than collecting keeps
+ * this to 300,000 strings instead of the Wiktionary's 5.7 million.
+ */
+const unvouched = new Set();
+/** Normalised form back to the spelling the base list wrote, for the report. */
+const baseWords = new Map();
+for (const word of baseSpellings()) {
+  if (!/^[\p{L}]+$/u.test(word)) continue;
+  const normalized = normalizeWord(word);
+  if (normalized.length < 3) continue;
+  unvouched.add(normalized);
+  if (!baseWords.has(normalized)) baseWords.set(normalized, word);
+}
+
 /** Everything admitted so far, as spellings, in block order. */
 const admitted = [...baseSpellings()];
 /** The same, normalised, which is what "does the game know this word" means. */
@@ -149,6 +170,7 @@ console.log(`Base list: ${known.size} playable forms`);
 const grammalecte = await grammalecteLemmas();
 console.log(`\nGrammalecte: ${grammalecte.entries} entries, ${grammalecte.expanded} forms expanded`);
 console.log(`  ${grammalecte.lemmas.size} of them lower-case French`);
+for (const form of grammalecte.lemmas.keys()) unvouched.delete(normalizeWord(form));
 const blockGrammalecte = admit([...grammalecte.lemmas.keys()]);
 console.log(`  ${blockGrammalecte.length} new to the game, dictionary now ${known.size}`);
 
@@ -274,6 +296,16 @@ for await (const line of lines) {
   } catch {
     continue;
   }
+  /*
+   * Every language the French Wiktionary describes counts here, not just
+   * French. A word it files under English or Latin is at least a word
+   * somebody wrote; what is being looked for is the base list's own
+   * inventions, and those appear nowhere at all.
+   */
+  if (typeof entry.word === 'string' && entry.word.length >= 3) {
+    unvouched.delete(normalizeWord(entry.word));
+  }
+
   if (entry.lang_code !== 'fr' || entry.pos !== 'verb') continue;
   if (!playable(entry.word)) continue;
 
@@ -402,6 +434,73 @@ holes.sort((a, b) => b.missing - a.missing);
 console.log(`  worst holes: ${holes.slice(0, 8).map((h) => `${h.lemma} (${h.missing})`).join(', ')}`);
 
 // ---------------------------------------------------------------------------
+// What the base list made up
+
+/**
+ * Two shapes of invention, and only two.
+ *
+ * A word no reference vouches for is not automatically wrong: `frigorifiante`
+ * is the regular feminine of a participle used as an adjective, correct French
+ * that no dictionary bothers to list, and striking it would be `gradera` over
+ * again from the other side. So agreement is left alone and only the two
+ * shapes that cannot be right are taken:
+ *
+ *   - a conjugated form of a verb that no dictionary anywhere conjugates.
+ *     `blêmaient` is not a form of `blêmir`, which gives `blêmissaient`; it is
+ *     a form of `blêmer`, which does not exist. Same for `caséfier`,
+ *     `conpresser`, `amotir`, `dessuiter`.
+ *   - a plural in `-aus` where French writes `-aux`: `bihoreaus`, `nobliaus`.
+ *
+ * What is left over is read by hand and left in the file below if it is to go.
+ * The order of the tests matters: agreement is checked first, so a participle
+ * ending in `-ante` is never mistaken for a conjugation.
+ */
+const VERB_ENDING =
+  /(assions|assiez|assent|erions|eriez|erons|eront|aient|èrent|asses|âmes|âtes|erais|erait|eras|erez|asse|ions|iez|ons|ais|ait|erai|era|îmes|îtes|irent|ez|as|ât|at)$/;
+
+const struck = [];
+for (const normalized of unvouched) {
+  // Not `known.has(normalized)`: on a second run these words are already
+  // struck, so the dictionary no longer holds them and the file would empty
+  // itself. Membership in the base list is the durable test, and `unvouched`
+  // is built from the base list alone.
+  const word = baseWords.get(normalized);
+  if (!word) continue;
+  const lower = word.toLowerCase();
+
+  const present = /^(.*)ant(e|es|s)$/.exec(lower);
+  if (present && known.has(normalizeWord(`${present[1]}ant`))) continue;
+  const past = /^(.*)(ée|ées|és)$/.exec(lower);
+  if (past && known.has(normalizeWord(`${past[1]}é`))) continue;
+
+  if (/aus$/.test(lower) && known.has(normalizeWord(`${lower.slice(0, -3)}au`))) struck.push(word);
+  else if (VERB_ENDING.test(lower)) struck.push(word);
+}
+struck.sort((a, b) => a.localeCompare(b, 'fr'));
+console.log(`\nStruck off: ${struck.length} of the ${unvouched.size} base-list words no reference has`);
+
+/*
+ * A verb whose forms are struck while its infinitive stays is the complaint
+ * this whole file exists to answer, wearing the other hat. The infinitives sit
+ * in the leftovers rather than in either shape above, so they are reported and
+ * not acted on.
+ */
+const stranded = [];
+for (const word of struck) {
+  const stem = word.toLowerCase().replace(VERB_ENDING, '');
+  for (const ending of ['er', 'ir', 're']) {
+    const infinitive = `${stem}${ending}`;
+    if (unvouched.has(normalizeWord(infinitive)) && known.has(normalizeWord(infinitive))) {
+      stranded.push(infinitive);
+    }
+  }
+}
+const strandedList = [...new Set(stranded)].sort((a, b) => a.localeCompare(b, 'fr'));
+if (strandedList.length > 0) {
+  console.log(`  ${strandedList.length} infinitives left behind, still accepted: ${strandedList.join(' ')}`);
+}
+
+// ---------------------------------------------------------------------------
 // The files
 //
 // Two of them, because the sources are under two licences that do not mix.
@@ -518,7 +617,41 @@ if (!write) {
     '# Grammalecte lives in grammalecte-words.txt, under its own licence.',
   ]);
 
-  console.log(`\nWrote ${blockGrammalecte.length} words to ${CURATED} (sha256 ${curatedSum})`);
+  const struckSum = writeLexicon(
+    EXCLUDED,
+    block(
+      'words the base list made up',
+      [
+        `${struck.length} words, struck off. Neither Grammalecte nor the Wiktionary,`,
+        'in any of the languages it describes, has an entry for them, and they take',
+        'one of the two shapes that cannot be anything but an error: a conjugation',
+        'of a verb nothing conjugates (`blêmer` for `blêmir`, `caséfier`,',
+        '`conpresser`), or a plural in -aus where French writes -aux.',
+        '',
+        'Agreement is deliberately left alone: `frigorifiante` is the regular',
+        'feminine of a participle used as an adjective, correct French that no',
+        'dictionary lists, and refusing it would be the bug this file exists to fix.',
+        '',
+        'To put one back, delete its line. The server reads this file at startup.',
+      ],
+      struck,
+    ),
+    (checksum) => [
+      '# Boggle multijoueur : mots retirés du dictionnaire',
+      '#',
+      `# version   ${LEXICON_VERSION}`,
+      `# generated ${new Date().toISOString().slice(0, 10)} by scripts/build-lexicon.mjs`,
+      `# words     ${struck.length}`,
+      `# sha256    ${checksum}`,
+      '#',
+      '# The base word list (an-array-of-french-words, from the Letterpress lists,',
+      '# archived in 2019) carries spellings no dictionary has ever had. These are',
+      '# the ones no judgement is needed to see.',
+    ],
+  );
+
+  console.log(`\nWrote ${struck.length} words to ${EXCLUDED} (sha256 ${struckSum})`);
+  console.log(`Wrote ${blockGrammalecte.length} words to ${CURATED} (sha256 ${curatedSum})`);
   console.log(`Wrote ${extraCount} words to ${EXTRA} (sha256 ${extraSum})`);
   console.log(`  version ${LEXICON_VERSION}`);
 }

@@ -106,8 +106,8 @@ rewritten, which is most of what Socket.IO brings.
 ## Decision 5: a permissive dictionary, adjustable without rebuilding
 
 `an-array-of-french-words` (MIT): 336,000 raw forms, 318,800 after
-normalisation, and 437,770 once Grammalecte and the missing conjugations are
-merged in (below).
+normalisation, 437,770 once Grammalecte and the missing conjugations are merged
+in, and 437,164 once the 606 words the list made up are struck off (below).
 Hyphenated and apostrophised entries are dropped, as they cannot be traced
 anyway.
 
@@ -267,15 +267,39 @@ would have taken the bundled definitions from 99.2% of the dictionary down to
 it, so `scripts/grammalecte.mjs` hands that map to the definitions build and a
 third pass places 10,394 of them: 2,793 borrow their lemma's definition, and
 7,601 say "Forme de …", which is the shape Wiktionary's own form-of entries take
-anyway. Coverage ends at **98.9%**, better than before the change.
+anyway. Coverage ends at **99.1%**, better than before the change.
 
-The 4,763 left are written to `words-without-definition.txt` and published with
+The 4,157 left are written to `words-without-definition.txt` and published with
 the release, so what is missing is a list somebody can read rather than a
 percentage in a build log.
 
 The hand block, which was 175 words, is now 33: the script drops a hand-picked
 word once a source covers it, so what remains is a record of what the
 dictionaries genuinely lack.
+
+**And the list can now be audited, which is what found the 606.** Having a
+maintained dictionary to compare against turns "this word has no definition"
+into a usable signal. 1,139 base-list words are unknown to Grammalecte *and* to
+the French Wiktionary in every one of the languages it describes: not rare
+vocabulary, but `stratigraphiqu`, `tuberculinisatio`, `nourrirrai`,
+`photoconductteur`. The Letterpress list has decayed and nothing has maintained
+it since 2019.
+
+Only 606 are struck, and only two shapes, because only two cannot be anything
+but an error: a conjugation of a verb nothing conjugates (`blêmaient` belongs to
+`blêmer`, which does not exist; `blêmir` gives `blêmissaient`), and a plural in
+`-aus` where French writes `-aux`. **Agreement is deliberately left alone.**
+`frigorifiante` is the regular feminine of a participle used as an adjective,
+correct French that no dictionary bothers to list, and refusing it would be
+`gradera` over again from the other side. The 533 that are neither shape need
+reading, not a rule.
+
+Five infinitives are left behind by that restraint (`caséfier`, `conpresser`,
+`désingulariser`, `dessuiter`, `étaliser`): invented verbs whose conjugations
+are struck while the infinitive stays, since an infinitive matches neither
+shape. The script reports them by name rather than acting on them, because the
+rule that is safe to run unattended is the rule that only strikes what it can
+prove.
 
 `scripts/game-dictionary.mjs` exists because of the same class of mistake: the
 audit and the definitions builder each built the dictionary from the bare npm

@@ -146,6 +146,14 @@ console.log('\n── What must stay out ──');
     ['insecter', 'the same'],
     // Taking Wiktionary whole was measured and refused: it doubles the words
     // on a grid and the additions are `kdo`, `tjs`, `orser`, `neocorat`.
+    // Struck off by the exclusion pass: the base list carries them and no
+    // dictionary anywhere does. `blêmaient` is a form of `blêmer`, which does
+    // not exist; the verb is `blêmir`, and `blêmissaient` is right below.
+    ['blêmaient', 'a conjugation of a verb that does not exist'],
+    ['caséfiera', 'the same'],
+    ['conpressait', 'the same, and a misspelling of compresser besides'],
+    ['bihoreaus', 'the plural is bihoreaux'],
+    ['nobliaus', 'the plural is nobliaux'],
     ['yttrotantalite', 'a mineral, from a Wiktionary nobody filtered'],
     // Hunspell would multiply every unit symbol by the nineteen SI prefixes.
     // Dropping that one flag family was the only cleaning Grammalecte needed.
@@ -162,7 +170,22 @@ console.log('\n── What must stay out ──');
 // ---------------------------------------------------------------------------
 console.log('\n── Ordinary French is still there ──');
 {
-  const ordinary = ['maison', 'chat', 'ordinateur', 'pain', 'lumière', 'écrire', 'cœur', 'été'];
+  // `frigorifiante` and `hennie` sit next to the struck words in every respect
+  // except one: they are correct French that no dictionary lists. Agreement of
+  // a participle is regular, so the exclusion pass must not reach them.
+  const ordinary = [
+    'maison',
+    'chat',
+    'ordinateur',
+    'pain',
+    'lumière',
+    'écrire',
+    'cœur',
+    'été',
+    'blêmissaient',
+    'frigorifiante',
+    'hennie',
+  ];
   const missing = ordinary.filter((word) => !accepts(word));
   console.log(`  ${ordinary.length - missing.length}/${ordinary.length} accepted`);
   for (const word of missing) problems.push(`${word}: refused, though it is ordinary French`);
@@ -170,7 +193,7 @@ console.log('\n── Ordinary French is still there ──');
   // A floor, so a truncated or empty word list is caught rather than passing
   // every assertion above by accident.
   console.log(`  dictionary size: ${dictionary.size}`);
-  if (dictionary.size < 420_000) problems.push(`the dictionary holds only ${dictionary.size} words`);
+  if (dictionary.size < 430_000) problems.push(`the dictionary holds only ${dictionary.size} words`);
 }
 
 console.log('');

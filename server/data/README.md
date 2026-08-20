@@ -8,7 +8,8 @@ from real-world feedback". That repository was archived in May 2019, so the list
 is frozen there. Around 336,000 inflected forms, conjugations and plurals
 included; after normalisation, meaning uppercase, accents stripped and
 hyphenated or apostrophised entries dropped, about 318,800 playable words
-remain, and 437,770 with the two files below.
+remain, 437,770 with the two files below, and 437,164 once the 606 words the
+list made up are struck off.
 
 It is a word list for a game, not a lexicon, and players find the seams: it
 accepted `grader` and refused `gradera`, it accepted `orque` and refused `orc`.
@@ -17,11 +18,11 @@ since are what is missing.
 
 Three optional files, read when the server starts, adjust it without rebuilding
 anything. One word per line; blank lines and lines starting with `#` are
-ignored. Accents and case do not matter.
+ignored. Accents and case do not matter. All three are generated.
 
 - `grammalecte-words.txt` : the Grammalecte dictionary, flattened
 - `extra-words.txt` : what Wiktionary adds on top
-- `excluded-words.txt` : words to drop
+- `excluded-words.txt` : what the base list made up
 
 ## Both word files are generated
 
@@ -54,6 +55,22 @@ The hand block prunes itself. A word stays there only until a source covers it,
 so it records what the dictionaries do not have yet rather than growing for
 ever.
 
+**`excluded-words.txt`** goes the other way: 606 words the base list has that
+neither Grammalecte nor the Wiktionary, in any of the languages it describes,
+has ever had. Only two shapes are struck, because only two cannot be anything
+but an error:
+
+- a conjugation of a verb nothing conjugates. `blêmaient` is not a form of
+  `blêmir`, which gives `blêmissaient`; it is a form of `blêmer`, which does
+  not exist. Likewise `caséfier`, `conpresser`, `amotir`, `dessuiter`.
+- a plural in `-aus` where French writes `-aux`: `bihoreaus`, `nobliaus`.
+
+Agreement is deliberately left alone. `frigorifiante` is the regular feminine of
+a participle used as an adjective, correct French that no dictionary lists, and
+refusing it would be the bug all of this exists to fix. The 533 words that are
+neither shape are left in too, pending someone reading them. To put a word back,
+delete its line.
+
 Two things need doing after editing any of them:
 
 1. restart the server, which rereads them at startup;
@@ -79,7 +96,7 @@ Wiktionary live, which is what it did before the file existed. To build one
 locally, run `node scripts/build-definitions.mjs`, which needs the 715 MB
 Wiktionary extract and downloads it into `.work/` once.
 
-It covers **98.9%** of the dictionary. Getting there took a third pass: the
+It covers **99.1%** of the dictionary. Getting there took a third pass: the
 Wiktionary has no entry for many of the words Grammalecte contributes, mostly
 conjugations of rare verbs, but Grammalecte knows which lemma it built each form
 from. 2,793 of them borrow their lemma's definition and 7,601 at least say
@@ -87,7 +104,7 @@ from. 2,793 of them borrow their lemma's definition and 7,601 at least say
 
 ## `words-without-definition.txt` is the rest
 
-The 4,763 the third pass could not place either, written out by the same build
+The 4,157 the third pass could not place either, written out by the same build
 so the gap is a list somebody can read rather than a percentage. Not in git,
 published with the release. The server still answers for them by asking the
 Wiktionary live, which for most of these will not know either.

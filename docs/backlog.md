@@ -107,11 +107,24 @@ missing and swept all 34,725 generated words into the hand block. Every block is
 now computed against the base list plus the blocks before it, and the files come
 out byte-identical on a re-run.
 
+Then the list turned out to be auditable in the other direction, which is what
+a maintained reference buys. 1,139 base-list words are unknown to Grammalecte
+*and* to the French Wiktionary in every language it describes, and they are not
+rare vocabulary: `stratigraphiqu`, `tuberculinisatio`, `nourrirrai`,
+`photoconductteur`, `préembalé`. 606 are struck, in the two shapes that cannot
+be anything but an error: a conjugation of a verb nothing conjugates
+(`blêmaient` is `blêmer`, which does not exist, not `blêmir`, which gives
+`blêmissaient`), and a plural in `-aus` for `-aux`. Agreement is left alone on
+purpose, since `frigorifiante` is correct French that no dictionary lists and
+striking it would be `gradera` from the other side. Five invented infinitives
+survive their own conjugations for the same reason, and the script names them
+rather than guessing.
+
 The bill came in at 15,000 words the Wiktionary does not define, which would
 have taken the bundled definitions from 99.2% to 96.5%. Grammalecte knows the
 lemma it built each form from, so a third pass in the definitions build places
 10,394 of them: 2,793 borrow the lemma's definition, 7,601 say "Forme de …".
-Coverage ends at 98.9%, better than it started. The 4,763 nothing can define go
+Coverage ends at 99.1%, better than it started. The 4,157 nothing can define go
 into `words-without-definition.txt`, published with the release, on the grounds
 that a gap you can read beats a percentage you cannot.
 
