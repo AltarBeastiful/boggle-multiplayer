@@ -23,6 +23,7 @@
     "test:awards": "node scripts/test-awards.mjs",
     "test:restart": "node scripts/test-restart.mjs",
     "test:dict": "node scripts/test-dictionary.mjs",
+    "test:defs": "node scripts/test-definitions.mjs",
     "audit:mobile": "node scripts/audit-mobile.mjs",
     "audit:dict": "node scripts/audit-dictionary.mjs",
     "lexicon": "node scripts/build-lexicon.mjs"

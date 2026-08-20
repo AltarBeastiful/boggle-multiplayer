@@ -134,11 +134,14 @@ les mots qu'il ne couvre pas.
 Les deux fichiers de mots (1,5 Mo de texte) sont dans git, un par licence.
 `definitions.tsv.gz` (9 Mo de gzip) n'y est pas : c'est un **asset de release**,
 que [`scripts/deploy.sh`](scripts/deploy.sh) récupère en vérifiant son SHA-256.
+Le serveur le fouille sur place, par dichotomie : 83 Mo d'octets et 4 Mo de tas,
+là où le charger en mémoire en coûtait 383.
 
 ```bash
 npm run lexicon -- --write          # régénère le lexique
 node scripts/build-definitions.mjs  # ~5 min, 715 Mo lus en flux
 npm run test:dict                   # vérifie, hors ligne, en une seconde
+npm run test:defs                   # vérifie que la recherche dit ce que le fichier dit
 
 git commit -am "…" && git push
 git tag v1.0.1 && git push origin v1.0.1

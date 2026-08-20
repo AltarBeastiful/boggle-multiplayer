@@ -489,6 +489,27 @@ merely querying committed us to nothing. See `server/data/LICENCE-DEFINITIONS.md
 The fallback path is the one described below, and keeps its point: it covers
 words missing from the artefact without waiting for a rebuild.
 
+### Searched where it lies, rather than loaded
+
+Reading the file meant turning 81 MB of TSV into a Map of 433,018 words, and
+that Map holds 383 MB of JavaScript heap. It fits on a laptop and not on the
+682 MB server the game later moved to: V8 sizes its heap from the machine, gave
+itself 338 MB, and the process died on the first lookup, which the healthcheck
+makes within the minute. No setting saves it, since the objects are real.
+
+The lines are sorted by normalised form and those forms are ASCII, so the
+gunzipped bytes are kept as a `Buffer` and binary-searched instead: about twenty
+probes, 6.7 µs a word, and only the handful of matching lines is ever turned
+into strings. It costs 83 MB that V8 does not count against its heap, and 4 MB
+of heap. It is also faster than the Map it replaces, and ready five times
+sooner, 0.3 s against 1.4 s, since nothing is built.
+
+An off-by-one line here shows a player another word's definition, which no
+crash would announce, so `scripts/test-definitions.mjs` checks the search
+against a plain reading of the same file: every hundredth word, both ends, the
+words that begin another word (`ABACA` and `ABACAS`), and the words the file
+does not hold.
+
 ### The fallback: live lookup (option B)
 
 It queries the French Wiktionary on demand. Three obstacles, all measured before

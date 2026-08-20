@@ -20,16 +20,29 @@ import type { DefinitionEntry } from '@boggle/shared';
  * The lemma is empty when the word carries its own definition. One spelling
  * takes as many lines as it has senses, and one normalised form as many
  * spellings as it has (COTE -> côté, côte, cote, coté). Consecutive lines of
- * the same spelling are grouped at load time.
+ * the same spelling are grouped, here at lookup time.
  *
  * Spellings are ranked by measured usage frequency, senses in Wiktionary's own
  * order, main one first.
+ *
+ * **The file is searched where it lies, never parsed into objects.** Turning
+ * its 81 MB into a Map of 433,018 words held 383 MB of JavaScript heap, which
+ * does not fit on a 682 MB server: V8 caps its heap at a fraction of the
+ * machine and the process died on the first lookup. Kept as bytes the same
+ * data costs 81 MB, and outside the heap, since a Buffer is not counted
+ * against it. The lines are sorted by normalised form and the forms are ASCII,
+ * so a binary search over raw bytes finds a word in about twenty probes,
+ * faster than the Map it replaces and without the load-time cost of building
+ * one. Only the handful of lines that match are ever turned into strings.
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FILE_NAMES = ['definitions.tsv.gz', 'definitions.tsv'];
+const NEWLINE = 0x0a;
+const TAB = 0x09;
 
-let index: Map<string, DefinitionEntry[]> | null = null;
+let data: Buffer | null = null;
+let words = 0;
 let loaded = false;
 
 function findFile(): string | null {
@@ -42,6 +55,71 @@ function findFile(): string | null {
   return null;
 }
 
+/** End of the line starting at `start`, on its newline or at the end of file. */
+function lineEnd(buffer: Buffer, start: number): number {
+  const newline = buffer.indexOf(NEWLINE, start);
+  return newline === -1 ? buffer.length : newline;
+}
+
+/** End of the first field, on its tab. Bounded by the line: a line without a
+ *  tab is its own key, and reading past the newline would take the next one. */
+function keyEnd(buffer: Buffer, start: number, end: number): number {
+  const tab = buffer.indexOf(TAB, start);
+  return tab === -1 || tab > end ? end : tab;
+}
+
+/** Start of the line `position` falls in, never before `floor`. */
+function lineStart(buffer: Buffer, position: number, floor: number): number {
+  let start = position;
+  while (start > floor && buffer[start - 1] !== NEWLINE) start--;
+  return start;
+}
+
+/**
+ * Offset of the first line whose word is `target` or sorts after it.
+ *
+ * `Buffer.compare(target, targetStart, targetEnd, sourceStart, sourceEnd)`
+ * compares the source range, here the word in the file, against the target: a
+ * negative result means the file is still before the word being looked up.
+ */
+function seek(buffer: Buffer, target: Buffer): number {
+  let low = 0;
+  let high = buffer.length;
+  while (low < high) {
+    const start = lineStart(buffer, (low + high) >>> 1, low);
+    const end = lineEnd(buffer, start);
+    if (buffer.compare(target, 0, target.length, start, keyEnd(buffer, start, end)) < 0) {
+      // Past the whole line, so the search cannot stall on the line it lands in.
+      low = Math.min(end + 1, high);
+    } else {
+      high = start;
+    }
+  }
+  return low;
+}
+
+/** Distinct words, for the health endpoint. One pass, no strings built. */
+function countWords(buffer: Buffer): number {
+  let count = 0;
+  let start = 0;
+  let previousStart = -1;
+  let previousEnd = -1;
+
+  while (start < buffer.length) {
+    const end = lineEnd(buffer, start);
+    if (end > start) {
+      const key = keyEnd(buffer, start, end);
+      if (previousStart < 0 || buffer.compare(buffer, previousStart, previousEnd, start, key) !== 0) {
+        count++;
+      }
+      previousStart = start;
+      previousEnd = key;
+    }
+    start = end + 1;
+  }
+  return count;
+}
+
 function load(): void {
   loaded = true;
   const path = findFile();
@@ -52,19 +130,31 @@ function load(): void {
 
   const started = Date.now();
   const raw = readFileSync(path);
-  const text = (path.endsWith('.gz') ? gunzipSync(raw) : raw).toString('utf8');
+  data = path.endsWith('.gz') ? gunzipSync(raw) : raw;
+  words = countWords(data);
+  console.log(
+    `[definitions] ${words} words in ${Math.round(data.length / 1e6)} MB of ${path.split('/').pop()}, searched in place, ready in ${Date.now() - started} ms`,
+  );
+}
 
-  const map = new Map<string, DefinitionEntry[]>();
-  let lines = 0;
+/** Bundled definitions for a normalised word, or `null` when no file is present. */
+export function lookupLocal(word: string): DefinitionEntry[] | null {
+  if (!loaded) load();
+  const buffer = data;
+  if (!buffer) return null;
 
-  for (const line of text.split('\n')) {
-    if (line.length === 0) continue;
-    const [word, partOfSpeech, spelling, lemma, definition] = line.split('\t');
-    if (!word || !definition) continue;
-    lines++;
+  const target = Buffer.from(word, 'utf8');
+  const entries: DefinitionEntry[] = [];
 
-    const existing = map.get(word);
-    const last = existing?.[existing.length - 1];
+  for (let start = seek(buffer, target); start < buffer.length; ) {
+    const end = lineEnd(buffer, start);
+    if (buffer.compare(target, 0, target.length, start, keyEnd(buffer, start, end)) !== 0) break;
+
+    const [, partOfSpeech, spelling, lemma, definition] = buffer.toString('utf8', start, end).split('\t');
+    start = end + 1;
+    if (!definition) continue;
+
+    const last = entries[entries.length - 1];
     // Next line of the same spelling: one more sense, not a new entry.
     if (last && last.spelling === spelling && last.partOfSpeech === partOfSpeech) {
       last.definitions.push(definition);
@@ -77,31 +167,18 @@ function load(): void {
       definitions: [definition],
     };
     if (lemma) entry.lemma = lemma;
-    if (existing) existing.push(entry);
-    else map.set(word, [entry]);
+    entries.push(entry);
   }
 
-  index = map;
-  let entries = 0;
-  for (const list of map.values()) entries += list.length;
-  console.log(
-    `[definitions] ${map.size} words, ${entries} spellings, ${lines} senses loaded from ${path.split('/').pop()} in ${Date.now() - started} ms`,
-  );
-}
-
-/** Bundled definitions for a normalised word, or `null` when no file is present. */
-export function lookupLocal(word: string): DefinitionEntry[] | null {
-  if (!loaded) load();
-  if (!index) return null;
-  return index.get(word) ?? null;
+  return entries.length > 0 ? entries : null;
 }
 
 export function localDefinitionCount(): number {
   if (!loaded) load();
-  return index?.size ?? 0;
+  return words;
 }
 
 export function hasLocalDefinitions(): boolean {
   if (!loaded) load();
-  return index !== null;
+  return data !== null;
 }
