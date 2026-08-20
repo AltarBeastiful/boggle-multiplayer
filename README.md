@@ -165,7 +165,7 @@ docker compose up -d --build
 
 `deploy.sh` clone le dépôt au premier passage, puis met à jour et reconstruit. Il
 ne copie rien depuis le poste local, donc **poussez avant de déployer**.
-Variables utiles : `BOGGLE_SSH_HOST` (défaut `wordpress`), `BOGGLE_REMOTE_DIR`,
+Variables utiles : `BOGGLE_SSH_HOST` (défaut `lms`), `BOGGLE_REMOTE_DIR`,
 `BOGGLE_BRANCH`, `BOGGLE_PORT`.
 
 Le même script tourne depuis GitHub Actions

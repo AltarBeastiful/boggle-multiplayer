@@ -2,7 +2,7 @@
 #
 # Deployment over git: the server fetches the branch and rebuilds the image.
 #
-#   ./scripts/deploy.sh                 deploys to the ssh host "wordpress"
+#   ./scripts/deploy.sh                 deploys to the ssh host "lms"
 #   BOGGLE_SSH_HOST=other ./scripts/deploy.sh
 #
 # The server needs nothing but git and Docker. Nothing is copied from the local
@@ -10,12 +10,12 @@
 
 set -euo pipefail
 
-SSH_HOST="${BOGGLE_SSH_HOST:-wordpress}"
-REMOTE_DIR="${BOGGLE_REMOTE_DIR:-/home/ubuntu/boggle-multiplayer}"
+SSH_HOST="${BOGGLE_SSH_HOST:-lms}"
+REMOTE_DIR="${BOGGLE_REMOTE_DIR:-/home/opc/boggle-multiplayer}"
 REPO_URL="${BOGGLE_REPO_URL:-https://github.com/AltarBeastiful/boggle-multiplayer.git}"
 BRANCH="${BOGGLE_BRANCH:-main}"
 
-# `sudo` because the server user is not in the docker group.
+# `sudo` because the server user is not always in the docker group.
 # To drop it: sudo usermod -aG docker $USER, then reconnect.
 DOCKER="${BOGGLE_DOCKER:-sudo docker}"
 

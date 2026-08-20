@@ -12,9 +12,9 @@ name: deploy
 # Set up once, on your own machine, with a key made for this and nothing else:
 #
 #   ssh-keygen -t ed25519 -f ~/.ssh/boggle-deploy -C "github-actions" -N ""
-#   ssh-copy-id -i ~/.ssh/boggle-deploy.pub ubuntu@193.122.4.195
+#   ssh-copy-id -i ~/.ssh/boggle-deploy.pub opc@158.101.170.36
 #   gh secret set BOGGLE_SSH_KEY < ~/.ssh/boggle-deploy
-#   ssh-keyscan 193.122.4.195 | gh secret set BOGGLE_SSH_KNOWN_HOSTS
+#   ssh-keyscan 158.101.170.36 | gh secret set BOGGLE_SSH_KNOWN_HOSTS
 #
 # The private key goes straight from the file into GitHub's secret store, which
 # encrypts it and will not print it back, in this log or anywhere else. Use a
@@ -27,9 +27,9 @@ name: deploy
 # key protects against.
 #
 # Optional repository variables, if any of this ever moves:
-#   BOGGLE_SSH_HOST     default 193.122.4.195
-#   BOGGLE_SSH_USER     default ubuntu
-#   BOGGLE_REMOTE_DIR   default /home/ubuntu/boggle-multiplayer
+#   BOGGLE_SSH_HOST     default 158.101.170.36
+#   BOGGLE_SSH_USER     default opc
+#   BOGGLE_REMOTE_DIR   default /home/opc/boggle-multiplayer
 
 on:
   workflow_dispatch:
@@ -83,8 +83,8 @@ jobs:
         env:
           KEY: ${{ secrets.BOGGLE_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.BOGGLE_SSH_KNOWN_HOSTS }}
-          SSH_HOST: ${{ vars.BOGGLE_SSH_HOST || '193.122.4.195' }}
-          SSH_USER: ${{ vars.BOGGLE_SSH_USER || 'ubuntu' }}
+          SSH_HOST: ${{ vars.BOGGLE_SSH_HOST || '158.101.170.36' }}
+          SSH_USER: ${{ vars.BOGGLE_SSH_USER || 'opc' }}
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
@@ -116,7 +116,7 @@ jobs:
         env:
           BOGGLE_SSH_HOST: boggle
           BOGGLE_BRANCH: ${{ inputs.branch || 'main' }}
-          BOGGLE_REMOTE_DIR: ${{ vars.BOGGLE_REMOTE_DIR || '/home/ubuntu/boggle-multiplayer' }}
+          BOGGLE_REMOTE_DIR: ${{ vars.BOGGLE_REMOTE_DIR || '/home/opc/boggle-multiplayer' }}
         run: ./scripts/deploy.sh
 
       # The runner is thrown away after the job, so this is belt and braces.

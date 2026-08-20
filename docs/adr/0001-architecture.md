@@ -458,11 +458,15 @@ The stack carries its own Traefik: 80 redirects to 443, certificate obtained by
 the TLS-ALPN challenge on 443. No other port needed opening.
 
 **The domain.** There was none. `sslip.io` resolves any IP address with no
-registration: `boggle-multiplayer.193-122-4-195.sslip.io`. It is a real domain
-name, which is all Let's Encrypt needs to issue a trusted certificate.
+registration: `boggle-multiplayer.158-101-170-36.sslip.io`. It is a real domain
+name, which is all Let's Encrypt needs to issue a trusted certificate, and it
+follows the address, so moving servers is one line of `.env`.
 
-**Self-contained.** The stack depends on no existing container. The WordPress
-installation that occupied the machine was stopped without deleting any data.
+**Self-contained.** The stack depends on no existing container, which is what
+made the move cheap. The first machine, whose WordPress installation had been
+stopped without deleting any data, stopped answering at all; the game now runs
+on the server that carries the music library, on the two ports nothing there was
+listening on.
 
 **The game is published on the loopback only** (`127.0.0.1:3001`); all public
 access goes through Traefik.
