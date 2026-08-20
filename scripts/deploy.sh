@@ -45,13 +45,26 @@ if [ ! -d "$REMOTE_DIR/.git" ]; then
 fi
 
 cd "$REMOTE_DIR"
-git fetch --quiet origin "$BRANCH"
+# The tracking ref is named on both sides of the refspec on purpose. Until git
+# 1.8.4, `git fetch origin main` only wrote FETCH_HEAD and left origin/main at
+# whatever the clone saw, so the reset below rebuilt that same old commit and
+# the deploy reported success on code nobody had written that week. The server
+# runs git 1.8.3.1, one release short of the fix.
+git fetch --quiet origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
 git checkout --quiet "$BRANCH"
 # A deploy target mirrors the remote rather than merging into it. `merge
 # --ff-only` refused to move after the history was rewritten, leaving the server
 # stuck on commits that no longer exist upstream. Tracked files are reset;
 # .env is ignored by git and therefore survives.
 git reset --hard --quiet "origin/$BRANCH"
+
+# What was fetched is what must be built. Whatever the reason a deploy ends up
+# on another revision, saying so beats building the wrong one quietly, which is
+# how the stale tracking ref above went unnoticed.
+if [ "$(git rev-parse HEAD)" != "$(git rev-parse FETCH_HEAD)" ]; then
+  echo "the working copy is at $(git rev-parse --short HEAD), not the $(git rev-parse --short FETCH_HEAD) just fetched"
+  exit 1
+fi
 echo "-> Deployed revision: $(git log --oneline -1)"
 
 # .env is not in the repository: create it on the first run, then add any new
