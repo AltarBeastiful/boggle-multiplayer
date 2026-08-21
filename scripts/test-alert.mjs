@@ -53,7 +53,7 @@ const emulateVisibility = `
     }
     static requestPermission() {
       window.__asked += 1;
-      permission = 'granted';
+      permission = window.__grant ? 'granted' : 'denied';
       return Promise.resolve(permission);
     }
     constructor(title, options) {
@@ -117,7 +117,6 @@ const badges = (page) => page.evaluate(() => window.__badge);
 /** Every notification the page raised, and whether it has been taken back. */
 const notified = (page) => page.evaluate(() => window.__notified);
 
-const bell = (page) => page.getByRole('button', { name: /Prévenir au début de la manche/ });
 
 /** Watches the tab for a while and reports every state it went through. */
 async function watch(page, ms) {
@@ -198,41 +197,40 @@ console.log('\n── The game can be installed, which is what the badge needs �
 }
 
 // ---------------------------------------------------------------------------
-console.log('\n── The permission is asked for by the player, never by the game ──');
+console.log('\n── The prompt is opened at the door, once, and never on arrival ──');
 {
-  const { page: host } = await openRoom();
+  const page = await context.newPage();
+  await page.goto(URL, { waitUntil: 'networkidle' });
+  check((await page.evaluate(() => window.__asked)) === 0, "la permission est demandée à l'arrivée");
 
-  check(
-    (await host.evaluate(() => window.__asked)) === 0,
-    'le jeu a ouvert la demande de permission tout seul',
-  );
-  check(await bell(host).isVisible(), "la cloche n'est pas dans l'en-tête du salon");
-  check(
-    (await bell(host).getAttribute('aria-pressed')) === 'false',
-    'la cloche se dit allumée sans que personne ne l\'ait demandée',
-  );
+  await page.fill('#nickname', 'Hote');
+  await page.getByRole('button', { name: 'Créer une partie' }).click();
+  await page.waitForSelector('text=Code de la salle');
+  check((await page.evaluate(() => window.__asked)) === 1, "entrer dans une salle n'a rien demandé");
 
-  await bell(host).click();
-  await host.waitForTimeout(200);
-  check((await host.evaluate(() => window.__asked)) === 1, "le clic n'a pas ouvert la demande");
-  check(
-    (await bell(host).getAttribute('aria-pressed')) === 'true',
-    'la cloche reste éteinte après une permission accordée',
-  );
+  // A second room is not a second reason to ask.
+  await page.getByRole('button', { name: /Quitter la salle/ }).click();
+  await page.waitForTimeout(400);
+  await page.fill('#nickname', 'Hote');
+  await page.getByRole('button', { name: 'Créer une partie' }).click();
+  await page.waitForSelector('text=Code de la salle');
+  check((await page.evaluate(() => window.__asked)) === 1, 'la permission est redemandée à chaque salle');
+  await page.close();
+}
 
-  // And off again without spending the permission, which is not ours to undo.
-  await bell(host).click();
-  await host.waitForTimeout(200);
+{
+  // And a question already answered is not reopened, whichever way it went.
+  const page = await context.newPage();
+  await page.addInitScript(() => window.__setPermission('denied'));
+  await page.goto(URL, { waitUntil: 'networkidle' });
+  await page.fill('#nickname', 'Hote');
+  await page.getByRole('button', { name: 'Créer une partie' }).click();
+  await page.waitForSelector('text=Code de la salle');
   check(
-    (await bell(host).getAttribute('aria-pressed')) === 'false',
-    'la cloche ne se laisse pas éteindre',
+    (await page.evaluate(() => window.__asked)) === 0,
+    'le navigateur a déjà refusé et le jeu redemande quand même',
   );
-  check(
-    (await host.evaluate(() => window.__asked)) === 1,
-    'éteindre la cloche a redemandé la permission au navigateur',
-  );
-
-  await host.close();
+  await page.close();
 }
 
 // ---------------------------------------------------------------------------
@@ -264,9 +262,19 @@ console.log('\n── The round starts while the guest is looking elsewhere ─�
   );
   check(
     seen.icons.some((icon) => icon?.includes('favicon-alert')),
-    `l'icône ne s'allume pas : ${seen.icons.join(' | ')}`,
+    `l'icône ne prend pas la pastille : ${seen.icons.join(' | ')}`,
   );
-  check(seen.icons.length > 1, "l'icône ne bat pas, elle reste fixe");
+  // The dot is a state, not a pulse: a tab throttled to one turn a minute
+  // would otherwise show a blink that looks like a fault.
+  const held = [];
+  for (let i = 0; i < 4; i += 1) {
+    held.push((await tab(guest)).icon);
+    await guest.waitForTimeout(500);
+  }
+  check(
+    held.every((icon) => icon?.includes('favicon-alert')),
+    `la pastille clignote au lieu de tenir : ${held.join(' | ')}`,
+  );
 
   check(
     (await notified(guest)).length === 0,
@@ -311,13 +319,23 @@ console.log('\n── The round starts while the guest is looking elsewhere ─�
 }
 
 // ---------------------------------------------------------------------------
-console.log('\n── A player who asked is told, wherever they are ──');
+console.log('\n── A player who said yes at the door is told, wherever they are ──');
 {
   const { page: host, code } = await openRoom();
-  const guest = await joinRoom(code);
+  const guest = await context.newPage();
+  guest.on('pageerror', (error) => problems.push(`page error (invité): ${error.message}`));
+  await guest.addInitScript(() => {
+    window.__grant = true;
+  });
+  await guest.goto(`${BASE}/r/${code}`, { waitUntil: 'networkidle' });
+  await guest.fill('#nickname', 'Invite');
+  await guest.getByRole('button', { name: /Rejoindre/ }).click();
+  await guest.waitForTimeout(500);
+  check(
+    (await guest.evaluate(() => Notification.permission)) === 'granted',
+    "rejoindre la salle n'a pas obtenu la permission",
+  );
 
-  await bell(guest).click();
-  await guest.waitForTimeout(200);
   await guest.evaluate(() => window.__hide(true));
   await host.getByRole('button', { name: 'Lancer la partie' }).click();
   await guest.waitForTimeout(1200);

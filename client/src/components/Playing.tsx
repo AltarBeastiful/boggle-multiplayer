@@ -5,7 +5,6 @@ import { normalizeWord, type RoomState, type SubmitResult } from '@boggle/shared
 import type { FoundWord } from '../hooks/useGame';
 import { TRACE_DURATION_MS, TRACE_FOUND_WORD } from '../lib/config';
 import { rejectionMessage } from '../lib/labels';
-import { AlertToggle } from './AlertToggle';
 import { BoardGrid } from './BoardGrid';
 import { RoundCountdown } from './RoundCountdown';
 import { ThemeToggle } from './ThemeToggle';
@@ -234,7 +233,6 @@ export function Playing({
         </span>
         <div className="flex items-center gap-2">
           <span className="font-mono tracking-widest">{room.code}</span>
-          <AlertToggle />
           <ThemeToggle />
         </div>
       </div>

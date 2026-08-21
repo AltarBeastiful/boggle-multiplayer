@@ -141,16 +141,28 @@ for (const word of [...solved.words.keys()].sort((a, b) => b.length - a.length).
 }
 
 note('\n  waiting for the round to end…');
-await page.waitForSelector('text=/Manche .* terminée|Partie terminée/', { timeout: 120_000 });
+/*
+ * The clock stopping is not the results page. The grid stays up when the
+ * whistle goes and the solutions are asked for, not served, so the audit asks
+ * like a player would. Waiting for the results heading alone used to leave it
+ * sitting on the lingering grid until it timed out.
+ */
+const seeSolutions = page.getByRole('button', { name: 'Voir les solutions' }).first();
+await seeSolutions.waitFor({ state: 'visible', timeout: 120_000 });
+await report('Round over, the grid still up');
+await shot('05-round-over');
+
+await seeSolutions.click();
+await page.getByRole('heading', { name: /terminée$/ }).waitFor({ timeout: 15_000 });
 await page.waitForTimeout(500);
 await report('Results');
-await shot('05-results');
+await shot('06-results');
 
 const heading = page.getByRole('heading', { name: /^Solutions/ });
 note(`  "Solutions" heading at y=${Math.round((await heading.boundingBox()).y)} of the document`);
 await heading.scrollIntoViewIfNeeded();
 await page.waitForTimeout(300);
-await shot('06-solutions');
+await shot('07-solutions');
 
 // Tapping a word: is its definition then readable without hunting for it?
 const words = page.locator('section:has(h2:text-matches("^Solutions")) button[aria-expanded]');
@@ -158,7 +170,7 @@ const chip = words.nth(Math.min(12, (await words.count()) - 1));
 await chip.scrollIntoViewIfNeeded();
 await chip.click();
 await page.waitForTimeout(900);
-await shot('07-word-selected');
+await shot('08-word-selected');
 
 const card = page.locator('[aria-live="polite"]:visible').filter({ hasText: 'Source' }).first();
 const cardBox = await card.boundingBox();
@@ -184,14 +196,14 @@ await page.waitForTimeout(400);
 await report('Results on a 360x640 phone');
 await page.evaluate(() => window.scrollTo(0, 0));
 await page.waitForTimeout(200);
-await shot('08-small-phone');
+await shot('09-small-phone');
 
 await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
 await page.setViewportSize({ width: 412, height: 915 });
 await page.waitForTimeout(300);
 await page.locator('button[aria-expanded="true"]').first().scrollIntoViewIfNeeded();
 await page.waitForTimeout(200);
-await shot('09-dark');
+await shot('10-dark');
 
 await browser.close();
 note(`\nScreenshots in ${OUT}`);

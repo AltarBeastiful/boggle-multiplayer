@@ -1,18 +1,46 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <!--
-    The same die, lit. Nothing is added to it, no badge and no dot: only the
-    face changes shade, which is all the eye has to catch at sixteen pixels,
-    and the icon stays recognisable as this game rather than as an alert.
-    Amber reads on a light tab strip and on a dark one, so it needs no theme.
+    The same die, with the dot on it.
+
+    Chrome paints a circle exactly here, at the bottom right of a tab's icon,
+    when a tab wants attention, and no page can ask for it: `TabIcon` lights
+    that one from two flags only, a blocked WebContents and
+    `SetTabNeedsAttention`, and every route to either ends at a modal dialog.
+    So a site that appears to have one has drawn its own. Gmail does, one file
+    per unread count; this is the same idea with nothing to count.
+
+    Chrome clears a disc out of the favicon before filling its circle, which is
+    what keeps the dot legible whatever the icon underneath is doing. The mask
+    does the same here, and the die steps back from 32 of the viewbox to 28 so
+    that the hole falls beside the letter rather than through it: at sixteen
+    pixels the B is nine of them and has none to give away.
+
+    Amber reads on a light tab strip and on a dark one, so the dot needs no
+    theme. The die keeps the one it has.
   -->
-  <rect width="32" height="32" rx="7" fill="#fbbf24" />
-  <text
-    x="16"
-    y="24"
-    text-anchor="middle"
-    font-size="22"
-    font-weight="700"
-    font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-    fill="#0f172a"
-  >B</text>
+  <style>
+    .die { fill: #0f172a }
+    .letter { fill: #fffbeb }
+    @media (prefers-color-scheme: dark) {
+      .die { fill: #fffbeb }
+      .letter { fill: #0f172a }
+    }
+  </style>
+  <mask id="dot">
+    <rect width="32" height="32" fill="#fff" />
+    <circle cx="25.5" cy="25.5" r="8" fill="#000" />
+  </mask>
+  <g mask="url(#dot)">
+    <rect class="die" width="28" height="28" rx="6" />
+    <text
+      class="letter"
+      x="13.5"
+      y="20.5"
+      text-anchor="middle"
+      font-size="18.5"
+      font-weight="700"
+      font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    >B</text>
+  </g>
+  <circle cx="25.5" cy="25.5" r="6" fill="#fbbf24" />
 </svg>

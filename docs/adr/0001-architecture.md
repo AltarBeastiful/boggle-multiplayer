@@ -793,29 +793,30 @@ game that cannot be caught up.
 
 ### What a page is allowed to do, and what it is not
 
-**The small circle Chrome draws on a tab is not ours to raise.** In Chromium it
-is `kTabWantsAttentionStatus` in `chrome/browser/ui/views/tabs/tab/tab_icon.h`,
-and it is lit through `TabStripModel::SetTabNeedsAttention`, whose only callers
-outside the tests are three:
-`components/javascript_dialogs/tab_modal_dialog_manager.cc`, the document
-picture-in-picture dialog manager, and the shared-tab-group collaboration
-observer. That is the whole list. The first is the only one a page can reach,
-and it means calling `alert()`, which suspends the very page it would be
-announcing and is itself deferred until the player comes back. There is no
-specification for the mark and no API behind it.
+**The small circle Chrome draws on a tab is real, and it is not ours to
+raise.** `TabIcon::PaintAttentionIndicatorAndIcon` clears a 4.5 px disc out of
+the bottom-right of the favicon and fills a 3 px circle in the browser's accent
+colour, which is the blue dot you see on a pinned tab. It is switched by two
+flags and only two, in `TabView::UpdateTabData`:
 
-The other family of tab marks, `TabAlertState`, is the row of small icons
-Chrome puts beside a tab's title: audio playing or muted, audio, video and
-media recording, tab and desktop capturing, Bluetooth, HID, serial, USB,
-picture-in-picture, VR, and Chrome's own assistant states. Every one of them is
-either behind a permission prompt or behind Chrome itself, except audio
-playing and picture-in-picture, and both of those need a user gesture at the
-moment they start.
+- `kBlockedWebContents`, when the tab is not the active one and its
+  `WebContents` is blocked, which means a tab-modal dialog is waiting;
+- `kTabWantsAttentionStatus`, from `TabStripModel::SetTabNeedsAttention`, whose
+  callers outside the tests are the JavaScript dialog manager, the document
+  picture-in-picture dialog manager and the shared-tab-group collaboration
+  observer.
 
-So a circle appearing next to a tab is, in practice, always the site's own
-favicon with a dot drawn into it. Checked on `claude.ai`, which is the example
-that prompted the question: notification permission `default` and no service
-worker registered, so nothing there is coming from the browser either.
+Every route to either ends at a dialog. A page can reach one, through `alert()`
+or `confirm()`, and the cost is a dialog the player has to dismiss on their
+return and a page that stops running until they do. That is not a way to
+announce a game.
+
+So a site that appears to have that dot has usually drawn its own into its
+favicon, which is what tinycon and favico.js exist for. Chrome's favicon store
+shows Gmail doing exactly that: alongside the plain icon it holds
+`mail.google.com/mail/u/0/images/2/unreadcountfavicon/13.png`, one file per
+unread count. That is the green tab with a 4 on it, and it is a picture, not a
+browser feature.
 
 **The Badging API is the one that fits.** `navigator.setAppBadge()`, a W3C
 draft from the Web Applications working group shipped in Chrome and Edge since
@@ -837,21 +838,36 @@ the game: see below.
 - **the application icon**, badged for as long as the round goes unnoticed,
   wherever the game has been installed;
 - **the tab**, whose title alternates with `À vous de jouer !` about once a
-  second and whose icon lights up, `favicon-alert.svg`, for everyone else.
+  second and whose icon takes a dot, `favicon-alert.svg`, for everyone else.
 
 The tab half is a workaround and is kept as one. It is the only channel that
 reaches a player who has not installed anything, which is most players, and the
 icon does most of its work: in a crowded tab strip the title is truncated to
 nothing while the sixteen pixels of the favicon are always there, so the call
-had to survive being reduced to a colour. Hence a shade change on the same die
-rather than a badge or a dot: the tab still reads as this game, and the eye
-catches the pulse anyway.
+had to survive being reduced to a picture. `favicon-alert.svg` is the die with
+an amber dot at the bottom right, in the place the browser puts its own and
+near enough the same size, cleared out of the icon behind it by a mask the way
+Chrome clears its own. The die steps back from 32 of the viewbox to 28 so the
+hole falls beside the letter rather than through it.
+
+**No library for it.** The ones that do this rasterise the favicon onto a
+canvas and set a `data:` URI: `badgin` (the only one with real adoption, 3.4 M
+downloads a week, though last published in 2022) through `drawImage` and
+`toDataURL`, and so do `tinycon`, `favico.js` and the rest;
+`react-usefavicon`, which the pattern is usually cited from, is at 39 downloads
+a week. A canvas would cost us the thing the icon is good at: `favicon.svg`
+carries its own `prefers-color-scheme` query and follows the *tab strip's*
+theme, which is the browser's and not the page's, and rasterising it freezes
+one of the two. Against that, what a library would save here is a second SVG
+file and one assignment to `link.href`.
 
 All three are put back the moment the player returns: coming back *is* the
 dismissal, so there is nothing to dismiss. The badge is set once and cleared
 once, since a badge is a state, and the notification is closed on the way out,
-since one left on screen for a round already joined is litter; only the tab
-beats.
+since one left on screen for a round already joined is litter. Only the title
+beats. The dot on the icon holds, because a tab hidden for five minutes falls
+under intensive throttling and gets one turn a minute, which makes a blinking
+icon look like a fault and leaves a steady one exactly as legible.
 
 **The beat is 1.2 s** because Chrome clamps timers in a hidden tab to one a
 second: a quicker beat is not honoured, and would only look like a stutter on
@@ -882,24 +898,23 @@ and Firefox and Safari on the desktop have neither the badge nor the install.
 That is the honest reach of it, and the reason the tab keeps its half of the
 job rather than being replaced by it.
 
-### The bell, and who is allowed to press it
+### Asking at the door
 
 The objection to notifications was never the API, it was the prompt: opened on
-arrival it is refused out of habit, and a refusal is permanent, site-wide, and
-unaskable again. So the game never opens it. `AlertToggle` puts a bell beside
-the theme button in the lobby, the grid and the results, and
-`Notification.requestPermission()` is called from that click and from nowhere
-else. A prompt that answers a button the player just pressed is a different
-proposition from one that interrupts them.
+arrival it is about nothing yet, refused out of habit, and a refusal is
+permanent, site-wide and unaskable again. So it is opened at the one moment it
+is about something. `askAboutRounds()` runs when the player creates or joins a
+room, from the click that does it, and from nowhere else. That is also the only
+way it can work at all: Firefox and Safari refuse to open the prompt without a
+user gesture behind it.
 
-Two states are kept apart, in `lib/notify.ts`. The permission belongs to the
-browser and only the browser can give it back; the preference belongs to the
-player and the bell turns it off without spending the permission, so switching
-off today does not mean being asked again tomorrow. The stored value therefore
-only ever records a refusal: holding the permission at all means the player
-went and asked for it. When the permission is revoked in the browser's own site
-settings the bell has to notice, which is what the Permissions API listener is
-for; `Notification.permission` stays the source of truth.
+Once, and never again. `default` means the question is still open; `granted`
+and `denied` are both answers, and the browser stops relaying a question it has
+already had answered. A second room in the same visit is not a second reason to
+ask, so a flag in the module holds that too. There is no preference of ours on
+top of the permission: the browser's own site settings are where people look to
+take it back, and a switch of ours in a corner of the lobby would only be a
+second place to disagree with.
 
 The notification carries a `tag`, so a second round replaces the first instead
 of stacking under it: two rounds cannot both be waiting to be joined. Clicking
@@ -925,9 +940,10 @@ watching the countdown. A round that ends while nobody came back takes the call
 with it, rather than leaving a tab asking for something that is over.
 `scripts/test-alert.mjs` checks the three of them. It also checks that the
 manifest parses and that its icons are the size they claim, since an install
-nobody can perform is a badge nobody will see; that the permission prompt is
-opened by the bell and by nothing else, including that turning the bell back
-off does not reopen it; and that a player who never asked is never notified.
+nobody can perform is a badge nobody will see; that the prompt is not opened on
+arrival, is opened by entering a room, is not opened again by the next room,
+and is not opened at all once the browser has an answer either way; and that a
+player whose browser said no is never notified.
 Headless Chromium reports every page as visible whichever one is in front, so
 the test overrides `document.visibilityState` before load, and stubs
 `setAppBadge` and `Notification` for the same reason: a test browser has

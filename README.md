@@ -35,10 +35,10 @@ groupe les mots par longueur, marque qui les a trouvés et affiche leur
 définition.
 
 Une manche qui commence pendant que le joueur est ailleurs le lui dit : le titre
-et l'icône de l'onglet **clignotent**, la **pastille du système** se pose sur
-l'icône du jeu s'il l'a installé, et une **notification** part pour qui a appuyé
-sur la cloche. L'autorisation n'est jamais demandée d'elle-même : seule la
-cloche l'ouvre.
+de l'onglet **clignote**, son icône prend une **pastille**, celle du système se
+pose sur l'icône du jeu s'il l'a installé, et une **notification** part pour qui
+l'a autorisée. L'autorisation est demandée une seule fois, en entrant dans une
+salle, et jamais à l'arrivée sur le site.
 
 Les dés sont montrés **tels qu'ils sont tombés**, tournés d'un quart ou d'un
 demi-tour, comme au sortir du gobelet. Le `M` renversé étant un `W` et le `N`

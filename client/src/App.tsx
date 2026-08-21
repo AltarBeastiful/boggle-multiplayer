@@ -9,6 +9,7 @@ import { Playing } from './components/Playing';
 import { Results } from './components/Results';
 import { useGame } from './hooks/useGame';
 import { useRoundAlert } from './hooks/useRoundAlert';
+import { askAboutRounds } from './lib/notify';
 
 /** Reads the room code from the URL (/r/ABCD), for invitation links. */
 function codeFromUrl(): string {
@@ -84,8 +85,14 @@ export function App() {
         <Home
           connected={game.connected}
           initialCode={initialCode}
-          onCreate={(nickname) => game.createRoom(nickname)}
-          onJoin={(code, nickname) => game.joinRoom(code, nickname)}
+          onCreate={(nickname) => {
+            askAboutRounds();
+            return game.createRoom(nickname);
+          }}
+          onJoin={(code, nickname) => {
+            askAboutRounds();
+            return game.joinRoom(code, nickname);
+          }}
           onDaily={goDaily}
         />
       </>

@@ -1,51 +1,44 @@
 /**
- * The player's own answer to being told about a round.
+ * Asking for the right to interrupt, once, at the door.
  *
  * A notification is the only standard way to reach someone who has left the
- * browser altogether, and the only one that costs a permission. So the prompt
- * is never opened by the game: it is opened by the player, from the bell in
- * the header, and only then. A prompt that arrives unasked over the lobby is
- * refused out of habit, and a refusal is permanent and site-wide.
+ * browser altogether, and the only one that costs a permission. The question
+ * is when to ask, and the answer is not "on arrival": a prompt over the home
+ * page is about nothing yet, and it is refused out of habit. It is asked when
+ * the player enters a room, because that is the moment the game acquires the
+ * thing it would interrupt them about, and because entering a room is a click,
+ * which is what Firefox and Safari require before the prompt will open at all.
  *
- * Two states are kept apart on purpose. What the browser allows is the
- * permission, which only the browser can change; whether the player wants it
- * today is this preference, which the bell turns off without spending the
- * permission. Turning it off must not mean asking again later.
+ * Asked once and never again. `default` means the question is still open;
+ * `granted` and `denied` are both answers, and re-asking an answered question
+ * is not possible anyway, since the browser stops relaying it.
  */
 
-const WANT_KEY = 'boggle.notify';
+/** Asked already in this page's life: a second room is not a second reason. */
+let asked = false;
 
 /** Absent on iOS Safari outside an installed app, among others. */
 export function notificationsSupported(): boolean {
   return typeof Notification !== 'undefined';
 }
 
-export function notificationPermission(): NotificationPermission {
-  return notificationsSupported() ? Notification.permission : 'denied';
-}
-
 /**
- * Granted, and not since turned back off. The stored value only ever records
- * a refusal: permission is granted through the bell and nowhere else, so
- * having it at all means the player asked for it.
+ * Whether a round may be announced this way. There is no preference of ours on
+ * top of the permission: the browser holds the answer and its own site
+ * settings are where it is taken back, which is where players look for it.
  */
 export function notificationsOn(): boolean {
-  return notificationPermission() === 'granted' && localStorage.getItem(WANT_KEY) !== 'off';
+  return notificationsSupported() && Notification.permission === 'granted';
 }
 
-export function setNotificationsOn(on: boolean): void {
-  localStorage.setItem(WANT_KEY, on ? 'on' : 'off');
-}
-
-/** Opens the browser's prompt. Only ever called from a click. */
-export async function askForNotifications(): Promise<NotificationPermission> {
-  if (!notificationsSupported()) return 'denied';
-  let answer: NotificationPermission;
+/** Opens the prompt if the question is still open. Called from a click. */
+export function askAboutRounds(): void {
+  if (asked || !notificationsSupported() || Notification.permission !== 'default') return;
+  asked = true;
   try {
-    answer = await Notification.requestPermission();
+    // Safari 15 and older took a callback and returned nothing at all.
+    void Promise.resolve(Notification.requestPermission()).catch(() => {});
   } catch {
-    return 'denied';
+    /* Nothing to fall back to, and nothing to report. */
   }
-  if (answer === 'granted') setNotificationsOn(true);
-  return answer;
 }

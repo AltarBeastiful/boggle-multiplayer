@@ -14,7 +14,8 @@
  * standard way to raise the small circle Chrome draws on a tab; that mark
  * belongs to a dialog waiting for an answer, and web content cannot ask for it
  * short of `alert()`, which blocks the page it is trying to call attention to.
- * So the tab says it in the only two places it owns.
+ * So the tab draws its own, in the favicon, which is how every site that
+ * appears to have one does it.
  *
  * **A notification**, on top of both, for the player who asked for one. It is
  * the only channel that reaches someone who has left the browser, and the only
@@ -36,6 +37,11 @@ const ALERT_ICON = '/favicon-alert.svg';
  * A beat slower than a second. Chrome clamps timers in a hidden tab to one a
  * second, so a quicker beat is simply not honoured; and a pulse catches the
  * eye where a strobe only wears it out.
+ *
+ * Only the title beats. The dot on the icon is a state and stays put: a tab
+ * hidden for five minutes falls under intensive throttling and gets one turn a
+ * minute, which makes a blinking icon look broken and leaves a steady one
+ * exactly as legible as it was.
  */
 const BEAT_MS = 1200;
 
@@ -112,7 +118,6 @@ export function callAttention(call: Call): () => void {
   const beat = () => {
     lit = !lit;
     document.title = lit ? call.title : RESTING_TITLE;
-    link.href = lit ? ALERT_ICON : RESTING_ICON;
   };
 
   const stop = () => {
@@ -131,7 +136,8 @@ export function callAttention(call: Call): () => void {
     if (document.visibilityState === 'visible') stop();
   };
 
-  // The badge is a state, not a pulse: set once, and left until they return.
+  // States, not pulses: set once, and left alone until the player returns.
+  link.href = ALERT_ICON;
   badge(true);
   const shown = announce(call);
   beat();
