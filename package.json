@@ -22,6 +22,7 @@
     "test:daily": "node scripts/test-daily.mjs",
     "test:awards": "node scripts/test-awards.mjs",
     "test:restart": "node scripts/test-restart.mjs",
+    "test:alert": "node scripts/test-alert.mjs",
     "test:dict": "node scripts/test-dictionary.mjs",
     "test:defs": "node scripts/test-definitions.mjs",
     "audit:mobile": "node scripts/audit-mobile.mjs",

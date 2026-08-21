@@ -34,6 +34,10 @@ les solutions ou de continuer à chercher hors chrono. La page des solutions
 groupe les mots par longueur, marque qui les a trouvés et affiche leur
 définition.
 
+Une manche qui commence pendant que l'onglet est en arrière-plan le fait
+**clignoter**, titre et icône, jusqu'au retour du joueur : rien à autoriser, pas
+de notification.
+
 Les dés sont montrés **tels qu'ils sont tombés**, tournés d'un quart ou d'un
 demi-tour, comme au sortir du gobelet. Le `M` renversé étant un `W` et le `N`
 couché un `Z`, ces lettres sont soulignées. Réglage `Orientation des dés` pour

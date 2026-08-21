@@ -666,6 +666,63 @@ definitions want a network, and they always did.
 
 ---
 
+## Decision 18: the tab calls the player back, and asks nothing to do it
+
+A round starts for everyone at the same instant, and the two beats of countdown
+(decision 9) only warn whoever is already looking at the grid. Between rounds
+players go elsewhere: another tab, another window, the kettle. They come back
+to a clock that has been running without them, which is the one part of the
+game that cannot be caught up.
+
+**The Notification API is the obvious answer and it is the wrong one.** It
+opens a permission prompt, the prompt is refused out of habit, the refusal is
+permanent and site-wide, and the browser never asks again. Trading a permanent
+refusal for an announcement that a game of Boggle has started is a bad deal,
+and the prompt itself would arrive at the worst moment, over the lobby.
+
+So the game uses what the tab already owns and nobody has to grant:
+
+- **the title**, alternating with `À vous de jouer !` about once a second;
+- **the icon**, the same die in a lit shade, `favicon-alert.svg`.
+
+Both keep being drawn while the tab sits in the background, which is exactly
+where the player has to be reached, and both are put back the moment the player
+returns: coming back *is* the dismissal, so there is nothing to dismiss.
+
+The icon does most of the work. In a crowded tab strip the title is truncated
+to nothing while the sixteen pixels of the favicon are always there, so the
+call had to survive being reduced to a colour. Hence a shade change on the same
+die rather than a badge or a dot: the tab still reads as this game, and the eye
+catches the pulse anyway. It is also why the game finally has a favicon at all.
+
+**The beat is 1.2 s** because Chrome clamps timers in a hidden tab to one a
+second: a quicker beat is not honoured, and would only look like a stutter on
+the browsers that do honour it. A tab hidden for more than five minutes falls
+under intensive throttling and beats once a minute instead, which is a fair
+description of a player who is no longer there.
+
+**What was rejected, and why.** `window.focus()` is ignored without a user
+gesture, and stealing focus from whatever the player is actually doing would be
+worse than missing a round. `navigator.vibrate()` needs no permission but is
+specified to do nothing while the document is hidden, and iOS has never
+supported it. `navigator.setAppBadge()` needs an installed PWA. A sound is the
+one remaining permission-free channel that reaches someone in another
+application entirely: it needs no prompt, only a prior click on the page, which
+joining a room provides. It is not built, because it cannot be silent by
+default and a per-player mute switch is a setting the game does not otherwise
+need; the flashing tab is silent and costs nothing.
+
+The trigger is the round *beginning*, not the round running: the call fires
+when the number changes while the tab is hidden, and never for a player who is
+watching the countdown. A round that ends while nobody came back takes the call
+with it, rather than leaving a tab asking for something that is over.
+`scripts/test-alert.mjs` checks the three of them. Headless Chromium reports
+every page as visible whichever one is in front, so the test overrides
+`document.visibilityState` before load; what it proves is the app's reaction to
+a hidden tab, the browser's own bookkeeping being the browser's business.
+
+---
+
 ## Known limits
 
 - **A single instance.** Rooms live in the process. Running several would need

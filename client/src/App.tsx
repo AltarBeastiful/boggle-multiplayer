@@ -8,6 +8,7 @@ import { Lobby } from './components/Lobby';
 import { Playing } from './components/Playing';
 import { Results } from './components/Results';
 import { useGame } from './hooks/useGame';
+import { useRoundAlert } from './hooks/useRoundAlert';
 
 /** Reads the room code from the URL (/r/ABCD), for invitation links. */
 function codeFromUrl(): string {
@@ -20,6 +21,8 @@ const DAILY_PATH = '/jour';
 
 export function App() {
   const game = useGame();
+  // A round can start while this tab is in the background; the tab says so.
+  useRoundAlert(game.room);
   const [initialCode] = useState(codeFromUrl);
   /*
    * Each player leaves the grid for the solutions when they want to. The room

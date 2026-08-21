@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!--
+    The same die, lit. Nothing is added to it, no badge and no dot: only the
+    face changes shade, which is all the eye has to catch at sixteen pixels,
+    and the icon stays recognisable as this game rather than as an alert.
+    Amber reads on a light tab strip and on a dark one, so it needs no theme.
+  -->
+  <rect width="32" height="32" rx="7" fill="#fbbf24" />
+  <text
+    x="16"
+    y="24"
+    text-anchor="middle"
+    font-size="22"
+    font-weight="700"
+    font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    fill="#0f172a"
+  >B</text>
+</svg>
