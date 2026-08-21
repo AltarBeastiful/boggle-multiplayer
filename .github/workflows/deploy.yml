@@ -5,15 +5,23 @@ name: deploy
 # workflow only gives the runner an ssh key and a host to use it on, and the
 # deployment logic stays in one file that still works by hand.
 #
-# Manual on purpose. The release workflow builds and publishes; this one puts
-# it on the server, and those are two decisions. To make a published release
-# deploy itself, add `release: {types: [published]}` to the triggers below.
+# It runs on its own after a successful release, and by hand whenever. The
+# release workflow builds and publishes the assets; this one puts them on the
+# server, and chaining the two is what makes a tag the only thing anybody has
+# to do.
+#
+# The chain is `workflow_run` rather than the obvious `release: published`,
+# and that is not a preference. A release created by the release workflow is
+# created with GITHUB_TOKEN, and GitHub does not let events raised by that
+# token start further workflows: the loop prevention is deliberate, and a
+# `release` trigger here would simply never fire. Watching the run finish
+# works, and says what is meant anyway, which is "after the assets exist".
 #
 # Set up once, on your own machine, with a key made for this and nothing else:
 #
 #   ssh-keygen -t ed25519 -f ~/.ssh/boggle-deploy -C "github-actions" -N ""
 #   ssh-copy-id -i ~/.ssh/boggle-deploy.pub opc@158.101.170.36
-#   gh secret set BOGGLE_SSH_KEY < ~/.ssh/boggle-deploy
+#   gh secret set LMS_SSH_KEY < ~/.ssh/boggle-deploy
 #   ssh-keyscan 158.101.170.36 | gh secret set BOGGLE_SSH_KNOWN_HOSTS
 #
 # The private key goes straight from the file into GitHub's secret store, which
@@ -32,6 +40,11 @@ name: deploy
 #   BOGGLE_REMOTE_DIR   default /home/opc/boggle-multiplayer
 
 on:
+  # After the release workflow, and only when it succeeded: deploying assets
+  # that failed to build is the one thing worse than not deploying.
+  workflow_run:
+    workflows: [release]
+    types: [completed]
   workflow_dispatch:
     inputs:
       branch:
@@ -51,6 +64,10 @@ concurrency:
 
 jobs:
   deploy:
+    # A `workflow_run` fires whatever the run concluded, cancellations and
+    # failures included, so the conclusion is checked rather than assumed.
+    # Always true for a manual dispatch, which has no run to look at.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     # Add a required reviewer to this environment in the repository settings and
     # every deploy waits for a human. The repository is public, so that costs
@@ -66,12 +83,12 @@ jobs:
       # and the job hanging until it times out.
       - name: Check the secrets are set
         env:
-          KEY: ${{ secrets.BOGGLE_SSH_KEY }}
+          KEY: ${{ secrets.LMS_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.BOGGLE_SSH_KNOWN_HOSTS }}
         run: |
           set -euo pipefail
           missing=
-          [ -n "$KEY" ] || missing="$missing BOGGLE_SSH_KEY"
+          [ -n "$KEY" ] || missing="$missing LMS_SSH_KEY"
           [ -n "$KNOWN_HOSTS" ] || missing="$missing BOGGLE_SSH_KNOWN_HOSTS"
           if [ -n "$missing" ]; then
             echo "Missing repository secret(s):$missing"
@@ -81,7 +98,7 @@ jobs:
 
       - name: Give the runner the key
         env:
-          KEY: ${{ secrets.BOGGLE_SSH_KEY }}
+          KEY: ${{ secrets.LMS_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.BOGGLE_SSH_KNOWN_HOSTS }}
           SSH_HOST: ${{ vars.BOGGLE_SSH_HOST || '158.101.170.36' }}
           SSH_USER: ${{ vars.BOGGLE_SSH_USER || 'opc' }}
