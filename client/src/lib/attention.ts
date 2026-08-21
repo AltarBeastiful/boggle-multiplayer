@@ -75,6 +75,12 @@ export interface Call {
   title: string;
   /** The line under it in a notification, where there is room to say more. */
   body: string;
+  /**
+   * False for a round this player has already laid eyes on. The tab is marked
+   * again, because the round is still running without them, but nothing
+   * interrupts them a second time about the same round.
+   */
+  notify?: boolean;
 }
 
 /**
@@ -85,7 +91,7 @@ export interface Call {
  * brings the game back, which is the only thing anyone would want from it.
  */
 function announce(call: Call): Notification | null {
-  if (!notificationsOn()) return null;
+  if (call.notify === false || !notificationsOn()) return null;
   try {
     const shown = new Notification(call.title, {
       body: call.body,
@@ -106,9 +112,11 @@ function announce(call: Call): Notification | null {
 }
 
 /**
- * Calls the player back until they come, and returns the way to stop it early.
- * Coming back is what the call was for, so seeing the tab is enough to end it:
- * there is nothing left to dismiss.
+ * Marks the tab, and returns the way to put it all back.
+ *
+ * When that happens is the caller's business, not this one's: the same round
+ * can be left and returned to more than once, and only the caller knows which
+ * of those is worth a notification. See `useRoundAlert`.
  */
 export function callAttention(call: Call): () => void {
   const link = iconLink();
@@ -124,16 +132,11 @@ export function callAttention(call: Call): () => void {
     if (timer === undefined) return;
     window.clearInterval(timer);
     timer = undefined;
-    document.removeEventListener('visibilitychange', onVisibility);
     document.title = RESTING_TITLE;
     link.href = RESTING_ICON;
     badge(false);
     // A notification left on screen for a round already joined is litter.
     shown?.close();
-  };
-
-  const onVisibility = () => {
-    if (document.visibilityState === 'visible') stop();
   };
 
   // States, not pulses: set once, and left alone until the player returns.
@@ -142,6 +145,5 @@ export function callAttention(call: Call): () => void {
   const shown = announce(call);
   beat();
   timer = window.setInterval(beat, BEAT_MS);
-  document.addEventListener('visibilitychange', onVisibility);
   return stop;
 }

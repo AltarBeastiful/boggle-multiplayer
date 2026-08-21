@@ -934,11 +934,33 @@ own speaker icon while it plays. It is not built, because it cannot be silent
 by default and a per-player mute switch is a setting the game does not
 otherwise need.
 
-The trigger is the round *beginning*, not the round running: the call fires
-when the number changes while the tab is hidden, and never for a player who is
-watching the countdown. A round that ends while nobody came back takes the call
-with it, rather than leaving a tab asking for something that is over.
-`scripts/test-alert.mjs` checks the three of them. It also checks that the
+### What the mark means, and when it is up
+
+**A round is running and you are not watching it.** Not "a round has begun",
+which is what the first version fired on, and which left a player who looked in
+and wandered off again carrying an unmarked tab for the rest of the clock.
+Leaving in the middle of a round is the same predicament as missing its start.
+So the mark follows the tab: up whenever the round is running and the tab is
+hidden, down the moment it is looked at, however many times that happens. A
+round that ends while nobody came back takes it with it, rather than leaving a
+tab asking for something that is over.
+
+**Told once, marked as often as it takes.** A notification is an interruption
+and belongs to the news that a round has begun; the second time somebody
+wanders off they already know. So `Call.notify` is false from then on: the tab
+is marked again and nothing is sent. A player who watched the round start
+counts as told, which is what the countdown over the grid was for.
+
+**Never up on a tab being looked at**, which is the whole reason it can go on
+meaning something. A mark for the length of a game was considered and refused
+on that ground: it would be lit while the player sits in front of the grid,
+where it says nothing they cannot see, and being lit almost all the time is how
+a mark stops being read at all. The one moment it matters would be
+indistinguishable from its own background. The narrower rule is worth more than
+the coverage it gives up, and "is a game on?" is a question the tab's title
+already answers.
+
+`scripts/test-alert.mjs` checks all of it, the second departure included. It also checks that the
 manifest parses and that its icons are the size they claim, since an install
 nobody can perform is a badge nobody will see; that the prompt is not opened on
 arrival, is opened by entering a room, is not opened again by the next room,

@@ -34,10 +34,11 @@ les solutions ou de continuer à chercher hors chrono. La page des solutions
 groupe les mots par longueur, marque qui les a trouvés et affiche leur
 définition.
 
-Une manche qui commence pendant que le joueur est ailleurs le lui dit : le titre
-de l'onglet **clignote**, son icône prend une **pastille**, celle du système se
-pose sur l'icône du jeu s'il l'a installé, et une **notification** part pour qui
-l'a autorisée. L'autorisation est demandée une seule fois, en entrant dans une
+Une manche qui tourne pendant que le joueur est ailleurs le lui dit, qu'il soit
+parti avant le coup d'envoi ou au milieu : le titre de l'onglet **clignote**,
+son icône prend une **pastille**, celle du système se pose sur l'icône du jeu
+s'il l'a installé, et une **notification** part, une seule par manche, pour qui
+l'a autorisée. Rien ne s'allume sur un onglet qu'on regarde. L'autorisation est demandée une seule fois, en entrant dans une
 salle, et jamais à l'arrivée sur le site.
 
 Les dés sont montrés **tels qu'ils sont tombés**, tournés d'un quart ou d'un

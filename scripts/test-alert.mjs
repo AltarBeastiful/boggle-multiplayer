@@ -319,7 +319,7 @@ console.log('\n── The round starts while the guest is looking elsewhere ─�
 }
 
 // ---------------------------------------------------------------------------
-console.log('\n── A player who said yes at the door is told, wherever they are ──');
+console.log('\n── A player who said yes at the door is told once, and marked as often ──');
 {
   const { page: host, code } = await openRoom();
   const guest = await context.newPage();
@@ -362,6 +362,25 @@ console.log('\n── A player who said yes at the door is told, wherever they a
   check(
     (await notified(guest))[0]?.closed === true,
     'la notification reste affichée pour une manche déjà rejointe',
+  );
+
+  // Leaving again, mid-manche: the tab is marked again, and that is all. The
+  // round is still running without them, but they have already been told.
+  await guest.evaluate(() => window.__hide(true));
+  await guest.waitForTimeout(600);
+  const again = await tab(guest);
+  console.log('  en repartant :', again.title, '/', again.icon);
+  check(
+    again.icon?.includes('favicon-alert'),
+    `l'onglet repart sans pastille au milieu de la manche : ${again.icon}`,
+  );
+  check(
+    (await badges(guest)).at(-1) === 'dot',
+    "l'icône de l'appli n'est pas remarquée au deuxième départ",
+  );
+  check(
+    (await notified(guest)).length === 1,
+    `${(await notified(guest)).length} notifications pour une seule manche`,
   );
 
   await host.close();
