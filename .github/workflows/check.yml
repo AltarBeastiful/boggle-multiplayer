@@ -1,0 +1,57 @@
+name: check
+
+# The tests, on every push and every pull request.
+#
+# The release workflow already runs them, but it only runs on a tag, so until
+# now a commit was unverified until somebody decided to publish: the moment you
+# least want to discover that the rules engine is red. This one answers within
+# a minute of the push, and the release keeps its own copy of the same checks
+# rather than trusting this one, since publishing is worth the seconds.
+#
+# What is deliberately not here are the Playwright scripts (`test:round`,
+# `test:daily`, `test:alert` and the rest). They need a browser downloaded, a
+# built client and a server to talk to, and they wait on wall-clock time for a
+# round to end, so they take minutes and can flake on a loaded runner. They
+# stay what they are: run by hand against the dev server, where their output is
+# meant to be read. What runs here is only what is fast and deterministic.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A second push supersedes the first: the older answer is about code nobody
+# has any more. Pull requests and branches are kept apart by the ref.
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # `tsc -b` builds the shared package on the way, which the other two need.
+      - name: Typecheck the three workspaces
+        run: npm run typecheck
+
+      - name: The rules engine
+        run: npm test
+
+      # Reads the committed word files, so it also catches a lexicon that was
+      # edited by hand and left inconsistent, or one a rebuild forgot to write.
+      - name: The dictionary
+        run: npm run test:dict
