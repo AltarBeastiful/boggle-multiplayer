@@ -34,9 +34,11 @@ les solutions ou de continuer à chercher hors chrono. La page des solutions
 groupe les mots par longueur, marque qui les a trouvés et affiche leur
 définition.
 
-Une manche qui commence pendant que l'onglet est en arrière-plan le fait
-**clignoter**, titre et icône, jusqu'au retour du joueur : rien à autoriser, pas
-de notification.
+Une manche qui commence pendant que le joueur est ailleurs le lui dit : le titre
+et l'icône de l'onglet **clignotent**, la **pastille du système** se pose sur
+l'icône du jeu s'il l'a installé, et une **notification** part pour qui a appuyé
+sur la cloche. L'autorisation n'est jamais demandée d'elle-même : seule la
+cloche l'ouvre.
 
 Les dés sont montrés **tels qu'ils sont tombés**, tournés d'un quart ou d'un
 demi-tour, comme au sortir du gobelet. Le `M` renversé étant un `W` et le `N`
@@ -95,6 +97,7 @@ npm run test:trace     # entrées tactiles et souris, via Playwright
 npm run test:round     # les deux façons de terminer une manche, à deux joueurs
 npm run test:daily     # la grille du jour, de l'accueil au classement
 npm run test:dict      # conjugaisons acceptées, orthographes fantômes refusées
+npm run test:alert     # l'appel d'une manche commencée dans le dos du joueur
 npm run test:restart   # tue le serveur en pleine manche et vérifie la reprise
 ```
 

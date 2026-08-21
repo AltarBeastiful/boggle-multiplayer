@@ -1,15 +1,30 @@
 /**
- * Calling a player back to a tab they are not looking at, without asking them
- * for anything.
+ * Calling a player back to a game they are not looking at.
  *
- * The Notification API would do this properly, but it opens a permission
- * prompt, and a prompt is a poor way to announce a game of Boggle: it is
- * refused out of habit, the refusal is permanent, and the browser only asks
- * once. What the tab already owns costs nothing and cannot be refused: its
- * title and its icon. Both keep being redrawn while the tab sits in the
- * background, which is precisely where the player has to be reached, and both
- * go back to normal the moment they return.
+ * Two channels, in the order the browser lets them work.
+ *
+ * **The application icon**, through the Badging API: `setAppBadge()` puts the
+ * operating system's own dot on the icon in the dock, the taskbar or the home
+ * screen. It is a W3C specification, it asks for no permission, and the mark
+ * it leaves is the browser's, not ours. What it costs instead is an install:
+ * the badge only exists once the game has an icon of its own to carry it, so a
+ * player in an ordinary tab gets nothing from it.
+ *
+ * **The tab**, through its title and its icon, for everyone else. There is no
+ * standard way to raise the small circle Chrome draws on a tab; that mark
+ * belongs to a dialog waiting for an answer, and web content cannot ask for it
+ * short of `alert()`, which blocks the page it is trying to call attention to.
+ * So the tab says it in the only two places it owns.
+ *
+ * **A notification**, on top of both, for the player who asked for one. It is
+ * the only channel that reaches someone who has left the browser, and the only
+ * one that costs a permission, so whether it fires at all is the player's
+ * standing answer and not ours: see `./notify`.
+ *
+ * All three are put back the moment the player returns.
  */
+
+import { notificationsOn } from './notify';
 
 /** The title as the page was served, restored when the flashing stops. */
 const RESTING_TITLE = document.title;
@@ -36,18 +51,67 @@ function iconLink(): HTMLLinkElement {
 }
 
 /**
- * Flashes the tab until the player comes back to it, and returns the way to
- * stop it early. Coming back is what the call was for, so seeing the tab is
- * enough to end it: there is nothing left to dismiss.
+ * Marks the application icon, or does nothing at all.
+ *
+ * A badge with no count is the dot: something to come back to, and no claim
+ * about how much of it there is. The call is refused wherever there is no
+ * installed application to badge, which is most of the time and not an error.
  */
-export function flashTab(label: string): () => void {
+function badge(lit: boolean): void {
+  if (!('setAppBadge' in navigator)) return;
+  const marked = lit ? navigator.setAppBadge() : navigator.clearAppBadge();
+  void marked.catch(() => {});
+}
+
+/** What the player is being called back to, in each of the two lengths. */
+export interface Call {
+  /** Short enough for a tab strip, since that is where it mostly lands. */
+  title: string;
+  /** The line under it in a notification, where there is room to say more. */
+  body: string;
+}
+
+/**
+ * Shows the notification, if the player has one coming.
+ *
+ * A tag rather than a queue: two rounds cannot both be waiting to be joined,
+ * so the second replaces the first instead of stacking under it. The click
+ * brings the game back, which is the only thing anyone would want from it.
+ */
+function announce(call: Call): Notification | null {
+  if (!notificationsOn()) return null;
+  try {
+    const shown = new Notification(call.title, {
+      body: call.body,
+      icon: '/icon-192.png',
+      tag: 'boggle-round',
+      lang: 'fr',
+    });
+    shown.onclick = () => {
+      window.focus();
+      shown.close();
+    };
+    return shown;
+  } catch {
+    // Android requires notifications to come from a service worker, which the
+    // game has none of. The tab keeps calling; that part never throws.
+    return null;
+  }
+}
+
+/**
+ * Calls the player back until they come, and returns the way to stop it early.
+ * Coming back is what the call was for, so seeing the tab is enough to end it:
+ * there is nothing left to dismiss.
+ */
+export function callAttention(call: Call): () => void {
   const link = iconLink();
   let lit = false;
   let timer: number | undefined;
 
   const beat = () => {
     lit = !lit;
-    document.title = lit ? label : RESTING_TITLE;
+    document.title = lit ? call.title : RESTING_TITLE;
     link.href = lit ? ALERT_ICON : RESTING_ICON;
   };
 
@@ -58,12 +122,18 @@ export function flashTab(label: string): () => void {
     document.removeEventListener('visibilitychange', onVisibility);
     document.title = RESTING_TITLE;
     link.href = RESTING_ICON;
+    badge(false);
+    // A notification left on screen for a round already joined is litter.
+    shown?.close();
   };
 
   const onVisibility = () => {
     if (document.visibilityState === 'visible') stop();
   };
 
+  // The badge is a state, not a pulse: set once, and left until they return.
+  badge(true);
+  const shown = announce(call);
   beat();
   timer = window.setInterval(beat, BEAT_MS);
   document.addEventListener('visibilitychange', onVisibility);

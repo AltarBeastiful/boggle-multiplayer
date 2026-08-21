@@ -27,7 +27,8 @@
     "test:defs": "node scripts/test-definitions.mjs",
     "audit:mobile": "node scripts/audit-mobile.mjs",
     "audit:dict": "node scripts/audit-dictionary.mjs",
-    "lexicon": "node scripts/build-lexicon.mjs"
+    "lexicon": "node scripts/build-lexicon.mjs",
+    "icons": "node scripts/build-icons.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

@@ -783,7 +783,7 @@ definitions want a network, and they always did.
 
 ---
 
-## Decision 18: the tab calls the player back, and asks nothing to do it
+## Decision 18: the game calls the player back, on the icon the system owns
 
 A round starts for everyone at the same instant, and the two beats of countdown
 (decision 9) only warn whoever is already looking at the grid. Between rounds
@@ -791,26 +791,67 @@ players go elsewhere: another tab, another window, the kettle. They come back
 to a clock that has been running without them, which is the one part of the
 game that cannot be caught up.
 
-**The Notification API is the obvious answer and it is the wrong one.** It
-opens a permission prompt, the prompt is refused out of habit, the refusal is
-permanent and site-wide, and the browser never asks again. Trading a permanent
-refusal for an announcement that a game of Boggle has started is a bad deal,
-and the prompt itself would arrive at the worst moment, over the lobby.
+### What a page is allowed to do, and what it is not
 
-So the game uses what the tab already owns and nobody has to grant:
+**The small circle Chrome draws on a tab is not ours to raise.** In Chromium it
+is `kTabWantsAttentionStatus` in `chrome/browser/ui/views/tabs/tab/tab_icon.h`,
+and it is lit through `TabStripModel::SetTabNeedsAttention`, whose only callers
+outside the tests are three:
+`components/javascript_dialogs/tab_modal_dialog_manager.cc`, the document
+picture-in-picture dialog manager, and the shared-tab-group collaboration
+observer. That is the whole list. The first is the only one a page can reach,
+and it means calling `alert()`, which suspends the very page it would be
+announcing and is itself deferred until the player comes back. There is no
+specification for the mark and no API behind it.
 
-- **the title**, alternating with `À vous de jouer !` about once a second;
-- **the icon**, the same die in a lit shade, `favicon-alert.svg`.
+The other family of tab marks, `TabAlertState`, is the row of small icons
+Chrome puts beside a tab's title: audio playing or muted, audio, video and
+media recording, tab and desktop capturing, Bluetooth, HID, serial, USB,
+picture-in-picture, VR, and Chrome's own assistant states. Every one of them is
+either behind a permission prompt or behind Chrome itself, except audio
+playing and picture-in-picture, and both of those need a user gesture at the
+moment they start.
 
-Both keep being drawn while the tab sits in the background, which is exactly
-where the player has to be reached, and both are put back the moment the player
-returns: coming back *is* the dismissal, so there is nothing to dismiss.
+So a circle appearing next to a tab is, in practice, always the site's own
+favicon with a dot drawn into it. Checked on `claude.ai`, which is the example
+that prompted the question: notification permission `default` and no service
+worker registered, so nothing there is coming from the browser either.
 
-The icon does most of the work. In a crowded tab strip the title is truncated
-to nothing while the sixteen pixels of the favicon are always there, so the
-call had to survive being reduced to a colour. Hence a shade change on the same
-die rather than a badge or a dot: the tab still reads as this game, and the eye
-catches the pulse anyway. It is also why the game finally has a favicon at all.
+**The Badging API is the one that fits.** `navigator.setAppBadge()`, a W3C
+draft from the Web Applications working group shipped in Chrome and Edge since
+Chrome 81, puts the operating system's own dot on the application icon in the
+dock, the taskbar or the home screen. It asks for no permission, because a dot
+interrupts nobody. What it asks for instead is an install: there has to be an
+icon of the game's own for the system to mark. Called with no argument it sets
+a dot rather than a count, which is the right claim to make here, something to
+come back to and no number attached to it.
+
+**The Notification API is the only thing that leaves the browser**, and the
+only one that costs a permission. It is used, but the prompt is never opened by
+the game: see below.
+
+### So the game does all three
+
+- **a notification**, for the player who asked for one, which is the only
+  channel that reaches somebody who is not in the browser at all;
+- **the application icon**, badged for as long as the round goes unnoticed,
+  wherever the game has been installed;
+- **the tab**, whose title alternates with `À vous de jouer !` about once a
+  second and whose icon lights up, `favicon-alert.svg`, for everyone else.
+
+The tab half is a workaround and is kept as one. It is the only channel that
+reaches a player who has not installed anything, which is most players, and the
+icon does most of its work: in a crowded tab strip the title is truncated to
+nothing while the sixteen pixels of the favicon are always there, so the call
+had to survive being reduced to a colour. Hence a shade change on the same die
+rather than a badge or a dot: the tab still reads as this game, and the eye
+catches the pulse anyway.
+
+All three are put back the moment the player returns: coming back *is* the
+dismissal, so there is nothing to dismiss. The badge is set once and cleared
+once, since a badge is a state, and the notification is closed on the way out,
+since one left on screen for a round already joined is litter; only the tab
+beats.
 
 **The beat is 1.2 s** because Chrome clamps timers in a hidden tab to one a
 second: a quicker beat is not honoured, and would only look like a stutter on
@@ -818,25 +859,81 @@ the browsers that do honour it. A tab hidden for more than five minutes falls
 under intensive throttling and beats once a minute instead, which is a fair
 description of a player who is no longer there.
 
+### The install the badge needs
+
+`client/public/manifest.webmanifest` declares the game as a standalone
+application, which is all Chrome wants before offering to install it: a name, a
+`start_url`, a `display`, and icons at 192 and 512. There is no service worker
+and the game does not work offline; the manifest is here for the icon, not for
+a pretence of being an application that runs without a server.
+
+`client/public/icon.svg` is the source and the only file to edit. It is not the
+favicon: the favicon follows the tab strip's theme, while an icon stamped into
+a dock has to carry its own ground. The die sits inside the middle 60% of the
+canvas so that the `maskable` variant survives being cropped to a circle.
+`npm run icons` renders the PNGs with Chromium, which Playwright already
+provides and no other rasteriser here does; they are committed, and rebuilt on
+purpose rather than on every build, since the letter is drawn with whatever the
+machine resolves `system-ui` to.
+
+**Where the badge actually appears.** Chrome documents it on Windows and macOS
+on the desktop, and on Android home screens. Chrome on Linux does not draw it,
+and Firefox and Safari on the desktop have neither the badge nor the install.
+That is the honest reach of it, and the reason the tab keeps its half of the
+job rather than being replaced by it.
+
+### The bell, and who is allowed to press it
+
+The objection to notifications was never the API, it was the prompt: opened on
+arrival it is refused out of habit, and a refusal is permanent, site-wide, and
+unaskable again. So the game never opens it. `AlertToggle` puts a bell beside
+the theme button in the lobby, the grid and the results, and
+`Notification.requestPermission()` is called from that click and from nowhere
+else. A prompt that answers a button the player just pressed is a different
+proposition from one that interrupts them.
+
+Two states are kept apart, in `lib/notify.ts`. The permission belongs to the
+browser and only the browser can give it back; the preference belongs to the
+player and the bell turns it off without spending the permission, so switching
+off today does not mean being asked again tomorrow. The stored value therefore
+only ever records a refusal: holding the permission at all means the player
+went and asked for it. When the permission is revoked in the browser's own site
+settings the bell has to notice, which is what the Permissions API listener is
+for; `Notification.permission` stays the source of truth.
+
+The notification carries a `tag`, so a second round replaces the first instead
+of stacking under it: two rounds cannot both be waiting to be joined. Clicking
+it brings the game back, which is the only thing anybody would want from it.
+Constructing it is wrapped, because Android requires notifications to come from
+a service worker and the game has none; the tab keeps calling, and that part
+never throws.
+
 **What was rejected, and why.** `window.focus()` is ignored without a user
 gesture, and stealing focus from whatever the player is actually doing would be
 worse than missing a round. `navigator.vibrate()` needs no permission but is
 specified to do nothing while the document is hidden, and iOS has never
-supported it. `navigator.setAppBadge()` needs an installed PWA. A sound is the
-one remaining permission-free channel that reaches someone in another
-application entirely: it needs no prompt, only a prior click on the page, which
-joining a room provides. It is not built, because it cannot be silent by
-default and a per-player mute switch is a setting the game does not otherwise
-need; the flashing tab is silent and costs nothing.
+supported it. A sound is the one remaining permission-free channel that reaches
+someone in another application entirely: it needs no prompt, only a prior click
+on the page, which joining a room provides, and Chrome marks the tab with its
+own speaker icon while it plays. It is not built, because it cannot be silent
+by default and a per-player mute switch is a setting the game does not
+otherwise need.
 
 The trigger is the round *beginning*, not the round running: the call fires
 when the number changes while the tab is hidden, and never for a player who is
 watching the countdown. A round that ends while nobody came back takes the call
 with it, rather than leaving a tab asking for something that is over.
-`scripts/test-alert.mjs` checks the three of them. Headless Chromium reports
-every page as visible whichever one is in front, so the test overrides
-`document.visibilityState` before load; what it proves is the app's reaction to
-a hidden tab, the browser's own bookkeeping being the browser's business.
+`scripts/test-alert.mjs` checks the three of them. It also checks that the
+manifest parses and that its icons are the size they claim, since an install
+nobody can perform is a badge nobody will see; that the permission prompt is
+opened by the bell and by nothing else, including that turning the bell back
+off does not reopen it; and that a player who never asked is never notified.
+Headless Chromium reports every page as visible whichever one is in front, so
+the test overrides `document.visibilityState` before load, and stubs
+`setAppBadge` and `Notification` for the same reason: a test browser has
+nothing installed and no prompt to answer. What it proves is the app's reaction
+to a hidden tab and the moments at which it asks, the browser's own bookkeeping
+being the browser's business.
 
 ---
 

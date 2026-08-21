@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import type { PlayerAwards, PlayerRoundResult, RoomState, RoundResults, ScoredWord } from '@boggle/shared';
 
+import { AlertToggle } from './AlertToggle';
 import { BoardGrid } from './BoardGrid';
 import { DefinitionCard } from './DefinitionCard';
 import { SolutionPanel } from './SolutionPanel';
@@ -124,11 +125,12 @@ export function Results({ room, results, isHost, playerId, onNext, onReset, onLe
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-5 px-5 py-8 lg:max-w-6xl">
-      {/* The theme button floats over the header, so the title keeps clear of
-          it: on a 360 px phone "Manche 1 terminée" ran under the button and
-          lost its last letter. */}
-      <header className="relative px-14 text-center">
-        <div className="absolute top-0 right-0">
+      <header className="text-center">
+        {/* Their own row rather than floating over the title: on a 360 px
+            phone "Manche 1 terminée" ran under the buttons and lost its last
+            letter, and there are two of them now. */}
+        <div className="mb-1 flex justify-end gap-2">
+          <AlertToggle />
           <ThemeToggle />
         </div>
         {results.gameOver ? (

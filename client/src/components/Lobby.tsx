@@ -5,6 +5,7 @@ import { scoringTable } from '@boggle/shared';
 
 import { settingsSummary } from '../lib/labels';
 
+import { AlertToggle } from './AlertToggle';
 import { SettingsPanel } from './SettingsPanel';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -50,8 +51,11 @@ export function Lobby({ room, isHost, playerId, onStart, onSettings, onLeave }: 
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 px-5 py-8">
-      <header className="relative text-center">
-        <div className="absolute top-0 right-0">
+      <header className="text-center">
+        {/* Their own row rather than floating over the title: two buttons are
+            96 px, and on a 360 px phone the room code ran under them. */}
+        <div className="mb-1 flex justify-end gap-2">
+          <AlertToggle />
           <ThemeToggle />
         </div>
         <p className="text-sm tracking-widest text-fg-muted uppercase">Code de la salle</p>

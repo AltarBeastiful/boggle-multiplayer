@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!--
+    The installed application's icon, and the source the PNGs are rendered
+    from (`npm run icons`). Not the favicon: that one follows the tab strip's
+    theme, while this one is stamped into a dock, a taskbar and a home screen
+    that have themes of their own and no way to ask. So it carries its own
+    ground and keeps the same two colours whatever it lands on.
+
+    The die sits inside the middle 60% of the canvas, which is the safe zone a
+    maskable icon has to respect: Android and some desktops crop the corners to
+    a circle or a squircle, and only the ground is allowed to be lost.
+  -->
+  <rect width="512" height="512" fill="#0f172a" />
+  <rect x="102" y="102" width="308" height="308" rx="68" fill="#fffbeb" />
+  <text
+    x="256"
+    y="330"
+    text-anchor="middle"
+    font-size="210"
+    font-weight="700"
+    font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    fill="#0f172a"
+  >B</text>
+</svg>
