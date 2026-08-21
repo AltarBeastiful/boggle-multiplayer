@@ -11,9 +11,9 @@
  * are lexicons, in four blocks, each computed against everything before it.
  *
  * **1. Grammalecte**, the French orthographic dictionary behind LibreOffice
- * and Firefox (MPL 2.0, "classique" v7.5, shipped in the `dictionary-fr`
- * package). Human-curated and still maintained, which is exactly what the base
- * list is not: it has `orc`, `blog`, `tofu`, `selfie`, `covoiturage`. Its
+ * and Firefox (MPL 2.0, "classique" v7.7, published by grammalecte.net).
+ * Human-curated and still maintained, which is exactly what the base list is
+ * not: it has `orc`, `blog`, `tofu`, `selfie`, `covoiturage`. Its
  * Hunspell affixes are expanded to every inflected form, minus two families of
  * flag. The SI unit prefixes (`U.`) would multiply every unit symbol by
  * nineteen and produce `zsr`, `dcal`, `ncd`: combinatorially generated, never
@@ -26,15 +26,23 @@
  * same. The test is attestation in a corpus, per Lexique 3.83, which is what
  * "does it make sense in French" means once a program has to decide it.
  *
- * **3. Words added by hand**, for what no source has. Anything in the file
+ * **3. The rest of the vocabulary neither source has**: nouns, adjectives,
+ * adverbs and interjections, from Wiktionary, under the same corpus test. This
+ * is where `ribot` comes from, the pestle of a butter churn, whose whole family
+ * the game already knew (`ribote`, `riboter`, `riboteur`) except the word
+ * itself. Wiktionary files proper nouns under a part of speech of their own and
+ * they are refused there, on top of being refused for their capital letter.
+ *
+ * **4. Words added by hand**, for what no source has. Anything in the file
  * outside the generated blocks is kept, and dropped only once a source covers
  * it, so this block shrinks by itself as the lexicons catch up.
  *
- * **4. The conjugations, last**, because it is the one rule that has to see
- * the finished dictionary: every verb the game accepts, from any of the three
- * blocks above, gets the forms Wiktionary gives it. That is the `gradera` fix,
- * and running it last is what stops a verb arriving in block 1 or 3 without
- * its tenses.
+ * **5. The inflections, last**, because it is the one rule that has to see the
+ * finished dictionary: every word the game accepts, from any of the four blocks
+ * above, gets the forms Wiktionary gives it. Conjugations for the verbs, which
+ * is the `gradera` fix, and plurals and feminines for the rest, without which
+ * block 3 would hand the game `ribot` and refuse `ribots`. Running it last is
+ * what stops a word arriving in an earlier block without its forms.
  *
  * Both Wiktionary passes filter hard, because Wiktionary describes French
  * rather than prescribing it: see REJECTED_TAGS below.
@@ -53,7 +61,7 @@ import { createGunzip } from 'node:zlib';
 import { buildDictionary, normalizeWord } from '@boggle/shared';
 
 import { baseSpellings, wordAdjustments } from './game-dictionary.mjs';
-import { FRENCH_WORD, grammalecteLemmas } from './grammalecte.mjs';
+import { FRENCH_WORD, GRAMMALECTE_VERSION, grammalecteLemmas } from './grammalecte.mjs';
 
 /**
  * Bumped by hand when what goes into the file changes: a different source, a
@@ -61,7 +69,7 @@ import { FRENCH_WORD, grammalecteLemmas } from './grammalecte.mjs';
  * with a checksum of its own contents, so a copy found anywhere can say what it
  * is and whether it is intact.
  */
-const LEXICON_VERSION = '2.0.0';
+const LEXICON_VERSION = '3.0.0';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const WIKTIONARY = resolve(root, '.work', 'fr-extract.jsonl.gz');
@@ -210,8 +218,18 @@ const REJECTED_TAGS = new Set([
 const REJECTED_LABELS =
   /archaïque|avant 1835|ancienne orthographe|par plaisanterie|régionalisme|diaéthiques|vallée d’aoste|québec|louisiane|acadie|missouri|wallonie|acadien|désuet|vieilli|populaire|argot|enfantin/i;
 
-/** And as the opening of the definition itself. */
-const REJECTED_GLOSS = /^(ancienne|variante|orthographe|écriture|contraction)\b|régularisation/i;
+/**
+ * And as the opening of the definition itself.
+ *
+ * A dictionary entry whose whole content is "see that other word" is a
+ * cross-reference, not a word to be scored: the word it points at is already
+ * in the game, or it is not, and either way this entry adds nothing. The
+ * `autre graphie` and `forme ancienne` shapes were missing while `variante`
+ * was caught, which let `masaï`, `susu` and `etimologique` through the door
+ * their own spellings had just been refused at.
+ */
+const REJECTED_GLOSS =
+  /^(ancienne|variante|orthographe|écriture|contraction|autre (graphie|orthographe)|forme ancienne|graphie ancienne)\b|régularisation/i;
 
 /**
  * Whether an infinitive is one to add, which is a different question from
@@ -225,34 +243,105 @@ const REJECTED_GLOSS = /^(ancienne|variante|orthographe|écriture|contraction)\b
  * its senses is current: that is what it means for the word to still be alive.
  *
  * Register is not a reason to refuse. `zyeuter` and `chourer` are familiar and
- * slang and entirely French. What is refused is `vulgar` and `offensive`, and
- * that is a decision about the source list rather than about the language: it
- * has no `encule`, no `niquer`, no `pede`, so somebody already made this call
- * and re-adding them would quietly overrule it in a game meant for a family.
+ * slang and entirely French. What is refused is `vulgar` and `offensive`, in a
+ * game meant for a family. Note what that does and does not reach: it is a
+ * rule about what Wiktionary hands over, and Grammalecte is taken whole, so the
+ * game has `enculer`, `niquer` and `pédé` from block 1 whatever this says. This
+ * decides what the passes below add, not what the dictionary already holds.
  *
  * The two conditions take opposite quantifiers, and getting that wrong put
  * `enculer` at the top of the list. **Any** current sense keeps a word alive,
  * one live reading is enough. But **no** sense may be vulgar: a word with one
  * coarse meaning is a coarse word, whatever else it also means.
  */
+/**
+ * The parts of speech a word game has any use for. Wiktionary's own `name` is
+ * deliberately absent: that is where it files proper nouns, and `Ribot` the
+ * family name, `Ève`, `Nice`, `Gestapo` and `Élysée` all sit there while
+ * `ribot`, `ève`, `nice`, `gestapo` and `élysée` exist separately as ordinary
+ * French words. The capital letter already refuses the first list, since
+ * FRENCH_WORD is lower-case only; this refuses the sixty-odd trade names that
+ * are written without one, `arte`, `durex`, `epub`, `verdana`.
+ *
+ * Everything else Wiktionary knows is left out for being untraceable on a
+ * grid or not a word: prefixes, suffixes, symbols, proverbs, phrases.
+ */
+const WORD_POS = new Set(['noun', 'adj', 'adv', 'intj', 'onomatopoeia']);
+
 const OBSOLETE_TAGS = new Set(['obsolete', 'archaic', 'dated']);
 const UNPRINTABLE_TAGS = new Set(['vulgar', 'offensive']);
 const OBSOLETE_LABELS = /archaïque|désuet|vieilli|ancienne orthographe/i;
 
-function livingVerb(entry) {
-  const senses = (entry.senses ?? []).filter((sense) => (sense.glosses ?? []).length > 0);
-  if (senses.length === 0) return false;
+/**
+ * The handful the tags cannot see.
+ *
+ * `UNPRINTABLE_TAGS` refuses what Wiktionary itself marks vulgar or offensive,
+ * and that is most of it. These are the ones it marks as nothing at all, while
+ * spelling out in the definition what the tag would have said: `youtre` is
+ * glossed "injure antisémite", `niakoué` "terme raciste", `arbi` and `rabouin`
+ * and `polak` and `gretchen` are the same thing without the warning, `zézette`
+ * is "ou Pénis".
+ *
+ * The line is drawn at what the word *is*, not how low it speaks. A slur and a
+ * genital vulgarity go; register stays, however coarse, because the file
+ * already says so about `zyeuter` and `chourer` and because refusing `breneux`
+ * and `stropiat` and `tafanard` would be refusing French. A word with one such
+ * meaning goes whatever else it also means, which is the rule `UNPRINTABLE_TAGS`
+ * already follows: it costs `lope` its aphid and `rabouin` its devil.
+ *
+ * Written out rather than guessed at by regex, and each one read: there is no
+ * signal in the data to do this by rule, which is the whole reason it is here.
+ */
+const COARSE = new Set([
+  'arbi',
+  'gretchen',
+  'lope',
+  'mentule',
+  'niakoué',
+  'négrophile',
+  'pissou',
+  'polak',
+  'rabouin',
+  'youp',
+  'youtre',
+  'zézette',
+]);
 
-  const tagsOf = (sense) => [...(entry.tags ?? []), ...(sense.tags ?? [])];
-  if (senses.some((sense) => tagsOf(sense).some((tag) => UNPRINTABLE_TAGS.has(tag)))) return false;
+/** The senses that say something, which are the only ones worth judging. */
+const glossed = (entry) => (entry.senses ?? []).filter((sense) => (sense.glosses ?? []).length > 0);
 
-  return senses.some(
-    (sense) =>
-      !tagsOf(sense).some((tag) => OBSOLETE_TAGS.has(tag)) &&
-      ![...(entry.raw_tags ?? []), ...(sense.raw_tags ?? [])].some((label) =>
-        OBSOLETE_LABELS.test(label),
-      ),
+/** One sense still in use: not marked archaic, obsolete or dated. */
+const current = (entry, sense) =>
+  ![...(entry.tags ?? []), ...(sense.tags ?? [])].some((tag) => OBSOLETE_TAGS.has(tag)) &&
+  ![...(entry.raw_tags ?? []), ...(sense.raw_tags ?? [])].some((label) => OBSOLETE_LABELS.test(label));
+
+/** No sense of it is coarse, which is a property of the word, not of a sense. */
+const printable = (entry, senses) =>
+  !senses.some((sense) =>
+    [...(entry.tags ?? []), ...(sense.tags ?? [])].some((tag) => UNPRINTABLE_TAGS.has(tag)),
   );
+
+function livingVerb(entry) {
+  const senses = glossed(entry);
+  if (senses.length === 0 || !printable(entry, senses)) return false;
+  return senses.some((sense) => current(entry, sense));
+}
+
+/**
+ * The same question for a word that is not a verb, with one addition.
+ *
+ * A verb's labels are read off its infinitive and its forms are judged one by
+ * one, so `standardForm` gets its say either way. A noun has no such second
+ * pass: the lemma entry is the only entry there is, and if it is not asked
+ * whether the sense is standard then a headword whose entire definition is
+ * "autre graphie de massaï" walks in as vocabulary. So the surviving sense has
+ * to be both current and standard, and the same one has to be both: a word
+ * kept alive by a modern sense and vouched for by an archaic one is neither.
+ */
+function livingWord(entry) {
+  const senses = glossed(entry);
+  if (senses.length === 0 || !printable(entry, senses)) return false;
+  return senses.some((sense) => current(entry, sense) && standardForm(entry, sense));
 }
 
 function standardForm(entry, sense) {
@@ -275,13 +364,20 @@ function standardForm(entry, sense) {
 const bareInfinitive = (lemma) =>
   typeof lemma === 'string' ? lemma.replace(/^s['’]|^se\s+/i, '').trim() : '';
 
-/** lemma -> the forms Wiktionary gives it. */
+/** Infinitive -> the conjugations Wiktionary gives it. */
 const families = new Map();
+/** Lemma -> the plurals and feminines Wiktionary gives it. */
+const inflections = new Map();
+/** Nouns, adjectives, adverbs and interjections with a living, standard sense. */
+const wordLemmas = new Set();
 /** Forms left out as not being standard modern French. */
 const rejected = new Set();
 /** Infinitives with no living, printable sense left. */
 const labelledLemmas = new Set();
+/** Lemmas Wiktionary marks vulgar or offensive, whatever source holds them. */
+const unprintableLemmas = new Set(COARSE);
 let wiktionaryForms = 0;
+let wiktionaryInflections = 0;
 
 const lines = createInterface({
   input: createReadStream(WIKTIONARY).pipe(createGunzip()),
@@ -306,17 +402,34 @@ for await (const line of lines) {
     unvouched.delete(normalizeWord(entry.word));
   }
 
-  if (entry.lang_code !== 'fr' || entry.pos !== 'verb') continue;
+  if (entry.lang_code !== 'fr') continue;
+  const verb = entry.pos === 'verb';
+  if (!verb && !WORD_POS.has(entry.pos)) continue;
   if (!playable(entry.word)) continue;
 
   const formSenses = (entry.senses ?? []).filter((sense) => sense.tags?.includes('form-of'));
   /*
-   * No form-of sense: this is the infinitive's own entry, and the only place
-   * its labels live. A verb Wiktionary calls archaic or regional is not one to
+   * No form-of sense: this is the lemma's own entry, and the only place its
+   * labels live. A word Wiktionary calls archaic or regional is not one to
    * add, however often a corpus happens to have met it.
    */
   if (formSenses.length === 0) {
-    if (!livingVerb(entry)) labelledLemmas.add(entry.word);
+    /*
+     * Noted whoever holds the word. Blocks 2 and 3 refuse a coarse lemma by
+     * never admitting it, but block 5 completes whatever the dictionary
+     * already accepts, and Grammalecte is an orthographic dictionary: it has
+     * `pédé` and `enculer` because they are spelt that way, and block 1 takes
+     * it whole. Without this the last block would look up the feminine of a
+     * slur and add it, which is how `pédée` arrived.
+     */
+    const senses = glossed(entry);
+    if (senses.length > 0 && !printable(entry, senses)) unprintableLemmas.add(entry.word);
+
+    if (verb) {
+      if (!livingVerb(entry)) labelledLemmas.add(entry.word);
+    } else if (livingWord(entry)) {
+      wordLemmas.add(entry.word);
+    }
     continue;
   }
 
@@ -326,12 +439,18 @@ for await (const line of lines) {
       continue;
     }
     for (const target of sense.form_of ?? []) {
-      const lemma = bareInfinitive(target?.word);
+      /*
+       * A pronominal verb is named with its pronoun and the dictionary holds
+       * the bare infinitive; a plural points at its singular as written.
+       */
+      const lemma = verb ? bareInfinitive(target?.word) : (target?.word ?? '').trim();
       if (lemma.length === 0) continue;
-      let family = families.get(lemma);
-      if (!family) families.set(lemma, (family = new Set()));
+      const paradigm = verb ? families : inflections;
+      let family = paradigm.get(lemma);
+      if (!family) paradigm.set(lemma, (family = new Set()));
       family.add(entry.word);
-      wiktionaryForms++;
+      if (verb) wiktionaryForms++;
+      else wiktionaryInflections++;
     }
   }
 }
@@ -339,19 +458,31 @@ for await (const line of lines) {
 // A form kept by one sense and rejected by another stays: it is standard in at
 // least one of its readings, which is enough to be worth a point.
 console.log(`\nWiktionary: ${wiktionaryForms} verb forms across ${families.size} infinitives`);
+console.log(
+  `  ${wiktionaryInflections} plurals and feminines across ${inflections.size} lemmas`,
+);
+console.log(`  ${wordLemmas.size} nouns, adjectives, adverbs and interjections with a living sense`);
 console.log(`  ${rejected.size} forms set aside as archaic, regional, slang or joke`);
 
 // ---------------------------------------------------------------------------
 // Block 2: the verbs no source has
 
 /**
- * Verb infinitives that occur in a real French corpus, with how often, per
- * Lexique 3.83 (film subtitles and books). This is the whole of what block 2
- * means by "makes sense in French": not an opinion about the word, a record of
- * somebody having used it.
+ * Lemmas that occur in a real French corpus, with how often, per Lexique 3.83
+ * (film subtitles and books), verbs apart from the rest. This is the whole of
+ * what blocks 2 and 3 mean by "makes sense in French": not an opinion about the
+ * word, a record of somebody having used it.
+ *
+ * The frequency is read off the lemma, so a noun the corpus only ever met in
+ * the plural still vouches for its singular. It is a threshold of existence
+ * rather than a measure of currency: Lexique lower-cases proper nouns, so the
+ * `ève` that scores 19.93 is mostly the first woman rather than the groove in
+ * a plank. Nothing enters on that number alone, only words Wiktionary has
+ * already vouched for as ordinary French do, so the confusion is harmless.
  */
-function attestedVerbs() {
+function attestedLemmas() {
   const verbs = new Map();
+  const words = new Map();
   const rows = readFileSync(LEXIQUE, 'utf8').split('\n');
   const columns = rows[0].split('\t');
   const [lemma, category, films, books] = ['lemme', 'cgram', 'freqfilms2', 'freqlivres'].map(
@@ -359,16 +490,19 @@ function attestedVerbs() {
   );
   for (let index = 1; index < rows.length; index++) {
     const fields = rows[index].split('\t');
-    if (fields.length < 11 || fields[category] !== 'VER') continue;
+    if (fields.length < 11 || fields[category].length === 0) continue;
+    const kind = fields[category] === 'VER' ? verbs : words;
     const frequency =
       (Number.parseFloat(fields[films]) || 0) + (Number.parseFloat(fields[books]) || 0);
-    if (frequency > (verbs.get(fields[lemma]) ?? -1)) verbs.set(fields[lemma], frequency);
+    if (frequency > (kind.get(fields[lemma]) ?? -1)) kind.set(fields[lemma], frequency);
   }
-  return verbs;
+  return { verbs, words };
 }
 
-const attested = attestedVerbs();
-console.log(`\nLexique: ${attested.size} verb infinitives attested in a corpus`);
+const { verbs: attestedVerbs, words: attestedWords } = attestedLemmas();
+console.log(`\nLexique: ${attestedVerbs.size} verb infinitives attested in a corpus`);
+console.log(`  ${attestedWords.size} other lemmas, which block 3 reads`);
+
 
 const newVerbs = [];
 const newVerbLemmas = [];
@@ -377,7 +511,7 @@ let labelledOut = 0;
 for (const [lemma, family] of families) {
   const normalized = playable(lemma);
   if (!normalized || known.has(normalized)) continue;
-  if (!attested.has(lemma)) {
+  if (!attestedVerbs.has(lemma)) {
     unattested++;
     continue;
   }
@@ -396,7 +530,51 @@ console.log(
 );
 
 // ---------------------------------------------------------------------------
-// Block 3: what was added by hand
+// Block 3: the rest of the vocabulary no source has
+
+/*
+ * The same rule as block 2, on everything that is not a verb. Wiktionary
+ * describes 106,710 nouns and adjectives the game does not know, and taking
+ * them whole would be a different game: 22,567 of them are one adjective per
+ * French commune (`zuydcootois`, `mantallotois`), 920 are SI units built by
+ * multiplying a prefix table by a unit table, which block 1 already refuses by
+ * name at the other door (`attofarad`, `femtoweber`, `déciban`). Neither is
+ * rare vocabulary. Both are a bot filling in a table, and a five-letter grid
+ * full of them is worse than one missing `ribot`.
+ *
+ * The corpus test cuts that to some fifteen hundred, and it cuts it in the
+ * right place: what it keeps is `castagnette`, `affre`, `représaille`,
+ * `décarrade`, `larmichette`, and what it drops is the tables. It also quietly
+ * covers the regional labels, which turned out to be a near-no-op here:
+ * `REJECTED_LABELS` was written against verb forms, where `québec` and
+ * `wallonie` are what one meets, and on nouns the label is `Normandie` or
+ * `Savoie` or `Canada` fourteen times more often than anything it lists. The
+ * Val d'Aoste sport `rebatta` says so only in the prose of its definition. A
+ * corpus does not need the list to be complete to leave those words out.
+ */
+const newWords = [];
+let unvouchedWords = 0;
+let coarseWords = 0;
+for (const word of wordLemmas) {
+  const normalized = playable(word);
+  if (!normalized || known.has(normalized)) continue;
+  if (!attestedWords.has(word)) {
+    unvouchedWords++;
+    continue;
+  }
+  if (COARSE.has(word)) {
+    coarseWords++;
+    continue;
+  }
+  newWords.push(word);
+}
+const blockWords = admit(newWords);
+console.log(`\nWords: ${unvouchedWords} never met in the corpus, left out`);
+if (coarseWords > 0) console.log(`  ${coarseWords} coarse, left out by name`);
+console.log(`  ${blockWords.length} admitted, dictionary now ${known.size}`);
+
+// ---------------------------------------------------------------------------
+// Block 4: what was added by hand
 
 const blockHand = admit(hand);
 const stale = hand.length - blockHand.length;
@@ -404,16 +582,45 @@ console.log(`\nBy hand: ${blockHand.length} words kept, dictionary now ${known.s
 if (stale > 0) console.log(`  ${stale} dropped, a source now covers them`);
 
 // ---------------------------------------------------------------------------
-// Block 4: the conjugations, against the finished dictionary
+// Block 5: the inflections, against the finished dictionary
+
+/*
+ * Every paradigm Wiktionary knows, verbs and the rest together, because the
+ * rule is the same one: a word the game accepts should have the forms of that
+ * word. It held `grader` and refused `gradera`; it holds `abaisseur` and
+ * refuses `abaisseuse`, `aboutissant` and refuses `aboutissante`. The verbs
+ * were done first because a missing tense is the loudest version of the
+ * complaint, but the plural of a noun a player has just traced is the same
+ * hole.
+ *
+ * The sets are copied rather than shared: the verb families were read by
+ * block 2 and are read again by the report at the end.
+ */
+const paradigms = new Map([...families].map(([lemma, forms]) => [lemma, new Set(forms)]));
+for (const [lemma, forms] of inflections) {
+  const family = paradigms.get(lemma);
+  if (family) for (const form of forms) family.add(form);
+  else paradigms.set(lemma, new Set(forms));
+}
+
+/** The lemmas the blocks above have just put in the dictionary. */
+const admittedLemmas = new Set([...newVerbLemmas, ...newWords, ...hand]);
 
 const completions = [];
 const holes = [];
-let knownVerbs = 0;
+let knownLemmas = 0;
 let coveredForms = 0;
-for (const [lemma, family] of families) {
+let coarseParadigms = 0;
+/** Forms completing a word the dictionary already had, before today's run. */
+let standingForms = 0;
+for (const [lemma, family] of paradigms) {
   const normalized = playable(lemma);
   if (!normalized || !known.has(normalized)) continue;
-  knownVerbs++;
+  if (unprintableLemmas.has(lemma)) {
+    coarseParadigms++;
+    continue;
+  }
+  knownLemmas++;
   const missing = [];
   for (const form of family) {
     const normalizedForm = playable(form);
@@ -422,14 +629,17 @@ for (const [lemma, family] of families) {
     else missing.push(form);
   }
   if (missing.length > 0) holes.push({ lemma, missing: missing.length, of: family.size });
+  if (!admittedLemmas.has(lemma)) standingForms += missing.length;
   completions.push(...missing);
 }
 const blockConjugations = admit(completions);
 const total = coveredForms + blockConjugations.length;
-console.log(`\nConjugations: ${knownVerbs} verbs the dictionary accepts, ${total} forms`);
+console.log(`\nInflections: ${knownLemmas} lemmas the dictionary accepts, ${total} forms`);
 console.log(
   `  ${coveredForms} already there, ${blockConjugations.length} added, dictionary now ${known.size}`,
 );
+console.log(`  ${standingForms} of them complete a word the dictionary already had`);
+console.log(`  ${coarseParadigms} coarse paradigms left unfinished`);
 holes.sort((a, b) => b.missing - a.missing);
 console.log(`  worst holes: ${holes.slice(0, 8).map((h) => `${h.lemma} (${h.missing})`).join(', ')}`);
 
@@ -562,7 +772,19 @@ const extraBlocks = [
     blockVerbs,
   ),
   ...block(
-    '2. added by hand',
+    '2. the rest of the vocabulary no source had',
+    [
+      `${blockWords.length} nouns, adjectives, adverbs and interjections, from Wiktionary,`,
+      'under the same corpus test as the verbs above (Lexique 3.83). This is where',
+      '`ribot` comes from, and `castagnette`, `affre`, `représaille`, `larmichette`.',
+      `The ${unvouchedWords} Wiktionary describes that no corpus has met are one adjective`,
+      'per French commune and every SI unit multiplied by every prefix. Proper',
+      'nouns are refused twice over, for their capital and for their part of speech.',
+    ],
+    blockWords,
+  ),
+  ...block(
+    '3. added by hand',
     [
       `${blockHand.length} words no source has yet. Add another here: the script keeps`,
       'whatever it finds outside the generated blocks, and drops a word only',
@@ -571,17 +793,19 @@ const extraBlocks = [
     blockHand,
   ),
   ...block(
-    '3. conjugations completing every verb above',
+    '4. inflections completing every word above',
     [
       `${blockConjugations.length} forms, from Wiktionary. Computed last, so it sees the finished`,
-      'dictionary: it held `grader` but not `gradera`, `nourrir` but none of its',
-      'future. No new vocabulary, every one is a form of a verb already accepted.',
+      'dictionary: it held `grader` but not `gradera`, `abaisseur` but not',
+      '`abaisseuse`, and it would have held `ribot` without `ribots`. No new',
+      'vocabulary, every one is a form of a word already accepted.',
     ],
     blockConjugations,
   ),
 ];
 
-const extraCount = blockVerbs.length + blockHand.length + blockConjugations.length;
+const extraCount =
+  blockVerbs.length + blockWords.length + blockHand.length + blockConjugations.length;
 const count = blockGrammalecte.length + extraCount;
 console.log(`\nTotal: ${count} words added to a ${known.size}-word dictionary`);
 
@@ -596,8 +820,9 @@ if (!write) {
     `# words     ${blockGrammalecte.length}`,
     `# sha256    ${checksum}`,
     '#',
-    '# Source: Dictionnaire orthographique français « classique », by Olivier R.',
-    '#   https://grammalecte.net/ , shipped in the npm package dictionary-fr.',
+    `# Source: Dictionnaire orthographique français « classique » v${GRAMMALECTE_VERSION},`,
+    '#   by Olivier R., https://grammalecte.net/ , read from the published',
+    '#   Hunspell archive rather than from a package that repeats it.',
     '#   Licence MPL 2.0, which this file keeps: see LICENCE-DEFINITIONS.md.',
     '#   Only the words the base list lacked are here, with the SI unit',
     '#   prefixes dropped. Nothing else is changed and nothing is rewritten.',
@@ -612,7 +837,7 @@ if (!write) {
     '#',
     '# Sources, both CC BY-SA 4.0, see LICENCE-DEFINITIONS.md:',
     '#   French Wiktionary, via the wiktextract extraction at kaikki.org',
-    '#   Lexique 3.83, for which verbs a French corpus has actually met',
+    '#   Lexique 3.83, for which words a French corpus has actually met',
     '#',
     '# Grammalecte lives in grammalecte-words.txt, under its own licence.',
   ]);

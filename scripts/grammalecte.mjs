@@ -2,11 +2,19 @@
  * Grammalecte, flattened: every French word it knows, and the lemma it belongs to.
  *
  * The [Dictionnaire orthographique français](https://grammalecte.net/) by
- * Olivier R. (MPL 2.0, "classique" v7.5) is the dictionary Firefox and
- * LibreOffice spell with, and the `dictionary-fr` package ships it unchanged as
- * a Hunspell pair: a list of lemmas with affix flags, and the rules those flags
- * stand for. Expanding it gives around 2.9 million forms, of which 440,000 are
- * plain lower-case French.
+ * Olivier R. (MPL 2.0, "classique" v7.7) is the dictionary Firefox and
+ * LibreOffice spell with, published as a Hunspell pair: a list of lemmas with
+ * affix flags, and the rules those flags stand for. Expanding it gives around
+ * 2.9 million forms, of which 440,000 are plain lower-case French.
+ *
+ * **Taken from grammalecte.net rather than from npm**, which is the one thing
+ * here worth explaining. `dictionary-fr` shipped it unchanged and was how this
+ * script first read it, but that package is frozen at v7.5 while the dictionary
+ * it packages has moved on. Being maintained is the entire reason this source
+ * was chosen over the base word list, so reading it through something that
+ * stopped tracking it gives up what we came for. The archive is 1 MB, cached in
+ * `.work/` beside the other references, and the affix flag families are
+ * unchanged between the two versions, which was checked before the switch.
  *
  * Two scripts need it and they need different halves. `build-lexicon.mjs` wants
  * the words; `build-definitions.mjs` wants the lemma each form belongs to, so a
@@ -17,15 +25,33 @@
  * is why the words end up in a file of their own.
  */
 
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { createWriteStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
+import { inflateRawSync } from 'node:zlib';
 
-import grammalecte from 'dictionary-fr';
 import { IterableHunspellReader } from 'hunspell-reader';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const WORK = resolve(root, '.work');
+
+/** The edition this build was checked against, in the URL and in the files. */
+export const GRAMMALECTE_VERSION = '7.7';
+const ARCHIVE_URL = `https://grammalecte.net/dic/hunspell-french-dictionaries-v${GRAMMALECTE_VERSION}.zip`;
+const ARCHIVE = resolve(WORK, `hunspell-fr-v${GRAMMALECTE_VERSION}.zip`);
+/** The archive is 1 MB; anything much smaller is a truncated download. */
+const MIN_SIZE = 500_000;
+
+/**
+ * Of the three variants in the archive, the conservative one.
+ *
+ * `réforme1990` holds only the reformed spellings and `toutesvariantes` holds
+ * both, which would put `nénufar` and `nénuphar` in the game as separate words.
+ * `classique` is what the package shipped and what this has always used: the
+ * traditional spellings, with the reformed ones it has adopted.
+ */
+const VARIANT = 'fr-classique';
 
 /** Lower-case, unaccented or accented, and nothing else: no proper nouns, no dots. */
 export const FRENCH_WORD = /^[a-zàâäçéèêëîïôöùûüÿœ]+$/;
@@ -62,14 +88,59 @@ const UNPLAYABLE_FLAGS = new Set([
 ]);
 
 /**
+ * Inflates one member of a zip, by name.
+ *
+ * Node ships the deflate but not the container, and one 1 MB archive read once
+ * is not worth a dependency. Members are found through the central directory,
+ * which is what the trailing end-of-record points at.
+ */
+function unzipMember(buffer, fileName) {
+  let end = buffer.length - 22;
+  while (end >= 0 && buffer.readUInt32LE(end) !== 0x06054b50) end--;
+  if (end < 0) throw new Error('not a zip archive');
+
+  const count = buffer.readUInt16LE(end + 10);
+  let entry = buffer.readUInt32LE(end + 16);
+  for (let index = 0; index < count; index++) {
+    const nameLength = buffer.readUInt16LE(entry + 28);
+    const name = buffer.toString('utf8', entry + 46, entry + 46 + nameLength);
+    if (name === fileName) {
+      const offset = buffer.readUInt32LE(entry + 42);
+      const method = buffer.readUInt16LE(entry + 10);
+      const compressed = buffer.readUInt32LE(entry + 20);
+      // The local header repeats the name and extra field, at its own lengths.
+      const start =
+        offset + 30 + buffer.readUInt16LE(offset + 26) + buffer.readUInt16LE(offset + 28);
+      const data = buffer.subarray(start, start + compressed);
+      return method === 0 ? data : inflateRawSync(data);
+    }
+    entry += 46 + nameLength + buffer.readUInt16LE(entry + 30) + buffer.readUInt16LE(entry + 32);
+  }
+  throw new Error(`no ${fileName} in ${ARCHIVE}`);
+}
+
+/** The published archive, fetched once and kept. */
+async function archive() {
+  mkdirSync(WORK, { recursive: true });
+  if (!existsSync(ARCHIVE) || statSync(ARCHIVE).size < MIN_SIZE) {
+    console.log(`[grammalecte] downloading ${ARCHIVE_URL}`);
+    const response = await fetch(ARCHIVE_URL);
+    if (!response.ok || !response.body) throw new Error(`download failed: ${response.status}`);
+    await pipeline(response.body, createWriteStream(ARCHIVE));
+  }
+  return readFileSync(ARCHIVE);
+}
+
+/**
  * Writes the trimmed dictionary beside the other reference sources.
  *
  * The reader takes file paths rather than strings, so the copy has to land
  * somewhere; `.work/` is where the Wiktionary extract and Lexique already live.
  */
-function trimmedSource() {
+async function trimmedSource() {
+  const zip = await archive();
   const utf8 = new TextDecoder();
-  const lines = utf8.decode(grammalecte.dic).split('\n');
+  const lines = utf8.decode(unzipMember(zip, `${VARIANT}.dic`)).split('\n');
 
   const kept = [];
   for (let index = 1; index < lines.length; index++) {
@@ -94,7 +165,7 @@ function trimmedSource() {
   const dic = resolve(WORK, 'grammalecte-fr.dic');
   const aff = resolve(WORK, 'grammalecte-fr.aff');
   writeFileSync(dic, `${kept.length}\n${kept.join('\n')}\n`, 'utf8');
-  writeFileSync(aff, utf8.decode(grammalecte.aff), 'utf8');
+  writeFileSync(aff, utf8.decode(unzipMember(zip, `${VARIANT}.aff`)), 'utf8');
   return { dic, aff, entries: kept.length };
 }
 
@@ -106,7 +177,7 @@ function trimmedSource() {
  * first wins; the alternative is a list per form, and no caller wants one.
  */
 export async function grammalecteLemmas() {
-  const source = trimmedSource();
+  const source = await trimmedSource();
   const reader = await IterableHunspellReader.createFromFiles(source.aff, source.dic);
   const lemmas = new Map();
   let expanded = 0;

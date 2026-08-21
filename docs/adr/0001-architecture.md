@@ -106,8 +106,9 @@ rewritten, which is most of what Socket.IO brings.
 ## Decision 5: a permissive dictionary, adjustable without rebuilding
 
 `an-array-of-french-words` (MIT): 336,000 raw forms, 318,800 after
-normalisation, 437,770 once Grammalecte and the missing conjugations are merged
-in, and 437,164 once the 606 words the list made up are struck off (below).
+normalisation, 446,028 once Grammalecte, the missing vocabulary and the missing
+inflections are merged in, and 445,422 once the 606 words the list made up are
+struck off (below).
 Hyphenated and apostrophised entries are dropped, as they cannot be traced
 anyway.
 
@@ -131,7 +132,15 @@ unaffected, which is why the list stays.
 
 **Why permissive.** An explicit request: `déci`, `zut`, `eus`, `ait` and
 `mangeassions` are all accepted. A Scrabble lexicon (ODS) would be stricter and
-more "correct" in tournament play, but it is under copyright.
+more "correct" in tournament play, and it is not available to us at any price we
+can pay: the FISF states that reproducing it in any form, even partially and
+without the definitions, is forbidden, Larousse holds the rights, and every copy
+circulating on GitHub is an unlicensed scrape. Nor does "we would only read it
+at build time" get around it, since French law gives a database producer a right
+over the contents themselves (CPI art. L. 341-1) and the CJEU has held that
+consulting a protected list and keeping what matches is extraction all the same.
+What the ODS would be worth to us is precisely its editorial selection, which is
+the part the right protects.
 
 **Adjustment.** `server/data/extra-words.txt` and `excluded-words.txt` are read
 at startup. Fixing an omission needs neither a rebuild nor a release, which is
@@ -141,13 +150,18 @@ the answer to the gaps above: fill them as they are met.
 lexicon" was the verbs: `grader` accepted and `gradera` refused, `nourrir`
 accepted and none of its future. A player who knows their conjugation was
 punished for knowing it. `scripts/build-lexicon.mjs` measures the gap against
-Wiktionary and writes the missing forms out: 9,623 of them across 8,706 verbs,
-taking coverage from 97.1% to 100%.
+Wiktionary and writes the missing forms out, taking coverage from 97.1% to 100%.
 
 That pass runs **last**, after every other source has had its say, because it
 is the one rule that has to see the finished dictionary. A verb arriving from
 Grammalecte or from the hand block would otherwise land without its tenses,
 which is `gradera` again under a new name.
+
+It completes nouns and adjectives on the same rule, which is why the block is
+now 14,707 forms rather than 9,623: the dictionary held `abaisseur` without
+`abaisseuse` and `aboutissant` without `aboutissante` exactly as it held
+`grader` without `gradera`. 13,068 of those forms complete a word the
+dictionary already had and had been silently missing half of.
 
 Three things make it safe to run unattended:
 
@@ -225,22 +239,41 @@ words it admits:
 Wiktionary's translation tables measure editor activity, not currency, and bots
 have filled in mineralogy and metrology. Lexique's `ortho` column carries proper
 nouns and untranslated subtitle English, which the verb pass never saw because
-it filtered on `cgram == 'VER'`. Every ranking puts `attoweber` thousands of
+it filtered on `cgram == 'VER'`. The first row of that table is half wrong and
+was believed for a year: see "the rest of the vocabulary" below, where it is
+checked rather than repeated. Every ranking puts `attoweber` thousands of
 places above `orc`. Taking Wiktionary whole was measured too, on grids rather
 than on lists: **128 words per 4x4 grid became 246**, and the additions were
 `kdo`, `tjs`, `orser`, `neocorat`.
 
 So the answer is not a filter over Wiktionary, it is **a dictionary that is
 maintained**: [Grammalecte](https://grammalecte.net/), the orthographic
-dictionary Firefox and LibreOffice spell with, MPL 2.0, "classique" v7.5,
-shipped in the `dictionary-fr` package. Its Hunspell affixes are expanded to
-every inflected form and the 100,034 the base list lacks are kept. It has `orc`,
+dictionary Firefox and LibreOffice spell with, MPL 2.0, "classique" v7.7, read
+from the archive grammalecte.net publishes. Its Hunspell affixes are expanded to
+every inflected form and the 102,057 the base list lacks are kept. It has `orc`,
 `blog`, `tofu`, `selfie`, `covoiturage`, `procrastiner`. The same grid
 measurement: **128 words per grid become 145**, and the additions are `rosti`,
 `recap`, `crosne`, `taco`, `durite`, `strudel`, `aitre`, `gaite`.
 
 Note the earlier claim in this decision, that the base list *was* Dicollecte,
 which was checked and found wrong. It is now true, by having been made true.
+
+**Read from grammalecte.net, not from npm.** The `dictionary-fr` package shipped
+the same Hunspell pair and was how this started, but it is frozen at v7.5 while
+the dictionary it packages has moved on. Being maintained is the whole reason
+this source was chosen over the base list, so reading it through a package that
+stopped tracking it gives up exactly what it was chosen for: a second frozen
+list, one version behind. The archive is 1 MB, cached in `.work/` beside the
+Wiktionary extract and Lexique, and the build now names the edition it read in
+the header of the file it writes.
+
+v7.7 (December 2025) adds 2,046 forms and removes two, `profe` and `profes`.
+What it adds is what a maintained dictionary is for: `détransitionniez`,
+`déconjugalisant`, `smicardisations`, `biophoton`, `filoguide`. It also empties
+seven lines of the hand block, `chatbot`, `ramen` and `streameur` among them.
+The affix flag families are identical between the two editions, which matters
+because `grammalecte.mjs` drops two of them by name, and was checked before the
+switch rather than after it.
 
 One flag family is dropped in the expansion: `U.`, the SI unit prefixes, which
 apply nineteen prefixes to every unit symbol and turn `sr` into `zsr`, `dsr`,
@@ -273,9 +306,93 @@ The 4,157 left are written to `words-without-definition.txt` and published with
 the release, so what is missing is a list somebody can read rather than a
 percentage in a build log.
 
-The hand block, which was 175 words, is now 33: the script drops a hand-picked
+The hand block, which was 175 words, is now 24: the script drops a hand-picked
 word once a source covers it, so what remains is a record of what the
-dictionaries genuinely lack.
+dictionaries genuinely lack. Nine left it on one day, which is the mechanism
+working: `freelance` and `burnout` when Wiktionary's nouns were let in, and
+`chatbot`, `ramen`, `streameur` and the rest when Grammalecte reached v7.7.
+
+**The rest of the vocabulary, and the one word that made the case.** `ribot`,
+the pestle of a butter churn, as in the Breton `lait ribot`, was refused while
+the game accepted `ribote`, `riboter` and `riboteur`. The whole family, without
+the word they are built on. The cause was one line: Wiktionary was read for
+`pos === 'verb'` and nothing else, so a noun could not enter from it at all, and
+the only non-verb vocabulary in the game was whatever the base list and
+Grammalecte happened to hold.
+
+Reading Wiktionary for the other parts of speech finds **106,303** nouns,
+adjectives, adverbs and interjections the game lacks, and taking them would be
+the mistake this decision has already made twice: 22,567 of them are one
+adjective per French commune (`zuydcootois`, `mantallotois`, `warnetonnois`) and
+920 are the SI unit table again, the very family `grammalecte.mjs` drops by name
+at the other door. Neither is rare vocabulary. Both are a bot filling in a
+table.
+
+The corpus test settles it as it settled the verbs: **1,504 admitted**, and what
+it keeps is `castagnette`, `affre`, `représaille`, `décarrade`, `larmichette`,
+`ribot`. What it drops is the tables. It also quietly covers a filter that turns
+out to be nearly a no-op here: `REJECTED_LABELS` was written against verb forms,
+where `québec` and `wallonie` are the regionalisms one meets, and on nouns the
+label is `Normandie` or `Savoie` or `Canada` fourteen times more often than
+anything the list names. The Val d'Aoste sport `rebatta` says where it is played
+only in the prose of its definition, where no filter can see it. A corpus does
+not need the label list to be complete in order to leave those words out.
+
+**Proper nouns were never the problem, which is the part the table above got
+wrong.** It reads as though the corpus rule admits `Ève`, `team` and `clean`.
+Checked against the data: Wiktionary files proper nouns under a part of speech
+of their own and keeps them as separate, capitalised entries from their
+common-noun homographs, and `FRENCH_WORD` has always refused a capital. So
+`Ribot` the family name, `Ève`, `Einstein`, `Nice`, `Gestapo` and `Élysée` were
+never admissible, while `ribot`, `ève` (a groove in a plank), `einstein` (a unit
+of photochemistry), `nice` (the old adjective for naive), `gestapo` and `élysée`
+are ordinary French words with entries of their own. `team`, `book` and `party`
+are in Larousse. The part of speech is still refused explicitly, because it
+catches the sixty-odd trade names written without a capital: `arte`, `durex`,
+`epub`, `verdana`.
+
+**A prescriptive dictionary was tried as a second voucher, and refused on the
+grid.** The corpus test has a real cost: it is a fact about usage, so a
+rare-but-real word fails it through no fault of its own, and `pastophore` and
+`poquette` are in dictionaries and not in the films. Morphalou 3.1 (ATILF,
+LGPL-LR, 128,564 common-word lemmas from the *Trésor de la langue française*
+nomenclature, and no proper-noun category at all) answers the other question:
+does a dictionary list this word? OR'd with the corpus it admits 17,443 more
+lemmas, and with their plurals and feminines the dictionary reaches 478,831.
+
+Measured on grids rather than on lists, the way the earlier rules were: **127
+words per 4x4 grid become 142**, and 10.5 of those 15 are Morphalou's. They are
+short, which is the whole problem, because a three-letter word lands on nearly
+every grid while a nine-letter one lands on almost none: `anvot` (a slowworm),
+`voran` (a horse leech), `seinoir` (a grape variety), `viandis` (a deer's
+pasture), `sotnia` (a company of Cossacks), `sinve`, `andi`, `rits`. Real words,
+correctly listed, from a dictionary of the *history* of the language. Nobody is
+ever refused them, because nobody types them; they only make the missed-words
+page longer and less readable. The measurement is the same one that refused
+taking Wiktionary whole, and it says the same thing.
+
+So the gate stays: **Wiktionary's part of speech, its own labels, and a corpus.**
+Morphalou would be the right answer to a different question, and if the game
+ever wants prescription over currency it is a working 37 MB download away.
+
+**The coarse list, and a claim in this decision that was false.** The rule above
+says the source list has "no `encule`, no `niquer`, no `pede`, so somebody
+already made that call". Grammalecte has all three, and block 1 takes Grammalecte
+whole, so the game has had them since the day that block was added. The tag
+filter only ever applied to the Wiktionary passes. What the tags cannot see is
+worse: Wiktionary leaves `youtre`, `niakoué`, `arbi`, `rabouin`, `polak` and
+`gretchen` untagged while spelling out in the definition what the tag would have
+said, "injure antisémite", "terme raciste". Those twelve words are refused by
+name in `build-lexicon.mjs`, each one read, because there is no signal in the
+data to do it by rule. The line is drawn at what a word *is*, not at how low it
+speaks: a slur and a genital vulgarity go, register stays, since refusing
+`breneux`, `stropiat` and `tafanard` would be refusing French.
+
+The inflection block needed the same guard for a reason that has nothing to do
+with what it admits: it completes whatever the dictionary already accepts, so it
+looked up the feminine of Grammalecte's `pédé` and added it. Coarse paradigms
+are now left unfinished, 393 of them. Removing what Grammalecte already supplies
+is a separate decision and is not taken here.
 
 **And the list can now be audited, which is what found the 606.** Having a
 maintained dictionary to compare against turns "this word has no definition"

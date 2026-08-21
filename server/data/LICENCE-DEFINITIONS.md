@@ -48,7 +48,7 @@ makes attribution a duty here rather than a courtesy.
 ## Grammalecte, `grammalecte-words.txt`
 
 - **Source**: [Dictionnaire orthographique français](https://grammalecte.net/)
-  "classique" v7.5, by Olivier R., the dictionary Firefox and LibreOffice spell
+  "classique" v7.7, by Olivier R., the dictionary Firefox and LibreOffice spell
   with. Obtained through the npm package `dictionary-fr`, which packages it
   unchanged.
 - **Transformation**: `scripts/build-lexicon.mjs` expands the Hunspell affixes

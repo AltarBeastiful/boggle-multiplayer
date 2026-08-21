@@ -1,7 +1,7 @@
 # Boggle multijoueur : mots retirés du dictionnaire
 #
-# version   2.0.0
-# generated 2026-08-20 by scripts/build-lexicon.mjs
+# version   3.0.0
+# generated 2026-08-21 by scripts/build-lexicon.mjs
 # words     606
 # sha256    c5bd21c7eabd03aa
 #

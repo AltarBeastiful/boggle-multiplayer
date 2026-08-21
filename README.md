@@ -100,21 +100,25 @@ npm run test:restart   # tue le serveur en pleine manche et vérifie la reprise
 
 ## Le dictionnaire
 
-**437 164 mots**, assemblés de trois sources :
+**445 422 mots**, assemblés de trois sources :
 
 - `an-array-of-french-words` (MIT), tiré des
   [listes de Letterpress](https://github.com/lorenbrichter/Words) (CC0) : la
   base, figée en 2019, d'où `orc` et `blog` absents ;
 - [**Grammalecte**](https://grammalecte.net/) (MPL 2.0), le dictionnaire
-  orthographique de Firefox et LibreOffice, à jour et tenu à la main : 100 034
-  mots de plus ;
-- le **Wiktionnaire** pour les conjugaisons, calculées en dernier pour que tout
-  verbe accepté ait ses temps, et pour les verbes qui manquaient encore,
-  retenus s'ils sont attestés par un corpus (Lexique 3.83).
+  orthographique de Firefox et LibreOffice, à jour et tenu à la main : 102 057
+  mots de plus, l'édition « classique » v7.7 telle qu'il la publie ;
+- le **Wiktionnaire** pour le reste : les verbes qui manquaient encore, puis les
+  noms, adjectifs, adverbes et interjections, retenus s'ils sont attestés par un
+  corpus (Lexique 3.83) ; enfin les formes fléchies, calculées en dernier pour
+  que tout mot accepté ait ses conjugaisons, ses pluriels et ses féminins. C'est
+  de là que vient `ribot`, dont le jeu connaissait déjà toute la famille.
 
 Volontairement permissif : `déci`, `zut`, `eus` et `mangeassions` passent. Les
 entrées à trait d'union ou apostrophe sont écartées, n'étant pas traçables sur
-une grille. À l'inverse, **606 mots sont retirés** : la liste de base a vieilli
+une grille, les noms propres le sont deux fois, sur la majuscule et sur la
+catégorie grammaticale, et les insultes racistes ou antisémites que le
+Wiktionnaire ne signale pas le sont nommément. À l'inverse, **606 mots sont retirés** : la liste de base a vieilli
 et contient des formes qu'aucun dictionnaire n'a jamais eues, `blêmaient` (le
 verbe est `blêmir`) ou `bihoreaus` (le pluriel est `bihoreaux`). Les accords
 réguliers, eux, restent : `frigorifiante` est correct même si aucun
@@ -122,13 +126,13 @@ dictionnaire ne le liste. Tout cela s'ajuste un mot par ligne, relu au
 démarrage du serveur : voir
 [`server/data/README.md`](server/data/README.md).
 
-Les définitions viennent du Wiktionnaire : **433 018 mots, 859 874 sens**, soit
+Les définitions viennent du Wiktionnaire : **441 220 mots, 872 357 sens**, soit
 99,1 % du dictionnaire, servis en 0,01 s. Un mot polysémique montre ses trois
 principaux sens et les homographes sont classés par fréquence d'usage, donc
 `COTE` donne *côté*, *côte*, *cote*, *coté* dans cet ordre. Le Wiktionnaire
 ignore beaucoup de mots venus de Grammalecte, mais Grammalecte sait de quel
 lemme il a formé chacun : ces mots reprennent la définition du lemme, ou à
-défaut annoncent « Forme de … ». Les 4 157 restants sont listés dans
+défaut annoncent « Forme de … ». Les 4 213 restants sont listés dans
 `words-without-definition.txt`, publié avec la release. Sans le fichier, le
 serveur interroge le Wiktionnaire en direct, ce qu'il fait de toute façon pour
 les mots qu'il ne couvre pas.

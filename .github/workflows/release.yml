@@ -138,7 +138,7 @@ jobs:
           | --- | --- |
           | \`definitions.tsv.gz\` | Bundled definitions, served by \`/api/definition\`. Downloaded at deploy time by \`scripts/deploy.sh\`. |
           | \`grammalecte-words.txt\` | The $curated words the Grammalecte dictionary has and the base list does not. **MPL 2.0**. |
-          | \`boggle-lexicon.txt\` | The $words words added on top: conjugations the dictionary was missing, and verbs attested in a French corpus. **CC BY-SA 4.0**. |
+          | \`boggle-lexicon.txt\` | The $words words added on top: the vocabulary a French corpus attests and no source had, and the inflections completing every word in the dictionary. **CC BY-SA 4.0**. |
           | \`excluded-words.txt\` | The $struck words the base list made up and no dictionary anywhere has, struck off. |
           | \`words-without-definition.txt\` | The $gaps words the game accepts and nothing defines, so the gap is a list rather than a percentage. |
           | \`boggle-multiplayer-$TAG.tar.gz\` | The built game. See \`RUNNING.md\` inside. |
