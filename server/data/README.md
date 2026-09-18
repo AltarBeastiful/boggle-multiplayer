@@ -8,8 +8,8 @@ from real-world feedback". That repository was archived in May 2019, so the list
 is frozen there. Around 336,000 inflected forms, conjugations and plurals
 included; after normalisation, meaning uppercase, accents stripped and
 hyphenated or apostrophised entries dropped, about 318,800 playable words
-remain, 452,620 with the two files below, and 451,965 once the 606 words the
-list made up and the 29 struck by hand are taken out.
+remain, 452,552 with the two files below, and 451,914 once the 609 struck by
+rule and the 29 struck by hand are taken out.
 
 It is a word list for a game, not a lexicon, and players find the seams: it
 accepted `grader` and refused `gradera`, it accepted `orque` and refused `orc`.
@@ -25,7 +25,7 @@ ignored. Accents and case do not matter. All three are generated.
 
 - `grammalecte-words.txt` : the Grammalecte dictionary, flattened
 - `extra-words.txt` : what Wiktionary adds on top
-- `excluded-words.txt` : what the base list made up
+- `excluded-words.txt` : what a rule strikes, and what a hand did
 
 ## Both word files are generated
 
@@ -33,11 +33,11 @@ ignored. Accents and case do not matter. All three are generated.
 npm run lexicon -- --write
 ```
 
-writes them, 137,404 words in all, and produces a byte-identical result when
+writes them, 137,337 words in all, and produces a byte-identical result when
 run twice. `npm run test:dict` checks it in a second, offline, including a
 section of words that are hard to build in and the class each one stands for.
 
-**`grammalecte-words.txt`** holds the 102,057 words the [Grammalecte
+**`grammalecte-words.txt`** holds the 102,010 words the [Grammalecte
 dictionary](https://grammalecte.net/) has and the base list does not: the
 dictionary Firefox and LibreOffice spell with, human-curated and still
 maintained, which is what the base list stopped being in 2019. The build reads
@@ -47,7 +47,7 @@ than a package repeating an older one. It is where
 why it is a file of its own: see
 [`LICENCE-DEFINITIONS.md`](LICENCE-DEFINITIONS.md).
 
-**`extra-words.txt`** holds the 35,347 that Wiktionary adds on top, in four
+**`extra-words.txt`** holds the 35,327 that Wiktionary adds on top, in four
 blocks:
 
 1. verbs no source has, kept only if Lexique 3.83 has met them. Only Lexique,
@@ -105,6 +105,13 @@ Agreement is deliberately left alone. `frigorifiante` is the regular feminine of
 a participle used as an adjective, correct French that no dictionary lists, and
 refusing it would be the bug all of this exists to fix. The 533 words that are
 neither shape are left in too, pending someone reading them.
+
+Three more are struck whatever the references say, `brrr`, `pfft` and `pst`,
+because a word has a vowel. That rule holds at every other door too: it is what
+keeps Grammalecte's `tss`, `pff`, `hmm` and `zzz` out of `grammalecte-words.txt`,
+along with `http`, `www` and `ppm`, and Wiktionary's `svp` and `bcbg` out of
+`extra-words.txt`. The part of speech would not have done it, `zut` and `ouf`
+being interjections and words.
 
 **Block 2 is written by hand**, and is where a word reported as *wrongly
 accepted* goes. A word the sources *lack* has had somewhere to go since `orc`

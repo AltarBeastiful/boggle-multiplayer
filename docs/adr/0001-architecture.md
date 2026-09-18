@@ -106,8 +106,8 @@ rewritten, which is most of what Socket.IO brings.
 ## Decision 5: a permissive dictionary, adjustable without rebuilding
 
 `an-array-of-french-words` (MIT): 336,000 raw forms, 318,800 after
-normalisation, 452,498 once Grammalecte, the missing vocabulary and the missing
-inflections are merged in, and 451,965 once the 606 words the list made up and
+normalisation, 452,552 once Grammalecte, the missing vocabulary and the missing
+inflections are merged in, and 451,914 once the 609 words struck by rule and
 the 29 struck by hand are taken out (below).
 Hyphenated and apostrophised entries are dropped, as they cannot be traced
 anyway.
@@ -252,7 +252,7 @@ So the answer is not a filter over Wiktionary, it is **a dictionary that is
 maintained**: [Grammalecte](https://grammalecte.net/), the orthographic
 dictionary Firefox and LibreOffice spell with, MPL 2.0, "classique" v7.7, read
 from the archive grammalecte.net publishes. Its Hunspell affixes are expanded to
-every inflected form and the 102,057 the base list lacks are kept. It has
+every inflected form and the 102,010 the base list lacks are kept. It has
 `blog`, `tofu`, `selfie`, `covoiturage`, `procrastiner`. The same grid
 measurement: **128 words per grid become 145**, and the additions are `rosti`,
 `recap`, `crosne`, `taco`, `durite`, `strudel`, `aitre`, `gaite`.
@@ -309,7 +309,7 @@ The 4,205 left are written to `words-without-definition.txt` and published with
 the release, so what is missing is a list somebody can read rather than a
 percentage in a build log.
 
-The hand block, which was 175 words, is now 33: the script drops a hand-picked
+The hand block, which was 175 words, is now 40: the script drops a hand-picked
 word once a source covers it, so what remains is a record of what the
 dictionaries genuinely lack. Nine left it on one day, which is the mechanism
 working: `freelance` and `burnout` when Wiktionary's nouns were let in, and
@@ -552,6 +552,46 @@ use this decision does take.
 grew a section of words that are hard to build in, grouped by the rule that lets
 each group in, so a failure says which rule went rather than which word. `mique`
 is the first line of it.
+
+**A noise is not a word.** `tss` was noticed on a grid, and the exclusion file
+was the wrong place for it: Grammalecte holds it, and the base list holds
+`brrr`, `pfft` and `pst`, and Wiktionary hands over `svp` and `bcbg`, so one
+line per report would never end. The part of speech is not the class either.
+Grammalecte's lexicon tags 141 words as interjection and nothing else, 121 of
+them are in the game, and ODS 9 lists 107, `zut`, `ouf`, `bof`, `miam`, `oups`
+among them. What separates `tss` from `zut` is the letters: a French word is at
+least a syllable, and a string with no vowel is a noise written down. The rule
+went into the gate every generated block passes through, and into the computed
+exclusion block for the base list's own three.
+
+The same test turned out to catch a class nobody had reported, the strings the
+sources keep for spell-checking rather than for reading: `http`, `www`, `ftp`,
+`svp`, `ppm`, `kpc`, `mgr`, and the abbreviations `frs`, `pcs`, `mcx` that
+Wiktionary files as forms of `franc`, `pouce` and `morceau`. Of the 38
+vowel-less strings the game held, ODS 9 keeps 6, `brrr`, `grrr`, `mmm`, `pff`,
+`pfft`, `pst`, which are the noises the report was about, and refuses 32. The
+one real word lost is `crwth`, the Welsh fiddle, which ODS refuses too.
+
+Sizing that class found two signals in Grammalecte's own affix file that the
+build had been ignoring. `||` is Hunspell's KEEPCASE, which Grammalecte puts on a
+symbol whose spelling is fixed, `ppm`, `kpc`, `mbar`, `atm`, `dyn`, `org`;
+`--` is NOSUGGEST, a string the spellchecker accepts and never proposes,
+`presqu`, `puisqu`, `quelqu`, `quoiqu`. Those lines are dropped whole now, in
+`scripts/grammalecte.mjs`, next to the SI prefix flag. A word that is also a
+symbol has a second line without the flag (`bar`, `bit`, `cal`, `gal`, `min`)
+and keeps it. And the form-gloss rule that already refuses `contraction` and
+`variante` refuses `abréviation`, since "Abréviation de francs" is not an
+inflection of `franc`.
+
+58 words left. Twelve of them are in ODS 9: the six noises above, then `rad`,
+`kat` and `tep` with their plurals, which Grammalecte held only as symbols and
+which Wiktionary cannot bring back on its own for want of a published citation,
+and `ros`, the weaver's reed, which had reached the game only as an abbreviation
+of `rectos`. `com`, `tec` and `tex` went out the same door and came straight
+back through the Wiktionary one, as nouns a corpus has met. The four others went
+into the hand block of `extra-words.txt`, with their plurals, which is what it
+is for: 451,965 to 451,914, and the hand block prunes them the day a source
+learns them.
 
 **The coarse list, and a claim in this decision that was false.** The rule above
 says the source list has "no `encule`, no `niquer`, no `pede`, so somebody

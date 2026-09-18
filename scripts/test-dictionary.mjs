@@ -123,7 +123,10 @@ console.log('\n── Modern words the base list predates ──');
   // itself as the sources catch up: `freelance` and `burnout` were here until
   // Wiktionary's nouns were let in, and they are still accepted, one block
   // further down. Which is why this asks the dictionary and not the file.
-  for (const form of ['visio', 'ramen', 'wrap', 'freelance', 'covid']) {
+  // `rad`, `kat` and `tep` are unit names Grammalecte holds only as symbols,
+  // and `ros` the weaver's reed: all four in ODS 9, none with the published
+  // citation a short word needs from Wiktionary, so they are held by hand.
+  for (const form of ['visio', 'ramen', 'wrap', 'freelance', 'covid', 'rad', 'kat', 'tep', 'ros']) {
     expect(form, true, 'a hand-added word is missing');
   }
   console.log('  hand-added words held');
@@ -248,6 +251,30 @@ console.log('\n── What must stay out ──');
     ['boivez', 'coined as a joke'],
     ['mangeont', 'regional'],
     ['zzzzz', 'not a word in any language'],
+    // A word has a vowel. These are noises written down, and every source
+    // carries some: Grammalecte files them as interjections next to `zut`,
+    // which is a word and stays. The letters separate them where the part of
+    // speech does not, so the build refuses the shape at every door and
+    // strikes the base list's own.
+    ['tss', 'a noise, from Grammalecte'],
+    ['pff', 'the same'],
+    ['hmm', 'the same'],
+    ['kss', 'the same'],
+    ['brrr', 'the same, from the base list, struck by the same rule'],
+    ['pst', 'the same'],
+    // The same shape catches what the sources hold for spell-checking rather
+    // than reading: symbols, acronyms, letter abbreviations.
+    ['http', 'a protocol, not a word'],
+    ['www', 'the same'],
+    ['svp', 'an abbreviation, from Wiktionary'],
+    ['frs', 'an abbreviation of francs, which Wiktionary files as a form of franc'],
+    // Grammalecte marks its unit symbols KEEPCASE and its elided stems
+    // NOSUGGEST in its own affix file, and those lines are dropped whole.
+    ['ppm', 'a unit symbol, flagged as one by Grammalecte'],
+    ['kpc', 'the same, for kiloparsec'],
+    ['mbar', 'the same, for millibar'],
+    ['quelqu', 'the stem of quelqu’un, which Grammalecte holds and never suggests'],
+    ['presqu', 'the same'],
     // Wiktionary conjugates 20,870 more verbs nobody has ever printed. Taking
     // them would have added 772,000 words to a family word game.
     ['encyclopédier', 'a Wiktionary coinage, in no corpus'],
@@ -353,6 +380,16 @@ console.log('\n── Ordinary French is still there ──');
     'blêmissaient',
     'frigorifiante',
     'hennie',
+    // Interjections with a vowel are words, and ODS 9 lists all four. The rule
+    // that refuses `tss` is about letters, not about the part of speech.
+    'zut',
+    'ouf',
+    'bof',
+    'miam',
+    // A symbol that is also a word keeps its word line in Grammalecte.
+    'bar',
+    'bit',
+    'gal',
   ];
   const missing = ordinary.filter((word) => !accepts(word));
   console.log(`  ${ordinary.length - missing.length}/${ordinary.length} accepted`);

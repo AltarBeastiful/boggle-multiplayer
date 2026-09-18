@@ -1,9 +1,9 @@
 # Boggle multijoueur : mots retirés du dictionnaire
 #
 # version   4.0.0
-# generated 2026-09-13 by scripts/build-lexicon.mjs
-# words     635
-# sha256    7bc44042ad7db05d
+# generated 2026-09-18 by scripts/build-lexicon.mjs
+# words     638
+# sha256    81057e164cad829e
 #
 # The base word list (an-array-of-french-words, from the Letterpress lists,
 # archived in 2019) carries spellings no dictionary has ever had. Block 1
@@ -16,12 +16,15 @@
 # Regenerate:
 #   npm run lexicon -- --write
 #   node scripts/build-definitions.mjs   # or the new words have no definition
-# --- 1. words the base list made up --------------------------------------------
-#     606 words, struck off. Neither Grammalecte nor the Wiktionary,
-#     in any of the languages it describes, has an entry for them, and they take
-#     one of the two shapes that cannot be anything but an error: a conjugation
-#     of a verb nothing conjugates (`blêmer` for `blêmir`, `caséfier`,
-#     `conpresser`), or a plural in -aus where French writes -aux.
+# --- 1. struck by rule ---------------------------------------------------------
+#     609 words, struck off. 606 of them the base list made up: neither
+#     Grammalecte nor the Wiktionary, in any of the languages it describes, has
+#     an entry for them, and they take one of the two shapes that cannot be
+#     anything but an error: a conjugation of a verb nothing conjugates
+#     (`blêmer` for `blêmir`, `caséfier`, `conpresser`), or a plural in -aus
+#     where French writes -aux. The other 3 have no vowel, and a string
+#     with no vowel is a noise written down, not a word: the rule every other
+#     source is held to at the door, applied to the one source taken whole.
 #     
 #     Agreement is deliberately left alone: `frigorifiante` is the regular
 #     feminine of a participle used as an adjective, correct French that no
@@ -57,6 +60,7 @@ blêmiez
 blêmions
 blêmons
 boucaus
+brrr
 caetera
 canardeaus
 caséfiaient
@@ -496,6 +500,7 @@ pataugeairent
 pataugeaissiez
 pataugeaissions
 pataugeaîtes
+pfft
 planchéiaîmes
 planchéiairent
 planchéiaissiez
@@ -528,6 +533,7 @@ procurerassions
 procurerât
 procurerâtes
 procurerèrent
+pst
 raidirâmes
 raidirasse
 raidirassent

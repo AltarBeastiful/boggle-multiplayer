@@ -1,9 +1,9 @@
 # Boggle multijoueur : le dictionnaire Grammalecte, mis à plat
 #
 # version   4.0.0
-# generated 2026-09-13 by scripts/build-lexicon.mjs
-# words     102057
-# sha256    a55606ac6c1b065a
+# generated 2026-09-18 by scripts/build-lexicon.mjs
+# words     102010
+# sha256    230dc69a162df782
 #
 # Source: Dictionnaire orthographique français « classique » v7.7,
 #   by Olivier R., https://grammalecte.net/ , read from the published
@@ -19,7 +19,7 @@
 #   npm run lexicon -- --write
 #   node scripts/build-definitions.mjs   # or the new words have no definition
 # --- 1. Grammalecte, expanded from its Hunspell affixes ------------------------
-#     102057 words. The orthographic dictionary behind LibreOffice and
+#     102010 words. The orthographic dictionary behind LibreOffice and
 #     Firefox, human-curated and still maintained, which the base word list
 #     stopped being in 2019: this is where `blog`, `tofu`, `selfie` and
 #     `covoiturage` come from. The SI unit prefixes are the one thing dropped,
@@ -6784,7 +6784,6 @@ athrepsie
 athrepsies
 atlantiste
 atlantistes
-atm
 atoca
 atocas
 atocatière
@@ -16669,7 +16668,6 @@ cézannienne
 cézanniennes
 cézanniens
 cézigue
-cgr
 chaabi
 chaâbi
 chaabis
@@ -21074,7 +21072,6 @@ colures
 colzas
 colzatière
 colzatières
-com
 comarque
 comarques
 comata
@@ -24939,8 +24936,6 @@ crustales
 crustaux
 cruzado
 cruzados
-crwth
-crwths
 cryobiologie
 cryobiologies
 cryochimie
@@ -25781,7 +25776,6 @@ daronne
 daronnes
 darons
 dartos
-dast
 datacentre
 datacentres
 datagramme
@@ -34819,7 +34813,6 @@ dézoomez
 dézoomiez
 dézoomions
 dézoomons
-dgr
 dhamma
 dharma
 dharmas
@@ -36801,7 +36794,6 @@ dyarchie
 dyarchies
 dyke
 dykes
-dyn
 dynamicien
 dynamicienne
 dynamiciennes
@@ -46967,8 +46959,6 @@ frustules
 fruticée
 fruticées
 frutti
-ftp
-ftps
 fucale
 fucales
 fuchsien
@@ -49757,7 +49747,6 @@ groupoïde
 groupoïdes
 groupusculaire
 groupusculaires
-grrr
 gruerie
 grueries
 grugeur
@@ -51225,7 +51214,6 @@ hivernation
 hivernations
 hivernement
 hivernements
-hmm
 hobbesien
 hobbesienne
 hobbesiennes
@@ -51587,9 +51575,6 @@ houssinions
 houssinons
 hoverboard
 hoverboards
-hpz
-http
-https
 hub
 hubris
 hubs
@@ -56847,7 +56832,6 @@ karstologies
 karsts
 kasher
 kashrout
-kat
 kata
 katakana
 katakanas
@@ -56865,7 +56849,6 @@ kazakh
 kazakhe
 kazakhes
 kazakhs
-kbit
 kebab
 kebabs
 kebbé
@@ -57190,7 +57173,6 @@ koweïtien
 koweïtienne
 koweïtiennes
 koweïtiens
-kpc
 kraï
 kraïs
 kravmaga
@@ -57216,8 +57198,6 @@ krumps
 kryptons
 ksatriya
 kshatriya
-kss
-kth
 kunzite
 kunzites
 kwashiorkor
@@ -60533,7 +60513,6 @@ mazots
 mazoutage
 mazoutages
 mbalax
-mbar
 méandreuse
 méandreuses
 méandreux
@@ -61817,7 +61796,6 @@ mexicanisations
 mezzos
 mezzotinto
 mezzotintos
-mgr
 miacidé
 miacidés
 miam
@@ -62630,7 +62608,6 @@ mixtiligne
 mixtilignes
 mloukhiya
 mloukhiyas
-mmm
 mnème
 mnèmes
 mnémoniquement
@@ -63610,7 +63587,6 @@ mozzarella
 mozzarellas
 mozzarelle
 mozzarelles
-mth
 mucine
 mucines
 mucite
@@ -67129,7 +67105,6 @@ orexigène
 orexigènes
 orfévrée
 orfévrées
-org
 orga
 organicien
 organicienne
@@ -70178,7 +70153,6 @@ pfaffien
 pfaffienne
 pfaffiennes
 pfaffiens
-pff
 pfut
 phaéton
 phaétons
@@ -73418,11 +73392,6 @@ powellite
 powellites
 poya
 poyas
-ppb
-ppm
-ppp
-ppq
-ppt
 pragmatiquement
 pragois
 pragoise
@@ -74544,7 +74513,6 @@ présonorisez
 présonorisiez
 présonorisions
 présonorisons
-presqu
 pressabilité
 pressabilités
 pressement
@@ -75927,7 +75895,6 @@ ptoléméen
 ptoléméenne
 ptoléméennes
 ptoléméens
-pts
 pubalgie
 pubalgies
 publicateur
@@ -76071,7 +76038,6 @@ puerpéralité
 puerpéralités
 puffiste
 puffistes
-puisqu
 pullover
 pullovers
 pulmoné
@@ -76572,7 +76538,6 @@ queen
 queens
 queer
 queers
-quelqu
 quenouillée
 quenouillées
 quenouillette
@@ -76762,7 +76727,6 @@ quizalofop
 quizalofops
 quo
 quoailler
-quoiqu
 qwerty
 rab
 rabâchement
@@ -77061,7 +77025,6 @@ racrapotez
 racrapotiez
 racrapotions
 racrapotons
-rad
 radialement
 radiante
 radiantes
@@ -95014,7 +94977,6 @@ tébibit
 tébibits
 tébioctet
 tébioctets
-tec
 tech
 technétium
 technétiums
@@ -95736,7 +95698,6 @@ teocalli
 téocalli
 teocallis
 téocallis
-tep
 tépale
 tépales
 téphra
@@ -96079,7 +96040,6 @@ teufeurs
 teufeuse
 teufeuses
 teufs
-tex
 texel
 texels
 texto
@@ -96152,8 +96112,6 @@ thanatopractrices
 thanatopraxie
 thanatopraxies
 thanatos
-thari
-tharis
 thaumaturgie
 thaumaturgies
 thaumaturgique
@@ -98379,7 +98337,6 @@ tryptamine
 tryptamines
 tsimihety
 tsimihetys
-tss
 tswana
 tswanas
 tuberculée
@@ -99351,7 +99308,6 @@ vaccinodrome
 vaccinodromes
 vacuomètre
 vacuomètres
-vad
 vade
 vadrouilleur
 vadrouilleurs
@@ -101059,7 +101015,6 @@ wurtzites
 wus
 wushu
 wushus
-www
 xanthate
 xanthates
 xanthélasma
@@ -102080,5 +102035,3 @@ zythologies
 zythologue
 zythologues
 zyzomys
-zzz
-zzzz

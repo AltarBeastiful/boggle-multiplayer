@@ -57,6 +57,22 @@ const VARIANT = 'fr-classique';
 export const FRENCH_WORD = /^[a-zàâäçéèêëîïôöùûüÿœ]+$/;
 
 /**
+ * Hunspell flags whose entries are not words at all.
+ *
+ * The affix file declares them itself: `||` is KEEPCASE, the flag Hunspell
+ * gives a string whose case must never be changed, which is how Grammalecte
+ * marks a unit symbol or an acronym (`ppm`, `kpc`, `mbar`, `www`) rather than
+ * a word. `--` is NOSUGGEST, a string the spellchecker accepts but will never
+ * propose: the elided stems `presqu`, `puisqu`, `quelqu`, `quoiqu`, and the
+ * ordinals. Neither is anything a player would write on its own.
+ *
+ * The whole line goes, not just the flag. A word that is also a symbol has a
+ * second line without it (`bar/S.` next to `bar/||--`, likewise `bit`, `cal`,
+ * `gal`, `min`), and that line keeps it.
+ */
+const UNPLAYABLE_ENTRY_FLAGS = new Set(['||', '--']);
+
+/**
  * Hunspell flags whose forms are not words to play.
  *
  * `U.` is the SI unit prefix table: nineteen prefixes applied to every unit
@@ -153,10 +169,13 @@ async function trimmedSource() {
     }
     const flags = line.slice(slash + 1);
     const playable = [];
+    let symbol = false;
     for (let at = 0; at + 1 < flags.length; at += 2) {
       const flag = flags.slice(at, at + 2);
-      if (!UNPLAYABLE_FLAGS.has(flag)) playable.push(flag);
+      if (UNPLAYABLE_ENTRY_FLAGS.has(flag)) symbol = true;
+      else if (!UNPLAYABLE_FLAGS.has(flag)) playable.push(flag);
     }
+    if (symbol) continue;
     const word = line.slice(0, slash);
     kept.push(playable.length > 0 ? `${word}/${playable.join('')}` : word);
   }

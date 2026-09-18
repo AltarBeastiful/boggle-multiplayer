@@ -104,13 +104,13 @@ npm run test:restart   # tue le serveur en pleine manche et vérifie la reprise
 
 ## Le dictionnaire
 
-**451 965 mots**, assemblés de trois sources :
+**451 914 mots**, assemblés de trois sources :
 
 - `an-array-of-french-words` (MIT), tiré des
   [listes de Letterpress](https://github.com/lorenbrichter/Words) (CC0) : la
   base, figée en 2019, d'où `blog` et `covoiturage` absents ;
 - [**Grammalecte**](https://grammalecte.net/) (MPL 2.0), le dictionnaire
-  orthographique de Firefox et LibreOffice, à jour et tenu à la main : 102 057
+  orthographique de Firefox et LibreOffice, à jour et tenu à la main : 102 010
   mots de plus, l'édition « classique » v7.7 telle qu'il la publie ;
 - le **Wiktionnaire** pour le reste : les verbes qui manquaient encore, puis les
   noms, adjectifs, adverbes et interjections, retenus si **l'un** des quatre
@@ -122,7 +122,8 @@ npm run test:restart   # tue le serveur en pleine manche et vérifie la reprise
 
 Volontairement permissif : `déci`, `zut`, `eus` et `mangeassions` passent. Les
 entrées à trait d'union ou apostrophe sont écartées, n'étant pas traçables sur
-une grille, les noms propres le sont deux fois, sur la majuscule et sur la
+une grille, les suites sans voyelle aussi (`tss`, `pff`, `http`, un bruit ou un
+sigle, pas un mot), les noms propres le sont deux fois, sur la majuscule et sur la
 catégorie grammaticale, et les insultes racistes ou antisémites que le
 Wiktionnaire ne signale pas le sont nommément. À l'inverse, **606 mots sont retirés** : la liste de base a vieilli
 et contient des formes qu'aucun dictionnaire n'a jamais eues, `blêmaient` (le

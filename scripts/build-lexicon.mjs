@@ -18,7 +18,15 @@
  * flag. The SI unit prefixes (`U.`) would multiply every unit symbol by
  * nineteen and produce `zsr`, `dcal`, `ncd`: combinatorially generated, never
  * written by anyone. The elision prefixes produce `d’`, `l’`, `qu’` forms,
- * which cannot be traced on a grid anyway.
+ * which cannot be traced on a grid anyway. Two more flags drop the entry
+ * itself: the ones Grammalecte's own affix file puts on a unit symbol (`ppm`,
+ * `kpc`) and on an elided stem it will never suggest (`quelqu`, `presqu`).
+ *
+ * And a word has a vowel, whichever source it comes from. Grammalecte holds
+ * `tss`, `pff`, `hmm` and `zzz` as interjections beside `zut` and `ouf`, and
+ * nothing in the data separates a noise from a word except the letters. See
+ * `playable`, which every generated block passes through, and the matching
+ * rule that strikes the base list's own.
  *
  * **2. The verbs neither source has**, conjugated by Wiktionary. Taking all of
  * them would add 772,000 words, nearly tripling the dictionary with
@@ -112,11 +120,27 @@ if (!existsSync(WIKTIONARY) || !existsSync(LEXIQUE)) {
  */
 const FRENCH = FRENCH_WORD;
 
-/** A word the game could accept at all: three letters, French, no capital. */
+/**
+ * A word has a vowel.
+ *
+ * A French word is at least one syllable, and a string without a vowel is a
+ * noise written down: `tss`, `pff`, `hmm`, `kss`, `zzz`, `grrr`. Every source
+ * has some, because every source records what people write, and Grammalecte
+ * files them as interjections next to `zut` and `ouf`, which are words; the
+ * part of speech does not separate them and the letters do. The same test
+ * catches what the sources hold for spell-checking rather than for reading:
+ * `http`, `www`, `svp`, `ppm`, `kpc`, and the abbreviations `frs` and `pcs`.
+ *
+ * On the normalised form, so `œ` and the accented vowels count as what they
+ * are. The one real word it costs is `crwth`, the Welsh fiddle.
+ */
+const VOWEL = /[AEIOUY]/;
+
+/** A word the game could accept at all: three letters, a vowel, French, no capital. */
 const playable = (word) => {
   if (typeof word !== 'string' || !FRENCH.test(word)) return null;
   const normalized = normalizeWord(word);
-  return normalized.length >= 3 ? normalized : null;
+  return normalized.length >= 3 && VOWEL.test(normalized) ? normalized : null;
 };
 
 // ---------------------------------------------------------------------------
@@ -307,7 +331,7 @@ const UNPLAYABLE_FORM_LABELS = new RegExp(
   'i',
 );
 const REJECTED_FORM_GLOSS =
-  /^(ancienne|variante|orthographe|écriture|contraction|autre (graphie|orthographe)|forme ancienne|graphie ancienne)\b|régularisation/i;
+  /^(ancienne|variante|orthographe|écriture|contraction|abréviation|autre (graphie|orthographe)|forme ancienne|graphie ancienne)\b|régularisation/i;
 
 /**
  * Whether an infinitive is one to add, which is a different question from
@@ -774,6 +798,10 @@ console.log(`  worst holes: ${holes.slice(0, 8).map((h) => `${h.lemma} (${h.miss
  * What is left over is read by hand and left in the file below if it is to go.
  * The order of the tests matters: agreement is checked first, so a participle
  * ending in `-ante` is never mistaken for a conjugation.
+ *
+ * A third shape is struck whether a reference has it or not: a string with no
+ * vowel, which is the rule `playable` holds every other source to. `brrr`,
+ * `pfft` and `pst` have Wiktionary entries and are noises all the same.
  */
 const VERB_ENDING =
   /(assions|assiez|assent|erions|eriez|erons|eront|aient|èrent|asses|âmes|âtes|erais|erait|eras|erez|asse|ions|iez|ons|ais|ait|erai|era|îmes|îtes|irent|ez|as|ât|at)$/;
@@ -796,8 +824,15 @@ for (const normalized of unvouched) {
   if (/aus$/.test(lower) && known.has(normalizeWord(`${lower.slice(0, -3)}au`))) struck.push(word);
   else if (VERB_ENDING.test(lower)) struck.push(word);
 }
-struck.sort((a, b) => a.localeCompare(b, 'fr'));
 console.log(`\nStruck off: ${struck.length} of the ${unvouched.size} base-list words no reference has`);
+let voiceless = 0;
+for (const [normalized, word] of baseWords) {
+  if (VOWEL.test(normalized)) continue;
+  struck.push(word);
+  voiceless++;
+}
+console.log(`  ${voiceless} more with no vowel, whatever the references say`);
+struck.sort((a, b) => a.localeCompare(b, 'fr'));
 
 /*
  * The hand block prunes itself, the same way the one in extra-words.txt does
@@ -985,13 +1020,16 @@ if (!write) {
     EXCLUDED,
     [
       ...block(
-        '1. words the base list made up',
+        '1. struck by rule',
         [
-          `${struck.length} words, struck off. Neither Grammalecte nor the Wiktionary,`,
-          'in any of the languages it describes, has an entry for them, and they take',
-          'one of the two shapes that cannot be anything but an error: a conjugation',
-          'of a verb nothing conjugates (`blêmer` for `blêmir`, `caséfier`,',
-          '`conpresser`), or a plural in -aus where French writes -aux.',
+          `${struck.length} words, struck off. ${struck.length - voiceless} of them the base list made up: neither`,
+          'Grammalecte nor the Wiktionary, in any of the languages it describes, has',
+          'an entry for them, and they take one of the two shapes that cannot be',
+          'anything but an error: a conjugation of a verb nothing conjugates',
+          '(`blêmer` for `blêmir`, `caséfier`, `conpresser`), or a plural in -aus',
+          `where French writes -aux. The other ${voiceless} have no vowel, and a string`,
+          'with no vowel is a noise written down, not a word: the rule every other',
+          'source is held to at the door, applied to the one source taken whole.',
           '',
           'Agreement is deliberately left alone: `frigorifiante` is the regular',
           'feminine of a participle used as an adjective, correct French that no',

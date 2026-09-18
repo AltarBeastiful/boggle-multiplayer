@@ -1,9 +1,9 @@
 # Boggle multijoueur : complément du dictionnaire français
 #
 # version   4.0.0
-# generated 2026-09-13 by scripts/build-lexicon.mjs
-# words     35328
-# sha256    cdb84e03a3c4da13
+# generated 2026-09-18 by scripts/build-lexicon.mjs
+# words     35327
+# sha256    f221cfc4012dc74a
 #
 # Sources, all CC BY-SA, see LICENCE-DEFINITIONS.md:
 #   French Wiktionary, via the wiktextract extraction at kaikki.org
@@ -12460,11 +12460,11 @@ zadions
 zadons
 
 # --- 2. the rest of the vocabulary no source had -------------------------------
-#     4486 nouns, adjectives, adverbs and interjections, from Wiktionary,
+#     4487 nouns, adjectives, adverbs and interjections, from Wiktionary,
 #     kept when any of four French corpora has met the word: Lexique 3.83, and
 #     Frantext 20e, Le Monde and FrWaC through GLÀFF 1.2.2. This is where
 #     `ribot` comes from, and `castagnette`, `affre`, `larmichette`, `mique`.
-#     The 109662 Wiktionary describes that no corpus has met are one adjective
+#     The 109567 Wiktionary describes that no corpus has met are one adjective
 #     per French commune and every SI unit multiplied by every prefix. Proper
 #     nouns are refused twice over, for their capital and for their part of speech.
 
@@ -12917,7 +12917,6 @@ bazard
 bazardeur
 bazari
 bazin
-bcbg
 beaujolpif
 beaunois
 beauvais
@@ -13607,6 +13606,7 @@ colson
 coltar
 coltard
 coltin
+com
 comac
 comanche
 combattif
@@ -16498,7 +16498,6 @@ surrincette
 survitaminose
 suscitateur
 susu
-svp
 swiftien
 switch
 sylvie
@@ -16564,6 +16563,7 @@ tcherkesse
 tchetnik
 tchouvache
 team
+tec
 technival
 technocentre
 technologisation
@@ -16604,6 +16604,7 @@ testing
 téthysien
 tétraodon
 tévé
+tex
 thanatologique
 thatchérien
 thècle
@@ -16956,7 +16957,7 @@ zozoterie
 zydeco
 
 # --- 3. added by hand ----------------------------------------------------------
-#     33 words no source has yet. Add another here: the script keeps
+#     40 words no source has yet. Add another here: the script keeps
 #     whatever it finds outside the generated blocks, and drops a word only
 #     once a source covers it, so this block shrinks as the lexicons catch up.
 
@@ -16975,16 +16976,23 @@ halloumi
 halloumis
 hobbite
 hobbites
+kat
+kats
 otaku
 otakus
 padel
 pounti
 pountis
 quizs
+rad
+rads
+ros
 seum
 seums
 socca
 soccas
+tep
+teps
 visio
 visios
 wastringue
@@ -16995,7 +17003,7 @@ zumba
 zumbas
 
 # --- 4. inflections completing every word above --------------------------------
-#     18376 forms, from Wiktionary. Computed last, so it sees the finished
+#     18367 forms, from Wiktionary. Computed last, so it sees the finished
 #     dictionary: it held `grader` but not `gradera`, `abaisseur` but not
 #     `abaisseuse`, and it would have held `ribot` without `ribots`. No new
 #     vocabulary, every one is a form of a word already accepted.
@@ -24103,7 +24111,6 @@ embuts
 émiliennes
 émiliens
 éminées
-emm
 emmanchages
 emmantèlent
 emmantèlera
@@ -25936,9 +25943,7 @@ fromentins
 fromgis
 frottins
 frouements
-frs
 frusquins
-fts
 fuchsinée
 fuchsinées
 fulgores
@@ -27921,7 +27926,6 @@ katangaise
 katangaises
 katchinas
 katibas
-kats
 kawis
 keblas
 kébours
@@ -28985,7 +28989,6 @@ mazets
 mazurienne
 mazuriennes
 mazuriens
-mcx
 mecklembourgeoise
 mecklembourgeoises
 mécroyants
@@ -30353,7 +30356,6 @@ paysageront
 paysagez
 paysagiez
 paysagions
-pcs
 peaucière
 peaucières
 peaussée
@@ -31369,7 +31371,6 @@ radioïsotopes
 radiopharmaceutiques
 radiotélégrammes
 radoubeurs
-rads
 raffarinades
 raffermissante
 raffermissantes
@@ -32597,7 +32598,6 @@ roquée
 roquées
 roquentine
 roquentines
-ros
 rosats
 roscovites
 rosnéenne
@@ -35034,7 +35034,6 @@ vauréalienne
 vauréaliennes
 vauréaliens
 vautraits
-vds
 végétante
 végétantes
 végétants
