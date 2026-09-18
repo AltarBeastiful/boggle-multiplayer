@@ -1,9 +1,9 @@
 # Boggle multijoueur : le dictionnaire Grammalecte, mis à plat
 #
-# version   3.0.0
-# generated 2026-08-21 by scripts/build-lexicon.mjs
+# version   4.0.0
+# generated 2026-09-13 by scripts/build-lexicon.mjs
 # words     102057
-# sha256    cda3bdc65dbc5d34
+# sha256    a55606ac6c1b065a
 #
 # Source: Dictionnaire orthographique français « classique » v7.7,
 #   by Olivier R., https://grammalecte.net/ , read from the published
@@ -21,7 +21,7 @@
 # --- 1. Grammalecte, expanded from its Hunspell affixes ------------------------
 #     102057 words. The orthographic dictionary behind LibreOffice and
 #     Firefox, human-curated and still maintained, which the base word list
-#     stopped being in 2019: this is where `orc`, `blog`, `tofu`, `selfie` and
+#     stopped being in 2019: this is where `blog`, `tofu`, `selfie` and
 #     `covoiturage` come from. The SI unit prefixes are the one thing dropped,
 #     since they multiply every unit symbol by nineteen and nobody writes `zsr`.
 

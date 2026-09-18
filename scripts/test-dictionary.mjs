@@ -8,8 +8,10 @@
  * does and asks it questions. The base list is a word list for a game rather
  * than a lexicon, and both ways it shows up were reported by players: it
  * accepted `grader` and refused `gradera`, it accepted `orque` and refused
- * `orc`. `server/data/extra-words.txt` repairs both, and this is what notices
- * if the file is ever lost or rebuilt wrongly.
+ * `orc`. `server/data/extra-words.txt` repairs the first, and the second turned
+ * out to be the base list being right: `orc` is the English spelling and is
+ * struck by hand now. This is what notices if either file is lost or rebuilt
+ * wrongly.
  *
  * The checks below hold each of its four blocks to what it is for, and hold
  * out the generated technical vocabulary that comes with the territory.
@@ -91,7 +93,6 @@ console.log('\n── Modern words the base list predates ──');
   // corpus having closed in 2001. They come from Grammalecte, which is a
   // maintained French dictionary, with the handful it lacks added by hand.
   const modern = [
-    ['orc', 'orcs'],
     ['blog', 'blogs'],
     ['selfie', 'selfies'],
     ['manga', 'mangas'],
@@ -112,7 +113,7 @@ console.log('\n── Modern words the base list predates ──');
 
   // Grammalecte has `hacker` as a noun only. The conjugation block runs last,
   // against the finished dictionary, so a verb arriving from any source gets
-  // its tenses: that is what stops `orc` from repeating `gradera`.
+  // its tenses: that is what stops `covoiturage` from repeating `gradera`.
   for (const form of ['hacker', 'hackers', 'hacke', 'hackait', 'hackerait']) {
     expect(form, true, 'hacker is in the dictionary, so its conjugation must follow');
   }
@@ -158,6 +159,79 @@ console.log('\n── Words that are not verbs ──');
     expect(form, true, 'a form of a word the dictionary already accepts is missing');
   }
   console.log('  feminines and plurals completed');
+}
+
+// ---------------------------------------------------------------------------
+console.log('\n── Words that are hard to build in ──');
+{
+  /*
+   * The words that were missing for a reason, kept here by the reason.
+   *
+   * `mique` is why this section exists. It is the Périgord dumpling, the
+   * Wiktionary quotes it from Mauriac and from three other published books,
+   * and the game refused it to the player who traced it, because the one
+   * frequency list the build consulted had never met it. Fixing that word
+   * would have fixed nothing: what was wrong was that a single corpus had a
+   * veto, and asking what else it was refusing turned up two more rules wrong
+   * in the same shape, which is why there are seven groups below and not one.
+   *
+   * Each group below is a class rather than a word, and names the rule that
+   * lets it in. A failure here says which rule went, not which word.
+   */
+  const classes = [
+    [
+      'the corpora disagree, and one of them is enough',
+      // `mique` is in Le Monde thirteen times and in Lexique not at all.
+      // Attestation is a panel now: see scripts/corpora.mjs.
+      ['mique', 'miques', 'panisse', 'panisses'],
+    ],
+    [
+      'register is not a reason to refuse a word',
+      // Familiar and slang, tagged as such by Wiktionary, and French. The
+      // build said so about verbs and refused every noun on the same ground.
+      // All six are in ODS 9, which is the check the clipped forms got.
+      ['branque', 'stup', 'perme', 'restau', 'impec', 'calcif'],
+    ],
+    [
+      'a spelling variant is a word to trace',
+      // Wiktionary glosses all four "variante de ...", `clef` included, which
+      // the old rule read as a cross-reference worth nothing.
+      ['clef', 'clefs', 'carbonade', 'kiff', 'nanards'],
+    ],
+    [
+      'short words, which a corpus frequency alone cannot vouch for',
+      // Three and four letters are most of a grid, so a wrong one is read by
+      // every player on the missed-words page. These are not refused for being
+      // short: they are kept because Wiktionary quotes each of them from a
+      // published work, which a homograph's frequency cannot fake. `tré` and
+      // `tion` have no such quotation and are in the section below, refused,
+      // and so are `nap` and `mili`, which have one and which ODS 9 does not
+      // list: a citation answers "is this a word", not "is it this word game's".
+      ['asso', 'péno', 'led', 'zine', 'kiff', 'suet', 'enne'],
+    ],
+    [
+      'vocabulary younger than the corpora that vouch for it',
+      // Frantext and Le Monde stop around 2000; the web crawl is what has met
+      // these, which is why it counts as a witness at a rate of its own.
+      ['déchèterie', 'téléréalité', 'phishing', 'weekend', 'postdoc', 'cardio'],
+    ],
+    [
+      'no source has them yet, so they are held by hand',
+      // The residue, and the whole of it: block 3 of extra-words.txt. It
+      // prunes itself, so a word leaving it is not a failure, a word leaving
+      // the dictionary is.
+      ['socca', 'seum', 'enchaud', 'pounti', 'wastringue'],
+    ],
+    [
+      'and their inflections, because half a fix is gradera over again',
+      ['miques', 'restaus', 'branques', 'clefs', 'déchèteries', 'soccas'],
+    ],
+  ];
+  for (const [why, words] of classes) {
+    const missing = words.filter((word) => !accepts(word));
+    console.log(`  ${String(words.length - missing.length).padStart(2)}/${words.length}  ${why}`);
+    for (const word of missing) problems.push(`${word}: refused, though ${why}`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -208,6 +282,52 @@ console.log('\n── What must stay out ──');
     // Grammalecte is an orthographic dictionary and has `pédé` because it is
     // spelt that way, so the last block would have looked up its feminine.
     ['pédée', 'the inflection block must not finish a coarse paradigm'],
+    // The other side of the section above. Opening the door to `clef` and
+    // `carbonade` is opening it to everything Wiktionary glosses the same way,
+    // and these are the ones that must not walk through: a spelling is a word
+    // only while it is current, and each of these says somewhere that it is
+    // not. `aurevoir` says it in its categories alone, which is why they are
+    // read too.
+    ['connoissance', 'the spelling of before 1835'],
+    ['aurevoir', 'filed under "Termes non standards", and tagged nothing at all'],
+    ['partisant', 'a variant of partisan, and Wiktionary calls it dated'],
+    ['huluberlu', 'hurluberlu, met once by a web crawl of 1.25 billion words'],
+    ['rappatriement', 'the same, for rapatriement'],
+    // And the other side of the short-word group above, which is the whole
+    // reason it needs a citation and not just a frequency. Each of these is a
+    // real Wiktionary headword carrying a number that belongs to another
+    // word, and each is three or four letters, so each would land on a large
+    // share of grids: `tré` turned up on 77 of 400 before it was stopped.
+    ['tré', 'a tokenisation artefact scoring 6.6 per million'],
+    ['tion', 'the suffix, counted as though it were a word'],
+    ['pla', 'the same shape, and no published source quotes it'],
+    ['asin', 'the same'],
+    ['oule', 'the same'],
+    // And the other side of "register is not a reason to refuse a word",
+    // which holds of a word and not of a form: `sra` is familiar for `sera`
+    // and is not a conjugation of `être` anybody may claim a point for.
+    // Struck by hand, in block 2 of excluded-words.txt, and the first word to
+    // earn a place there. It was the report that brought Grammalecte in and it
+    // came in with it, `orc/S.` being in the Hunspell file; the Officiel du
+    // Scrabble refuses it, French writes `orque`, and Tolkien asked his
+    // translators to translate the word, which Ledoux did. Both forms need a
+    // line, the plural coming from Grammalecte's own flag rather than from the
+    // block that completes paradigms.
+    ['orc', 'the English spelling; French writes orque, which the game accepts'],
+    ['orcs', 'and its plural, which Grammalecte supplies directly'],
+    // The rest of the hand block: clipped forms the corpora vouch for and the
+    // Officiel du Scrabble does not list, struck together once it was checked
+    // rather than argued. Their plurals went on their own, the paradigm block
+    // completing only what the dictionary still accepts. `gogues` stayed: ODS
+    // has it, French using that one in the plural only.
+    ['carbu', 'a clipped form ODS 9 does not list, where it lists aprèm and certif'],
+    ['soluce', 'the same'],
+    ['aéro', 'the same'],
+    ['pédago', 'the same'],
+    ['zique', 'the same, where ODS takes zizique'],
+    ['aprème', 'the same, where ODS takes aprèm'],
+    ['sra', 'a contraction of sera, marked familiar and nothing else'],
+    ['tsé', 'the same, for tu sais'],
   ];
   for (const [word, why] of rubbish) {
     const got = expect(word, false, `${why}: it should not be in the dictionary`);
@@ -241,7 +361,7 @@ console.log('\n── Ordinary French is still there ──');
   // A floor, so a truncated or empty word list is caught rather than passing
   // every assertion above by accident.
   console.log(`  dictionary size: ${dictionary.size}`);
-  if (dictionary.size < 430_000) problems.push(`the dictionary holds only ${dictionary.size} words`);
+  if (dictionary.size < 450_000) problems.push(`the dictionary holds only ${dictionary.size} words`);
 }
 
 console.log('');

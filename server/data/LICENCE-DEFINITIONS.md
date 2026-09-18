@@ -7,8 +7,9 @@ that are, and they remain subject to those dictionaries' licences:
   Not in git; built by `scripts/build-definitions.mjs` and published as a
   release asset. **From the French Wiktionary: CC BY-SA 4.0.**
 - `extra-words.txt`, the conjugations the base word list was missing and the
-  verbs a French corpus attests. In git, written by `scripts/build-lexicon.mjs`.
-  **From the French Wiktionary and Lexique 3.83: CC BY-SA 4.0.**
+  vocabulary a French corpus attests. In git, written by
+  `scripts/build-lexicon.mjs`. **From the French Wiktionary and Lexique 3.83
+  (CC BY-SA 4.0) and GLÀFF 1.2.2 (CC BY-SA 3.0).**
 - `grammalecte-words.txt`, the Grammalecte dictionary flattened to one word per
   line. In git, written by the same script. **From the Dictionnaire
   orthographique français: MPL 2.0.**
@@ -64,11 +65,22 @@ makes attribution a duty here rather than a courtesy.
 
 ## The lexicon, `extra-words.txt`
 
-Same sources as the definitions, different use. Wiktionary supplies which
-conjugated forms exist and which infinitive they belong to; Lexique 3.83
-supplies whether a French corpus has ever met the verb, which is the test for
+Same sources as the definitions, different use. Wiktionary supplies which words
+and which conjugated forms exist and which lemma they belong to; the corpora
+supply whether a French corpus has ever met the word, which is the test for
 admitting one. No definition, no gloss and no frequency is copied: what is kept
 is a list of words, one per line.
+
+**The corpora.** Lexique 3.83 answers for every word and alone for the verbs.
+For the rest it is joined by [GLÀFF
+1.2.2](http://redac.univ-tlse2.fr/lexiques/glaff_en.html), by Franck Sajous,
+Nabil Hathout and Basilio Calderone (CLLE-ERSS, CC BY-SA 3.0), which counts each
+word in Frantext 20e, in ten years of *Le Monde* and in the 1.25-billion-word
+FrWaC web corpus. Only those counts are read, and none of them is copied into
+the file: what GLÀFF decides is whether a word Wiktionary already described may
+be kept. `scripts/corpora.mjs` says why one corpus was not enough. CC BY-SA 3.0
+material may be redistributed under CC BY-SA 4.0, which is the licence this file
+carries.
 
 Some of those conjugations complete a verb Grammalecte brought in. The forms
 themselves are Wiktionary's, which is why they are filed here; what Grammalecte

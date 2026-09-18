@@ -104,19 +104,21 @@ npm run test:restart   # tue le serveur en pleine manche et vérifie la reprise
 
 ## Le dictionnaire
 
-**445 422 mots**, assemblés de trois sources :
+**451 965 mots**, assemblés de trois sources :
 
 - `an-array-of-french-words` (MIT), tiré des
   [listes de Letterpress](https://github.com/lorenbrichter/Words) (CC0) : la
-  base, figée en 2019, d'où `orc` et `blog` absents ;
+  base, figée en 2019, d'où `blog` et `covoiturage` absents ;
 - [**Grammalecte**](https://grammalecte.net/) (MPL 2.0), le dictionnaire
   orthographique de Firefox et LibreOffice, à jour et tenu à la main : 102 057
   mots de plus, l'édition « classique » v7.7 telle qu'il la publie ;
 - le **Wiktionnaire** pour le reste : les verbes qui manquaient encore, puis les
-  noms, adjectifs, adverbes et interjections, retenus s'ils sont attestés par un
-  corpus (Lexique 3.83) ; enfin les formes fléchies, calculées en dernier pour
-  que tout mot accepté ait ses conjugaisons, ses pluriels et ses féminins. C'est
-  de là que vient `ribot`, dont le jeu connaissait déjà toute la famille.
+  noms, adjectifs, adverbes et interjections, retenus si **l'un** des quatre
+  corpus les a rencontrés (Lexique 3.83, Frantext 20e, dix ans du *Monde*,
+  FrWaC, ces trois-là via [GLÀFF](http://redac.univ-tlse2.fr/lexiques/glaff.html),
+  CC BY-SA 3.0) ; enfin les formes fléchies, calculées en dernier pour que tout
+  mot accepté ait ses conjugaisons, ses pluriels et ses féminins. C'est de là que
+  viennent `ribot` et `mique`, que le jeu refusait à qui les traçait.
 
 Volontairement permissif : `déci`, `zut`, `eus` et `mangeassions` passent. Les
 entrées à trait d'union ou apostrophe sont écartées, n'étant pas traçables sur

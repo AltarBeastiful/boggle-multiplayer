@@ -54,15 +54,17 @@ jobs:
       - name: Build the game
         run: npm run build
 
-      # 741 MB of sources. Cached by month so a rebuild in the same month is
+      # 755 MB of sources. Cached by month so a rebuild in the same month is
       # quick, and a new month picks up whatever Wiktionary has learned since.
+      # Keyed on both scripts that fetch one, so adding a source misses the
+      # cache once rather than reading a directory that has never held it.
       - name: Cache the reference sources
         uses: actions/cache@v4
         with:
           path: .work
-          key: sources-${{ hashFiles('scripts/build-definitions.mjs') }}-${{ github.run_id }}
+          key: sources-${{ hashFiles('scripts/build-definitions.mjs', 'scripts/corpora.mjs') }}-${{ github.run_id }}
           restore-keys: |
-            sources-${{ hashFiles('scripts/build-definitions.mjs') }}-
+            sources-${{ hashFiles('scripts/build-definitions.mjs', 'scripts/corpora.mjs') }}-
             sources-
 
       - name: Build the definitions

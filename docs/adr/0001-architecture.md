@@ -106,9 +106,9 @@ rewritten, which is most of what Socket.IO brings.
 ## Decision 5: a permissive dictionary, adjustable without rebuilding
 
 `an-array-of-french-words` (MIT): 336,000 raw forms, 318,800 after
-normalisation, 446,028 once Grammalecte, the missing vocabulary and the missing
-inflections are merged in, and 445,422 once the 606 words the list made up are
-struck off (below).
+normalisation, 452,498 once Grammalecte, the missing vocabulary and the missing
+inflections are merged in, and 451,965 once the 606 words the list made up and
+the 29 struck by hand are taken out (below).
 Hyphenated and apostrophised entries are dropped, as they cannot be traced
 anyway.
 
@@ -218,7 +218,9 @@ scale to 24,281 candidates.
 
 **A second dictionary, because the base list is frozen.** The same gap was
 reported from the other side: `orc` refused, and a player saying it looks
-French. It is, and it is one of a class, since the base list has no `blog`, no
+French. It does, and it is not: see "the report that came back the other way"
+below, where it ends up struck. The class behind it was real all the same, which
+is what this paragraph is about. It is, and it is one of a class, since the base list has no `blog`, no
 `tofu`, no `selfie` and no `covoiturage` either. Of 185 everyday modern words
 probed, 93 were missing. The Letterpress list was archived in May 2019 and
 nothing has maintained it since; no amount of patching a frozen list fixes a
@@ -250,7 +252,7 @@ So the answer is not a filter over Wiktionary, it is **a dictionary that is
 maintained**: [Grammalecte](https://grammalecte.net/), the orthographic
 dictionary Firefox and LibreOffice spell with, MPL 2.0, "classique" v7.7, read
 from the archive grammalecte.net publishes. Its Hunspell affixes are expanded to
-every inflected form and the 102,057 the base list lacks are kept. It has `orc`,
+every inflected form and the 102,057 the base list lacks are kept. It has
 `blog`, `tofu`, `selfie`, `covoiturage`, `procrastiner`. The same grid
 measurement: **128 words per grid become 145**, and the additions are `rosti`,
 `recap`, `crosne`, `taco`, `durite`, `strudel`, `aitre`, `gaite`.
@@ -298,15 +300,16 @@ of the words Grammalecte contributes, mostly conjugations of rare verbs, which
 would have taken the bundled definitions from 99.2% of the dictionary down to
 96.5%. Grammalecte knows the lemma it built each form from, though, having built
 it, so `scripts/grammalecte.mjs` hands that map to the definitions build and a
-third pass places 10,394 of them: 2,793 borrow their lemma's definition, and
-7,601 say "Forme de …", which is the shape Wiktionary's own form-of entries take
-anyway. Coverage ends at **99.1%**, better than before the change.
+third pass places 10,540 of them: 2,859 borrow their lemma's definition, and
+7,681 say "Forme de …", which is the shape Wiktionary's own form-of entries take
+anyway. Coverage ends at **99.1%**, better than before the change, and stays
+there once the corpora panel below adds 6,470 words.
 
-The 4,157 left are written to `words-without-definition.txt` and published with
+The 4,205 left are written to `words-without-definition.txt` and published with
 the release, so what is missing is a list somebody can read rather than a
 percentage in a build log.
 
-The hand block, which was 175 words, is now 24: the script drops a hand-picked
+The hand block, which was 175 words, is now 33: the script drops a hand-picked
 word once a source covers it, so what remains is a record of what the
 dictionaries genuinely lack. Nine left it on one day, which is the mechanism
 working: `freelance` and `burnout` when Wiktionary's nouns were let in, and
@@ -328,9 +331,10 @@ adjective per French commune (`zuydcootois`, `mantallotois`, `warnetonnois`) and
 at the other door. Neither is rare vocabulary. Both are a bot filling in a
 table.
 
-The corpus test settles it as it settled the verbs: **1,504 admitted**, and what
-it keeps is `castagnette`, `affre`, `représaille`, `décarrade`, `larmichette`,
-`ribot`. What it drops is the tables. It also quietly covers a filter that turns
+The corpus test settles it as it settled the verbs: **4,416 admitted** once four
+corpora rather than one are asked (below), and what it keeps is `castagnette`,
+`affre`, `représaille`, `décarrade`, `larmichette`, `ribot`, `mique`. What it
+drops is the tables. It also quietly covers a filter that turns
 out to be nearly a no-op here: `REJECTED_LABELS` was written against verb forms,
 where `québec` and `wallonie` are the regionalisms one meets, and on nouns the
 label is `Normandie` or `Savoie` or `Canada` fourteen times more often than
@@ -374,6 +378,180 @@ taking Wiktionary whole, and it says the same thing.
 So the gate stays: **Wiktionary's part of speech, its own labels, and a corpus.**
 Morphalou would be the right answer to a different question, and if the game
 ever wants prescription over currency it is a working 37 MB download away.
+
+**One corpus had a veto, and that was the next bug.** `mique` was reported
+missing: the Périgord dumpling, which the Wiktionary quotes from Mauriac, from
+two cookery books and from an ethnography of the Pyrenees, and which Lexique
+3.83 has never met. The gate above asked Lexique and nothing else, so a word one
+corpus of film subtitles and books had not happened to sample was refused with
+no appeal. A corpus missing a word says something about the corpus.
+
+Adding `mique` by hand would have fixed one word. Checking what sat behind the
+same door found 4,500: `panisse`, `déchèterie`, `téléréalité`, `soluce`,
+`webmail`, `phishing`, `weekend`. So attestation became a panel of four, any one
+of which vouching is enough, in `scripts/corpora.mjs`:
+
+| Corpus | Size | What it is |
+| --- | --- | --- |
+| Lexique 3.83 | 50,000 lemmas | film subtitles and books, nomenclature checked by hand |
+| Frantext 20e | 28.8 M words | twentieth-century literature |
+| *Le Monde* | 219.8 M words | ten years of the newspaper |
+| FrWaC | 1.25 G words | a crawl of the French web, the only one young enough to have met `télétravail` |
+
+The last three come from [GLÀFF
+1.2.2](http://redac.univ-tlse2.fr/lexiques/glaff_en.html) (CLLE-ERSS, CC BY-SA
+3.0), which is where those corpora are counted per word. They differ in size by
+a factor of forty, so the test is **a rate, not a count**: 0.03 occurrences per
+million, which is one occurrence in the smallest of them, seven in the newspaper
+and thirty-eight in the crawl. A count would have admitted `huluberlu` and
+`rappatriement`, each met once by 1.25 billion words of web text.
+
+**Two places where the panel is held back, both measured on grids** rather than
+on lists, which is the measurement that refused Morphalou three paragraphs
+above. The whole change is 142.8 words per 4x4 grid becoming 147.1.
+
+*Verbs are asked of Lexique alone.* An infinitive brings about fifty playable
+forms with it where a noun brings two, so the evidence has to be worth fifty
+words. And GLÀFF's verb lemmas come from a machine tagger, which guesses a verb
+for any short French form it cannot place: `idéer` scores 0.158 on occurrences
+of `idée`, `vener` 0.417 on `venir`, `anser` 0.486 on `anse`, and `esser`,
+`facer`, `funer` and `galer` likewise. Every one is four or five letters and
+each lays fifty short words across the grid: the block goes from 338
+infinitives to 549 and the dictionary gains 7,365 words, for 148.1 per grid
+against 147.1, and the difference reads `ANSER ANSEZ ANSAI IDEER IDEEZ FUNEZ
+VENEZ`. `idéer` is named twelve paragraphs
+above as a coinage to keep out, and there it was, admitted by a frequency
+belonging to `idée`. It gives up `switcher`, `booter`, `uploader` and
+`labéliser`, which are real and which nobody has reported.
+
+*Under five letters a frequency is not evidence on its own.* The same tagger
+noise lands on short headwords: `tré` scores 6.6 per million on tokenisation
+debris, `tion` 0.61 on the suffix, and `pla`, `ani`, `poa`, `aure`, `asin`,
+`anel` and `oule` the same. This is the Morphalou argument again and it is the
+one that matters, because a short word lands on nearly every grid and a
+nine-letter word on none: `tré` turned up on 77 of 400 grids.
+
+A length cut was tried first and refused, for the reason it deserved: three and
+four letters are most of Boggle, the dictionary holds 649 three-letter and 2,562
+four-letter words, and cutting there throws out `kiff`, `asso`, `péno`, `shop`
+and `led` to be rid of `tré`. So a short word is asked for **a second witness**
+rather than held to a higher bar: a citation from a dated, published source in
+its own Wiktionary entry. A frequency is attached to a lemma by a machine and
+can belong to a homograph; a citation is chosen by an editor to illustrate that
+headword and prints it inside a sentence, which no other word's count can fake.
+Of the 127 short words the corpora alone would have admitted it keeps 75 and
+drops 52, and the 52 are the list above. A word Lexique already knows never
+reaches the test, its nomenclature being the same second opinion by another
+route.
+
+Measured: 147.1 words per grid, against 145.1 for the length cut and 148.3 for
+no rule at all. The extra two words are `led`, `asso`, `péno`, `run`, `zine`,
+`kiff` and then the rare but real, `nit` the unit of luminance, `mée` the bread
+chest, `enne` the letter N, `suet` the south-east wind.
+
+**Two rules were wrong in the same shape and are fixed with it.** Neither had
+anything to do with corpora, and both were found by asking what else was behind
+the door rather than what else was like `mique`.
+
+*Register refused a word while the file said it does not.* `REJECTED_TAGS` held
+`colloquial`, `familiar`, `slang` and `informal` next to `archaic` and
+`misspelling`, and was applied to headwords and to inflected forms alike. The
+comment beside it said, correctly, that register is not a reason to refuse a
+verb, since `zyeuter` and `chourer` are familiar and slang and entirely French,
+and then every familiar noun in French was refused on exactly that ground:
+`branque`, `stup`, `perme`, `carbu`, `cuisto`, `nanard`. A headword and a form
+now have separate rules. The form keeps the stricter one, which is what it was
+written for: `sra` is familiar for `sera` and is not a conjugation of `être`
+anybody may claim a point for.
+
+*A spelling variant is a word to trace.* The same set held `alt-of`, and a
+gloss opening `Variante de` was refused as a cross-reference worth nothing, on
+the reasoning that the word it points at is either in the game or not. That is
+true of a definition and false of a grid: `clef` and `clé` are different letter
+sequences, and Wiktionary glosses `clef` exactly that way, along with
+`carbonade`, `nanard` and `kiff`. Only the pointers to an older spelling are
+refused now, `Ancienne orthographe de connaissance` and its shapes, and the
+labels still refuse the variant that is also dated or non-standard, which is
+what `partisant`, `huluberlu` and `aurevoir` are. `aurevoir` says so in its
+Wiktionary categories and in no tag at all, so the categories are read too.
+
+**A word can now be struck by hand, which it could not be before.** `asso` was
+reported as wrongly accepted, an apocope of `association`. Checked against the
+Officiel du Scrabble it turned out to be valid and the report wrong, which is
+its own lesson: 51 of the 75 clipped forms this change admits are in ODS 9,
+`asso` among them, and a judgement about one word is worth less than a list
+somebody maintains. But the report found a real hole on the way in. There was
+nowhere to put the answer if it had been yes.
+
+`extra-words.txt` has had a hand block since `orc`, kept across
+rebuilds and pruned as the sources catch up; `excluded-words.txt` was computed
+from end to end, so a line added to it survived until the next `--write`, and
+the documented way to put a word back, deleting its line, did not survive
+either because the computation produced it again. Adding and removing are the
+same question asked twice. That file now has the same two blocks, the second
+written by hand and pruned by the mirror-image rule: a word stays struck only
+while a source still supplies it, so striking a singular drops its plural on the
+next build, the paradigm never having been completed.
+
+**The report that came back the other way.** The block's first occupant is
+`orc`, which is the word that opened this whole section. It was
+reported missing, Grammalecte was adopted partly to supply it, and it arrived
+with the rest of that dictionary as `orc/S.`. It should not have. The Officiel
+du Scrabble refuses it where it takes `orque` and `orques`; French writes
+`orque`, which the game has always accepted; and Tolkien's own note to his
+translators asks for the word to be translated, which Francis Ledoux did. Every
+other word this section cites as proof that the base list had gone stale,
+`blog`, `tofu`, `selfie`, `covoiturage`, `pixel`, `kebab`, `sudoku`, `manga`,
+`écolo`, `hacker`, is in ODS 9. `orc` alone is not, so the examples here now name
+one of those instead.
+
+Both forms need a line of their own. `orcs` comes from Grammalecte's plural
+flag rather than from the block that completes paradigms, so striking the
+singular does not take it, where striking a word whose plural is computed does.
+That asymmetry is the pruning rule working rather than a hole in it.
+
+**And then 27 clipped forms, settled in one pass.** The corpora panel admits 75
+apocopes and aphéreses, and the question of whether a familiar clipping is a
+word turns out to have an answer somebody already maintains: 51 of them are in
+ODS 9 and 24 are not, plus three more clippings filed elsewhere. `aprèm` is
+listed and `aprème` is not; `zizique` is and `zique` is not; `asso`, `péno`,
+`certif`, `restau`, `impec`, `calcif`, `scénar` are all in. There is no rule in
+that, which is the point: it is a lexicographer's list and the way to use it is
+to read it, once, for the whole class rather than one word per bug report. The
+27 the ODS refuses are struck, the 51 stay, and the block is where the answer
+lives because no property of the data separates them.
+
+Their plurals needed no lines. The paradigm block completes only what the
+dictionary still accepts, so striking `carbu` took `carbus` with it. `gogues`
+stayed, ODS listing that one where it refuses the singular, French using the
+word in the plural only, and `reûmes` was nearly caught by a careless search
+for `reum` plus an ending: it is a conjugation that happens to normalise onto
+the same letters.
+
+**The Officiel du Scrabble, as a measuring stick and not a gate.** Checking
+`asso` meant getting hold of an ODS word list, and having one it was worth
+asking what it says about the whole dictionary. 368,106 of the game's 451,965
+words are in ODS 9, 83,859 are not, and ODS holds 39,022 the game refuses.
+Neither is a superset of the other, and the ODS side of the gap is not all
+error: it refuses `frigorifiante` and `hennie`, which this decision defends
+three sections above. On `orc` it was right and this decision was wrong.
+
+The number worth writing down is the other one. The dictionary as it stood was
+82.1% ODS-valid; of the 6,547 words the corpora panel adds, 35.3% are. The
+additions lean to anglicisms, adjectives of place and technical vocabulary,
+which is what a corpus of the French web is full of and a tournament lexicon is
+not. That is a real cost of the panel and it is recorded here rather than
+argued away. Making ODS membership a gate is not taken: it would refuse 4,236 of
+the 6,547 including `webmail`, `cuisto` and `nanard`, it would undo the
+permissiveness decided at the top of this section, and the published lists are
+unlicensed copies of a Larousse work, which is fine to consult by hand and not to
+ship. Consulting it for one class at a time, as the clipped forms were, is the
+use this decision does take.
+
+**And a test that names the class, not the word.** `scripts/test-dictionary.mjs`
+grew a section of words that are hard to build in, grouped by the rule that lets
+each group in, so a failure says which rule went rather than which word. `mique`
+is the first line of it.
 
 **The coarse list, and a claim in this decision that was false.** The rule above
 says the source list has "no `encule`, no `niquer`, no `pede`, so somebody

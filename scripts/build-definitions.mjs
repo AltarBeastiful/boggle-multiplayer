@@ -293,7 +293,7 @@ async function main() {
   // built them from it, which is enough for two things: the lemma's own
   // definition when the Wiktionary defines it, and otherwise a sentence saying
   // what the word is a form of. Neither invents anything: the second is the
-  // shape Wiktionary's own form-of entries already take ("Pluriel de orc.").
+  // shape Wiktionary's own form-of entries already take ("Pluriel de blog.").
   log('pass 3/3: the forms Grammalecte can still place');
   const defined = new Set([...rows.values()].map((row) => row.normalized));
   const grammalecte = await grammalecteLemmas();

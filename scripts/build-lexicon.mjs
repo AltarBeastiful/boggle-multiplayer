@@ -13,7 +13,7 @@
  * **1. Grammalecte**, the French orthographic dictionary behind LibreOffice
  * and Firefox (MPL 2.0, "classique" v7.7, published by grammalecte.net).
  * Human-curated and still maintained, which is exactly what the base list is
- * not: it has `orc`, `blog`, `tofu`, `selfie`, `covoiturage`. Its
+ * not: it has `blog`, `tofu`, `selfie`, `covoiturage`, `pixel`. Its
  * Hunspell affixes are expanded to every inflected form, minus two families of
  * flag. The SI unit prefixes (`U.`) would multiply every unit symbol by
  * nineteen and produce `zsr`, `dcal`, `ncd`: combinatorially generated, never
@@ -33,6 +33,16 @@
  * itself. Wiktionary files proper nouns under a part of speech of their own and
  * they are refused there, on top of being refused for their capital letter.
  *
+ * This is also where `mique` was refused, and the reason it was is why
+ * `corpora.mjs` exists. Lexique 3.83 alone decided attestation, so a word one
+ * corpus had never met had no appeal: four decide it now, and `mique`,
+ * `panisse`, `déchèterie` and `webmail` come in as a class rather than as a
+ * list. The two rules alongside it were wrong in the same shape and are fixed
+ * with it: register refused a noun while the file said in so many words that it
+ * does not refuse a verb, and `variante de` was read as a cross-reference worth
+ * nothing, which is how `clef` would have been refused had the base list not
+ * happened to hold it.
+ *
  * **4. Words added by hand**, for what no source has. Anything in the file
  * outside the generated blocks is kept, and dropped only once a source covers
  * it, so this block shrinks by itself as the lexicons catch up.
@@ -45,7 +55,8 @@
  * what stops a word arriving in an earlier block without its forms.
  *
  * Both Wiktionary passes filter hard, because Wiktionary describes French
- * rather than prescribing it: see REJECTED_TAGS below.
+ * rather than prescribing it: see UNPLAYABLE_TAGS below, and the separate,
+ * stricter rule for inflected forms next to it.
  *
  * With --write the result is merged into server/data/extra-words.txt. Running
  * it twice produces the same file, byte for byte.
@@ -60,6 +71,7 @@ import { createGunzip } from 'node:zlib';
 
 import { buildDictionary, normalizeWord } from '@boggle/shared';
 
+import { attestation, CORPUS_ALONE_FROM, GLAFF_VERSION } from './corpora.mjs';
 import { baseSpellings, wordAdjustments } from './game-dictionary.mjs';
 import { FRENCH_WORD, GRAMMALECTE_VERSION, grammalecteLemmas } from './grammalecte.mjs';
 
@@ -69,7 +81,7 @@ import { FRENCH_WORD, GRAMMALECTE_VERSION, grammalecteLemmas } from './grammalec
  * with a checksum of its own contents, so a copy found anywhere can say what it
  * is and whether it is intact.
  */
-const LEXICON_VERSION = '3.0.0';
+const LEXICON_VERSION = '4.0.0';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const WIKTIONARY = resolve(root, '.work', 'fr-extract.jsonl.gz');
@@ -111,19 +123,22 @@ const playable = (word) => {
 // The file as it stands
 
 /**
- * The words in the file that this script did not put there.
+ * The words in a generated file that this script did not put there.
  *
- * The generated blocks are marked, so anything outside them was written by
- * hand. They are read before anything is computed and never used as input to
- * a generator, which is what lets the hand block be pruned: a word is dropped
- * from it only once a source has been shown to cover it.
+ * The generated blocks are marked, so anything under a block whose title says
+ * `by hand` was written by a person. They are read before anything is computed
+ * and never used as input to a generator, which is what lets a hand block be
+ * pruned: a word leaves it only once the sources have settled the question it
+ * was answering.
  */
-function handPicked() {
-  if (!existsSync(EXTRA)) return [];
+function handWritten(path) {
+  if (!existsSync(path)) return [];
   let generated = false;
   const words = [];
-  for (const line of readFileSync(EXTRA, 'utf8').split('\n')) {
-    const marker = /^# --- ([0-9])\. (.+?) -/.exec(line);
+  for (const line of readFileSync(path, 'utf8').split('\n')) {
+    // The number is optional: a block heading is a block heading, and one
+    // written before the file grew a second block has none.
+    const marker = /^# --- (?:([0-9])\. )?(.+?) -/.exec(line);
     if (marker) generated = !/by hand/.test(marker[2]);
     else if (line.startsWith('#')) continue;
     else if (!generated && line.trim().length > 0) words.push(line.trim());
@@ -131,7 +146,26 @@ function handPicked() {
   return words;
 }
 
-const hand = handPicked();
+const hand = handWritten(EXTRA);
+
+/**
+ * Words struck by hand, which is the other half of the hand block above and
+ * was missing until somebody reported one.
+ *
+ * A word the sources lack has had a place to go since `orc` was reported. A
+ * word they wrongly supply had none: this file is written from a computation,
+ * so a line added to it survived until the next `--write` and no longer. The
+ * documented way to put a word back, deleting its line, did not survive either,
+ * since the computation simply produced it again. Adding and removing are the
+ * same question asked twice and they now have the same answer. `orc` itself is
+ * what ended up here: the report that brought Grammalecte in, and the English
+ * spelling of a word French writes `orque`.
+ *
+ * What is struck here is not what the base list made up, which is a rule and
+ * is computed below. It is the residue that no rule reaches: a word the
+ * sources genuinely hold and a player should not be shown.
+ */
+const handStruck = handWritten(EXCLUDED);
 const excluded = wordAdjustments('excluded-words.txt');
 
 /**
@@ -199,36 +233,80 @@ console.log(`  ${blockGrammalecte.length} new to the game, dictionary now ${know
  * All real entries, none of them a word to be refused a point for not knowing.
  * `rare` is deliberately not here, since `gésir` is rare and entirely correct,
  * and neither are the 1990 reform spellings, which are official.
+ *
+ * **A headword and an inflected form are not held to the same rule**, which
+ * they were until `branque`, `stup`, `perme`, `carbu`, `cuisto` and `nanard`
+ * were found missing together. What refuses a word is below; what refuses a
+ * form adds register to it, further down, and the difference is the whole
+ * point. `sra` is a familiar contraction of `sera` and is not a form of
+ * `être` that a player may claim; `branque` is a familiar noun and is a word.
+ * The file already said as much about verbs, where `zyeuter` and `chourer` are
+ * admitted with the label on, and then said the opposite about every noun.
  */
-const REJECTED_TAGS = new Set([
-  'archaic',
-  'obsolete',
-  'dated',
+const UNPLAYABLE_TAGS = new Set(['archaic', 'obsolete', 'dated', 'nonstandard', 'misspelling']);
+
+/** The same, as Wiktionary's own French labels. */
+const UNPLAYABLE_LABELS =
+  /archaïque|avant 1835|ancienne orthographe|par plaisanterie|régionalisme|diaéthiques|vallée d’aoste|québec|louisiane|acadie|missouri|wallonie|acadien|désuet|vieilli/i;
+
+/**
+ * And as the categories the entry is filed under, which say it when nothing
+ * else does.
+ *
+ * `aurevoir` carries no tag and no label. Its one sense is glossed "Variante
+ * orthographique de au revoir" and the entry sits in "Termes non standards en
+ * français", which is Wiktionary saying exactly what a tag would have said,
+ * in the only place this extraction keeps it. Reading the categories as well
+ * costs nothing and closes the shape rather than the word.
+ *
+ * Only the families that mean "not current standard French" are read.
+ * Register ("Termes familiers", "Termes argotiques") and the varieties of
+ * France ("français du Bourbonnais", "français d’Auvergne") are deliberately
+ * not here: `bredin` and `drac` are French, and refusing them would be
+ * refusing `mique` for the same reason one sentence later.
+ */
+const UNPLAYABLE_CATEGORIES =
+  /Termes (non standards|désuets|vieillis|archaïques) en français|français moderne d’avant/i;
+
+/**
+ * And as the opening of the definition itself: a pointer to an older spelling.
+ *
+ * `connoissance` is glossed "Ancienne orthographe de connaissance", `avoit`
+ * "Ancienne forme d’avait", `fontsaient` "Régularisation de …". The word each
+ * points at is the one in use, and these spellings are not.
+ *
+ * A plain `Variante de …` is deliberately not here, and used to be. It reads
+ * like the same thing and is not: Wiktionary glosses `clef` that way, and
+ * `carbonade`, `nanard` and `kiff`, all of them current spellings a player can
+ * trace and no dictionary refuses. What made the old rule look right is that
+ * the variants it caught were mostly old ones, and those are still caught, by
+ * the labels above that say so.
+ */
+const OLD_SPELLING_GLOSS =
+  /^(ancienne (orthographe|graphie|forme)|orthographe (ancienne|d’avant)|écriture ancienne|forme ancienne|graphie ancienne)\b|régularisation/i;
+
+/**
+ * What refuses an inflected form: everything above, and register besides.
+ *
+ * A conjugation table is where Wiktionary files `sra`, `ché` and `tsé`, marked
+ * familiar and nothing else, and they normalise to three playable letters. It
+ * is also where `alt-of` means what the old rule thought it meant everywhere,
+ * a form that is only a pointer at another form.
+ */
+const UNPLAYABLE_FORM_TAGS = new Set([
+  ...UNPLAYABLE_TAGS,
   'colloquial',
   'familiar',
   'slang',
   'informal',
-  'nonstandard',
-  'misspelling',
   'alt-of',
   'neuter',
 ]);
-
-/** The same, as Wiktionary's own French labels. */
-const REJECTED_LABELS =
-  /archaïque|avant 1835|ancienne orthographe|par plaisanterie|régionalisme|diaéthiques|vallée d’aoste|québec|louisiane|acadie|missouri|wallonie|acadien|désuet|vieilli|populaire|argot|enfantin/i;
-
-/**
- * And as the opening of the definition itself.
- *
- * A dictionary entry whose whole content is "see that other word" is a
- * cross-reference, not a word to be scored: the word it points at is already
- * in the game, or it is not, and either way this entry adds nothing. The
- * `autre graphie` and `forme ancienne` shapes were missing while `variante`
- * was caught, which let `masaï`, `susu` and `etimologique` through the door
- * their own spellings had just been refused at.
- */
-const REJECTED_GLOSS =
+const UNPLAYABLE_FORM_LABELS = new RegExp(
+  `${UNPLAYABLE_LABELS.source}|populaire|argot|enfantin`,
+  'i',
+);
+const REJECTED_FORM_GLOSS =
   /^(ancienne|variante|orthographe|écriture|contraction|autre (graphie|orthographe)|forme ancienne|graphie ancienne)\b|régularisation/i;
 
 /**
@@ -331,27 +409,43 @@ function livingVerb(entry) {
  * The same question for a word that is not a verb, with one addition.
  *
  * A verb's labels are read off its infinitive and its forms are judged one by
- * one, so `standardForm` gets its say either way. A noun has no such second
- * pass: the lemma entry is the only entry there is, and if it is not asked
+ * one, so `standardForm` gets its say on every conjugation. A noun has no such
+ * second pass: the lemma entry is the only entry there is, and if it is not asked
  * whether the sense is standard then a headword whose entire definition is
- * "autre graphie de massaï" walks in as vocabulary. So the surviving sense has
- * to be both current and standard, and the same one has to be both: a word
- * kept alive by a modern sense and vouched for by an archaic one is neither.
+ * "ancienne orthographe de connaissance" walks in as vocabulary. So the
+ * surviving sense has to be both current and standard, and the same one has to
+ * be both: a word kept alive by a modern sense and vouched for by an archaic
+ * one is neither.
  */
 function livingWord(entry) {
   const senses = glossed(entry);
   if (senses.length === 0 || !printable(entry, senses)) return false;
-  return senses.some((sense) => current(entry, sense) && standardForm(entry, sense));
+  return senses.some((sense) => current(entry, sense) && standardWord(entry, sense));
 }
 
-function standardForm(entry, sense) {
+/** Whether a headword is standard modern French: register is not asked. */
+function standardWord(entry, sense) {
   for (const tag of [...(entry.tags ?? []), ...(sense.tags ?? [])]) {
-    if (REJECTED_TAGS.has(tag)) return false;
+    if (UNPLAYABLE_TAGS.has(tag)) return false;
   }
   for (const label of [...(entry.raw_tags ?? []), ...(sense.raw_tags ?? [])]) {
-    if (REJECTED_LABELS.test(label)) return false;
+    if (UNPLAYABLE_LABELS.test(label)) return false;
   }
-  return !REJECTED_GLOSS.test(sense.glosses?.[0] ?? '');
+  for (const category of [...(entry.categories ?? []), ...(sense.categories ?? [])]) {
+    if (UNPLAYABLE_CATEGORIES.test(category)) return false;
+  }
+  return !OLD_SPELLING_GLOSS.test(sense.glosses?.[0] ?? '');
+}
+
+/** The same of an inflected form, where register does decide. */
+function standardForm(entry, sense) {
+  for (const tag of [...(entry.tags ?? []), ...(sense.tags ?? [])]) {
+    if (UNPLAYABLE_FORM_TAGS.has(tag)) return false;
+  }
+  for (const label of [...(entry.raw_tags ?? []), ...(sense.raw_tags ?? [])]) {
+    if (UNPLAYABLE_FORM_LABELS.test(label)) return false;
+  }
+  return !REJECTED_FORM_GLOSS.test(sense.glosses?.[0] ?? '');
 }
 
 /**
@@ -370,6 +464,18 @@ const families = new Map();
 const inflections = new Map();
 /** Nouns, adjectives, adverbs and interjections with a living, standard sense. */
 const wordLemmas = new Set();
+/**
+ * Lemmas Wiktionary quotes from a dated, published source, and how many.
+ *
+ * The second witness a short word needs. A corpus frequency is attached to a
+ * lemma by a machine, so for a short string it can belong to another word
+ * entirely; a citation is chosen by an editor to illustrate this headword and
+ * prints it inside a sentence, which no homograph's count can fake. Dated,
+ * because a reference carrying a year is a published work rather than a
+ * sentence somebody made up for the entry.
+ */
+const citedLemmas = new Map();
+const CITATION_YEAR = /\b(1[5-9]\d\d|20[0-2]\d)\b/;
 /** Forms left out as not being standard modern French. */
 const rejected = new Set();
 /** Infinitives with no living, printable sense left. */
@@ -425,6 +531,17 @@ for await (const line of lines) {
     const senses = glossed(entry);
     if (senses.length > 0 && !printable(entry, senses)) unprintableLemmas.add(entry.word);
 
+    // Distinct works, not distinct quotations: four sentences from one book
+    // are one source, and `mique` is quoted from five different ones.
+    const works = new Set();
+    for (const sense of senses) {
+      for (const example of sense.examples ?? []) {
+        const reference = (example.ref ?? '').trim();
+        if (reference.length > 0 && CITATION_YEAR.test(reference)) works.add(reference);
+      }
+    }
+    if (works.size > (citedLemmas.get(entry.word) ?? 0)) citedLemmas.set(entry.word, works.size);
+
     if (verb) {
       if (!livingVerb(entry)) labelledLemmas.add(entry.word);
     } else if (livingWord(entry)) {
@@ -467,42 +584,21 @@ console.log(`  ${rejected.size} forms set aside as archaic, regional, slang or j
 // ---------------------------------------------------------------------------
 // Block 2: the verbs no source has
 
-/**
- * Lemmas that occur in a real French corpus, with how often, per Lexique 3.83
- * (film subtitles and books), verbs apart from the rest. This is the whole of
- * what blocks 2 and 3 mean by "makes sense in French": not an opinion about the
- * word, a record of somebody having used it.
+/*
+ * Whether a real French corpus has met the word. This is the whole of what
+ * blocks 2 and 3 mean by "makes sense in French": not an opinion about the
+ * word, a record of somebody having used it. Four corpora answer, any one of
+ * them is enough, and `scripts/corpora.mjs` says why there are four.
  *
- * The frequency is read off the lemma, so a noun the corpus only ever met in
- * the plural still vouches for its singular. It is a threshold of existence
- * rather than a measure of currency: Lexique lower-cases proper nouns, so the
- * `ève` that scores 19.93 is mostly the first woman rather than the groove in
- * a plank. Nothing enters on that number alone, only words Wiktionary has
- * already vouched for as ordinary French do, so the confusion is harmless.
+ * It is a threshold of existence rather than a measure of currency, and the
+ * corpora lower-case proper nouns, so the `ève` that scores well is mostly the
+ * first woman rather than the groove in a plank. Nothing enters on that number
+ * alone, only words Wiktionary has already vouched for as ordinary French do,
+ * so the confusion is harmless.
  */
-function attestedLemmas() {
-  const verbs = new Map();
-  const words = new Map();
-  const rows = readFileSync(LEXIQUE, 'utf8').split('\n');
-  const columns = rows[0].split('\t');
-  const [lemma, category, films, books] = ['lemme', 'cgram', 'freqfilms2', 'freqlivres'].map(
-    (name) => columns.indexOf(name),
-  );
-  for (let index = 1; index < rows.length; index++) {
-    const fields = rows[index].split('\t');
-    if (fields.length < 11 || fields[category].length === 0) continue;
-    const kind = fields[category] === 'VER' ? verbs : words;
-    const frequency =
-      (Number.parseFloat(fields[films]) || 0) + (Number.parseFloat(fields[books]) || 0);
-    if (frequency > (kind.get(fields[lemma]) ?? -1)) kind.set(fields[lemma], frequency);
-  }
-  return { verbs, words };
-}
-
-const { verbs: attestedVerbs, words: attestedWords } = attestedLemmas();
-console.log(`\nLexique: ${attestedVerbs.size} verb infinitives attested in a corpus`);
-console.log(`  ${attestedWords.size} other lemmas, which block 3 reads`);
-
+const attested = await attestation();
+console.log('');
+for (const line of attested.describe()) console.log(line);
 
 const newVerbs = [];
 const newVerbLemmas = [];
@@ -511,7 +607,7 @@ let labelledOut = 0;
 for (const [lemma, family] of families) {
   const normalized = playable(lemma);
   if (!normalized || known.has(normalized)) continue;
-  if (!attestedVerbs.has(lemma)) {
+  if (!attested.verb(lemma)) {
     unattested++;
     continue;
   }
@@ -542,11 +638,11 @@ console.log(
  * rare vocabulary. Both are a bot filling in a table, and a five-letter grid
  * full of them is worse than one missing `ribot`.
  *
- * The corpus test cuts that to some fifteen hundred, and it cuts it in the
- * right place: what it keeps is `castagnette`, `affre`, `représaille`,
- * `décarrade`, `larmichette`, and what it drops is the tables. It also quietly
- * covers the regional labels, which turned out to be a near-no-op here:
- * `REJECTED_LABELS` was written against verb forms, where `québec` and
+ * The corpus test cuts that down, and it cuts it in the right place: what it
+ * keeps is `castagnette`, `affre`, `représaille`, `décarrade`, `larmichette`,
+ * `mique`, and what it drops is the tables, which no corpus has ever met. It
+ * also quietly covers the regional labels, which turned out to be a near-no-op
+ * here: `UNPLAYABLE_LABELS` was written against verb forms, where `québec` and
  * `wallonie` are what one meets, and on nouns the label is `Normandie` or
  * `Savoie` or `Canada` fourteen times more often than anything it lists. The
  * Val d'Aoste sport `rebatta` says so only in the prose of its definition. A
@@ -555,11 +651,24 @@ console.log(
 const newWords = [];
 let unvouchedWords = 0;
 let coarseWords = 0;
+let uncitedShort = 0;
 for (const word of wordLemmas) {
   const normalized = playable(word);
   if (!normalized || known.has(normalized)) continue;
-  if (!attestedWords.has(word)) {
+  if (!attested.word(word)) {
     unvouchedWords++;
+    continue;
+  }
+  /*
+   * The second witness a short word needs, which `corpora.mjs` explains: under
+   * five letters a corpus frequency may belong to a homograph, so Wiktionary
+   * has to be quoting this headword from a published work as well. It keeps
+   * `kiff`, `asso`, `péno`, `shop` and `led`, which are words people play, and
+   * drops `tré`, `tion`, `pla`, `ani`, `aure`, `asin`, `anel` and `oule`,
+   * which are a tagger's arithmetic.
+   */
+  if (normalized.length < CORPUS_ALONE_FROM && attested.onCorpusAlone(word) && !citedLemmas.get(word)) {
+    uncitedShort++;
     continue;
   }
   if (COARSE.has(word)) {
@@ -570,6 +679,7 @@ for (const word of wordLemmas) {
 }
 const blockWords = admit(newWords);
 console.log(`\nWords: ${unvouchedWords} never met in the corpus, left out`);
+console.log(`  ${uncitedShort} under ${CORPUS_ALONE_FROM} letters with no published citation, left out`);
 if (coarseWords > 0) console.log(`  ${coarseWords} coarse, left out by name`);
 console.log(`  ${blockWords.length} admitted, dictionary now ${known.size}`);
 
@@ -690,6 +800,32 @@ struck.sort((a, b) => a.localeCompare(b, 'fr'));
 console.log(`\nStruck off: ${struck.length} of the ${unvouched.size} base-list words no reference has`);
 
 /*
+ * The hand block prunes itself, the same way the one in extra-words.txt does
+ * and for the same reason, running the other way: a word stays struck only
+ * while a source still supplies it. Once nothing produces it the line is
+ * answering a question nobody is asking, and the file would otherwise grow
+ * into a list of words that are not in the dictionary anyway.
+ *
+ * `admitted` is every spelling the blocks above put forward, before exclusion,
+ * which is exactly "what the sources supply".
+ */
+const supplied = new Set();
+for (const word of admitted) {
+  const normalized = playable(word);
+  if (normalized) supplied.add(normalized);
+}
+// Also dropped once the rule above catches the word on its own, which is the
+// same question settled by the other half of the file: two blocks listing one
+// word would count it twice and say nothing extra.
+const computed = new Set(struck.map((word) => normalizeWord(word)));
+const byHand = [...new Set(handStruck)]
+  .filter((word) => supplied.has(normalizeWord(word)) && !computed.has(normalizeWord(word)))
+  .sort((a, b) => a.localeCompare(b, 'fr'));
+const settled = new Set(handStruck).size - byHand.length;
+console.log(`  ${byHand.length} more struck by hand, which no rule reaches`);
+if (settled > 0) console.log(`  ${settled} dropped from the hand block, no source supplies them now`);
+
+/*
  * A verb whose forms are struck while its infinitive stays is the complaint
  * this whole file exists to answer, wearing the other hat. The infinitives sit
  * in the leftovers rather than in either shape above, so they are reported and
@@ -753,7 +889,7 @@ const curatedBlock = block(
   [
     `${blockGrammalecte.length} words. The orthographic dictionary behind LibreOffice and`,
     'Firefox, human-curated and still maintained, which the base word list',
-    'stopped being in 2019: this is where `orc`, `blog`, `tofu`, `selfie` and',
+    'stopped being in 2019: this is where `blog`, `tofu`, `selfie` and',
     '`covoiturage` come from. The SI unit prefixes are the one thing dropped,',
     'since they multiply every unit symbol by nineteen and nobody writes `zsr`.',
   ],
@@ -765,9 +901,10 @@ const extraBlocks = [
     '1. verbs no source had, with their conjugations',
     [
       `${newVerbLemmas.length} infinitives and their forms, from Wiktionary. Admitted only if a`,
-      'French corpus has met the verb (Lexique 3.83) and Wiktionary does not call',
-      `it archaic, regional or slang. The other ${unattested} verbs it conjugates would`,
-      'have added some 772,000 words, most of them nonce coinages.',
+      'French corpus has met the verb (Lexique 3.83, alone here: an infinitive',
+      'brings fifty forms with it, and the other corpora tag their verbs by',
+      `machine) and Wiktionary does not call it archaic or coarse. The other ${unattested}`,
+      'it conjugates would have added some 772,000 words, most of them coinages.',
     ],
     blockVerbs,
   ),
@@ -775,8 +912,9 @@ const extraBlocks = [
     '2. the rest of the vocabulary no source had',
     [
       `${blockWords.length} nouns, adjectives, adverbs and interjections, from Wiktionary,`,
-      'under the same corpus test as the verbs above (Lexique 3.83). This is where',
-      '`ribot` comes from, and `castagnette`, `affre`, `représaille`, `larmichette`.',
+      'kept when any of four French corpora has met the word: Lexique 3.83, and',
+      `Frantext 20e, Le Monde and FrWaC through GLÀFF ${GLAFF_VERSION}. This is where`,
+      '`ribot` comes from, and `castagnette`, `affre`, `larmichette`, `mique`.',
       `The ${unvouchedWords} Wiktionary describes that no corpus has met are one adjective`,
       'per French commune and every SI unit multiplied by every prefix. Proper',
       'nouns are refused twice over, for their capital and for their part of speech.',
@@ -835,47 +973,66 @@ if (!write) {
     `# words     ${extraCount}`,
     `# sha256    ${checksum}`,
     '#',
-    '# Sources, both CC BY-SA 4.0, see LICENCE-DEFINITIONS.md:',
+    '# Sources, all CC BY-SA, see LICENCE-DEFINITIONS.md:',
     '#   French Wiktionary, via the wiktextract extraction at kaikki.org',
-    '#   Lexique 3.83, for which words a French corpus has actually met',
+    '#   Lexique 3.83, and GLÀFF 1.2.2 for Frantext 20e, Le Monde and FrWaC,',
+    '#   which together decide whether a French corpus has met a word',
     '#',
     '# Grammalecte lives in grammalecte-words.txt, under its own licence.',
   ]);
 
   const struckSum = writeLexicon(
     EXCLUDED,
-    block(
-      'words the base list made up',
-      [
-        `${struck.length} words, struck off. Neither Grammalecte nor the Wiktionary,`,
-        'in any of the languages it describes, has an entry for them, and they take',
-        'one of the two shapes that cannot be anything but an error: a conjugation',
-        'of a verb nothing conjugates (`blêmer` for `blêmir`, `caséfier`,',
-        '`conpresser`), or a plural in -aus where French writes -aux.',
-        '',
-        'Agreement is deliberately left alone: `frigorifiante` is the regular',
-        'feminine of a participle used as an adjective, correct French that no',
-        'dictionary lists, and refusing it would be the bug this file exists to fix.',
-        '',
-        'To put one back, delete its line. The server reads this file at startup.',
-      ],
-      struck,
-    ),
+    [
+      ...block(
+        '1. words the base list made up',
+        [
+          `${struck.length} words, struck off. Neither Grammalecte nor the Wiktionary,`,
+          'in any of the languages it describes, has an entry for them, and they take',
+          'one of the two shapes that cannot be anything but an error: a conjugation',
+          'of a verb nothing conjugates (`blêmer` for `blêmir`, `caséfier`,',
+          '`conpresser`), or a plural in -aus where French writes -aux.',
+          '',
+          'Agreement is deliberately left alone: `frigorifiante` is the regular',
+          'feminine of a participle used as an adjective, correct French that no',
+          'dictionary lists, and refusing it would be the bug this file exists to fix.',
+          '',
+          'Computed, so deleting a line here brings the word back only until the',
+          'next build. To keep one, move it to the block below.',
+        ],
+        struck,
+      ),
+      ...block(
+        '2. struck by hand',
+        [
+          `${byHand.length} ${byHand.length === 1 ? 'word' : 'words'} the sources do hold and a player should not be`,
+          'shown. Strike another by writing it here: the script keeps whatever it',
+          'finds outside the generated block, and drops a word only once no source',
+          'supplies it any more. The plural usually needs no line of its own, the',
+          'block that completes paradigms completing only what the dictionary still',
+          'accepts; write one when a source supplies the plural itself, as',
+          'Grammalecte does for `orcs`. This is the hand block of extra-words.txt',
+          'run backwards, and a word reported as wrongly accepted belongs in it.',
+        ],
+        byHand,
+      ),
+    ],
     (checksum) => [
       '# Boggle multijoueur : mots retirés du dictionnaire',
       '#',
       `# version   ${LEXICON_VERSION}`,
       `# generated ${new Date().toISOString().slice(0, 10)} by scripts/build-lexicon.mjs`,
-      `# words     ${struck.length}`,
+      `# words     ${struck.length + byHand.length}`,
       `# sha256    ${checksum}`,
       '#',
       '# The base word list (an-array-of-french-words, from the Letterpress lists,',
-      '# archived in 2019) carries spellings no dictionary has ever had. These are',
-      '# the ones no judgement is needed to see.',
+      '# archived in 2019) carries spellings no dictionary has ever had. Block 1',
+      '# is the ones no judgement is needed to see; block 2 is the ones that',
+      '# needed it, written by hand and kept across rebuilds.',
     ],
   );
 
-  console.log(`\nWrote ${struck.length} words to ${EXCLUDED} (sha256 ${struckSum})`);
+  console.log(`\nWrote ${struck.length + byHand.length} words to ${EXCLUDED} (sha256 ${struckSum})`);
   console.log(`Wrote ${blockGrammalecte.length} words to ${CURATED} (sha256 ${curatedSum})`);
   console.log(`Wrote ${extraCount} words to ${EXTRA} (sha256 ${extraSum})`);
   console.log(`  version ${LEXICON_VERSION}`);

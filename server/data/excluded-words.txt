@@ -1,13 +1,14 @@
 # Boggle multijoueur : mots retirés du dictionnaire
 #
-# version   3.0.0
-# generated 2026-08-21 by scripts/build-lexicon.mjs
-# words     606
-# sha256    c5bd21c7eabd03aa
+# version   4.0.0
+# generated 2026-09-13 by scripts/build-lexicon.mjs
+# words     635
+# sha256    7bc44042ad7db05d
 #
 # The base word list (an-array-of-french-words, from the Letterpress lists,
-# archived in 2019) carries spellings no dictionary has ever had. These are
-# the ones no judgement is needed to see.
+# archived in 2019) carries spellings no dictionary has ever had. Block 1
+# is the ones no judgement is needed to see; block 2 is the ones that
+# needed it, written by hand and kept across rebuilds.
 #
 # One word per line. Blank lines and lines starting with # are ignored;
 # accents and case do not matter. Read when the server starts.
@@ -15,7 +16,7 @@
 # Regenerate:
 #   npm run lexicon -- --write
 #   node scripts/build-definitions.mjs   # or the new words have no definition
-# --- words the base list made up -----------------------------------------------
+# --- 1. words the base list made up --------------------------------------------
 #     606 words, struck off. Neither Grammalecte nor the Wiktionary,
 #     in any of the languages it describes, has an entry for them, and they take
 #     one of the two shapes that cannot be anything but an error: a conjugation
@@ -26,7 +27,8 @@
 #     feminine of a participle used as an adjective, correct French that no
 #     dictionary lists, and refusing it would be the bug this file exists to fix.
 #     
-#     To put one back, delete its line. The server reads this file at startup.
+#     Computed, so deleting a line here brings the word back only until the
+#     next build. To keep one, move it to the block below.
 
 amotissaient
 amotissais
@@ -634,3 +636,43 @@ scintillerât
 scintillerâtes
 scintillerèrent
 serdeaus
+
+# --- 2. struck by hand ---------------------------------------------------------
+#     29 words the sources do hold and a player should not be
+#     shown. Strike another by writing it here: the script keeps whatever it
+#     finds outside the generated block, and drops a word only once no source
+#     supplies it any more. The plural usually needs no line of its own, the
+#     block that completes paradigms completing only what the dictionary still
+#     accepts; write one when a source supplies the plural itself, as
+#     Grammalecte does for `orcs`. This is the hand block of extra-words.txt
+#     run backwards, and a word reported as wrongly accepted belongs in it.
+
+aéro
+aprème
+astro
+autor
+bénoche
+bénouze
+calfouette
+carbu
+gnac
+gogue
+histo
+maccab
+macchab
+mili
+nap
+orc
+orcs
+pédago
+perquise
+pistoche
+pitaine
+pronos
+publi
+ravito
+régul
+reum
+soluce
+turellement
+zique

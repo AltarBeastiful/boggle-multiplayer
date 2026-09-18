@@ -21,8 +21,10 @@ const here = dirname(fileURLToPath(import.meta.url));
  *
  * Two players found the two shapes of that gap: "grader" accepted and
  * "gradera" refused, "orque" accepted and "orc" refused. `scripts/build-lexicon.mjs`
- * fills both from dictionaries that are lexicons, into the two files below,
- * one per source licence. See `data/README.md`.
+ * fills the first from dictionaries that are lexicons, into the two files below,
+ * one per source licence; the second turned out to be the base list being right,
+ * `orc` being the English spelling, and it is struck by hand. See
+ * `data/README.md`.
  *
  * Three optional files adjust it without rebuilding anything:
  *   data/grammalecte-words.txt  the Grammalecte dictionary, flattened (MPL 2.0)
